@@ -1,0 +1,74 @@
+
+
+if(" ${CMAKE_SOURCE_DIR}" STREQUAL " ${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "Please create a separate directory for build files.")
+endif()
+
+cmake_minimum_required(VERSION 3.13)
+
+project(ModelStream LANGUAGES C CXX CUDA)
+set(CMAKE_BUILD_TYPE Debug)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
+    CACHE INTERNAL "Top-level directory of this project")
+
+option(build_modules "build modules" OFF)
+option(build_modules_contrib "build extra modules" OFF)
+option(build_samples "build sample programs" OFF)
+option(build_tests "build unit tests" ON)
+option(build_test_coverage  "Test code coverage" OFF)
+option(build_tools "build tools" OFF)
+option(build_python_api "build python api" OFF)
+
+
+# 静态库 and 动态库输出目录
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${MODELSTREAM_ROOT_PATH}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${MODELSTREAM_ROOT_PATH}/lib)
+
+# 可执行文件输出目录
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${MODELSTREAM_ROOT_PATH}/bin)
+
+if(build_tests)
+  # ---[ gtest
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest)
+
+  # 打印验证编译输出
+  get_target_property(GTEST_LOCATION gtest LOCATION)
+  message(STATUS "GTest library location: ${GTEST_LOCATION}")
+  
+  get_target_property(GTEST_TYPE gtest TYPE)
+  message(STATUS "GTest target type: ${GTEST_TYPE}")
+
+  set(build_gtest_already ON)  # used by subdirectories
+endif()
+
+
+# To use sanitizers, the version of GCC is required to be no less than 4.9
+option(SANITIZE_MEMORY "Enable MemorySanitizer for sanitized targets." OFF)
+option(SANITIZE_ADDRESS "Enable AddressSanitizer for sanitized targets." OFF)
+option(SANITIZE_THREAD "Enable ThreadSanitizer for sanitized targets." OFF)
+option(SANITIZE_UNDEFINED "Enable UndefinedBehaviorSanitizer for sanitized targets." OFF)
+
+# ---[ Build Flags
+if(USE_libstdcpp)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+  message("-- Warning: forcing libstdc++ (controlled by USE_libstdcpp option in cmake)")
+endif()
+
+add_subdirectory(framework)
+if(build_modules)
+  add_subdirectory(modules)
+endif()
+if(build_modules_contrib)
+  add_subdirectory(modules_contrib)
+endif()
+if(build_samples)
+  add_subdirectory(samples)
+endif()
+if(build_tools)
+  add_subdirectory(tools)
+endif()
+

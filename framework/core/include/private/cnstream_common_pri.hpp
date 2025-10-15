@@ -26,6 +26,10 @@
 
 #include <string>
 #include <vector>
+#include <thread>
+#include <mutex>
+#include <map>
+#include <atomic>
 
 // 弃用标记
 #if defined(__GNUC__) || defined(__clang__)
@@ -144,8 +148,6 @@ inline bool IsSubgraphItem(const std::string &item_name) {
          kSubgraphConfigPrefix == item_name.substr(0, strlen(kSubgraphConfigPrefix));
 }
 
-// ----------- Some related function definitions; Originally located at framework/src/cntream_frame.cpp
-
 /**
  * @brief Checks one stream whether reaches EOS.
  *
@@ -157,36 +159,7 @@ inline bool IsSubgraphItem(const std::string &item_name) {
  *
  * @note It's used for removing sources forcedly.
  */
-bool CheckStreamEosReached(const std::string &stream_id, bool sync = true) {
-  if (sync) {
-    while (1) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(20));
-      std::lock_guard<std::mutex> guard(s_eos_lock_);
-      auto iter = s_stream_eos_map_.find(stream_id);
-      if (iter != s_stream_eos_map_.end()) {
-        if (iter->second == true) {
-          s_stream_eos_map_.erase(iter);
-          // LOGI(CORE) << "check stream eos reached, stream_id =  " << stream_id;
-          return true;
-        }
-      } else {
-        return false;
-      }
-    }
-    return false;
-  } else {
-    std::lock_guard<std::mutex> guard(s_eos_lock_);
-    auto iter = s_stream_eos_map_.find(stream_id);
-    if (iter != s_stream_eos_map_.end()) {
-      if (iter->second == true) {
-        s_stream_eos_map_.erase(iter);
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
+bool CheckStreamEosReached(const std::string &stream_id, bool sync = true);
 /**
  * @brief Checks one stream whether reaches EOS.
  *
@@ -197,22 +170,7 @@ bool CheckStreamEosReached(const std::string &stream_id, bool sync = true) {
  *
  * @note It's used for removing sources forcedly.
  */
-void SetStreamRemoved(const std::string &stream_id, bool value = true) {
-  std::lock_guard<std::mutex> guard(s_remove_lock_);
-  auto iter = s_stream_removed_map_.find(stream_id);
-  if (iter != s_stream_removed_map_.end()) {
-    if (value != true) {
-      s_stream_removed_map_.erase(iter);
-      return;
-    }
-    iter->second = true;
-  } else {
-    s_stream_removed_map_[stream_id] = value;
-  }
-  // LOGI(CORE) << "_____SetStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
-}
-
-
+void SetStreamRemoved(const std::string &stream_id, bool value = true);
 /**
  * @brief Checks whether a stream is removed.
  *
@@ -222,16 +180,7 @@ void SetStreamRemoved(const std::string &stream_id, bool value = true) {
  *
  * @note It's used for removing sources forcedly.
  */
-bool IsStreamRemoved(const std::string &stream_id) {
-  std::lock_guard<std::mutex> guard(s_remove_lock_);
-  auto iter = s_stream_removed_map_.find(stream_id);
-  if (iter != s_stream_removed_map_.end()) {
-    // LOGI(CORE) << "_____IsStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
-    return s_stream_removed_map_[stream_id];
-  }
-  return false;
-}
-
+bool IsStreamRemoved(const std::string &stream_id);
 
 /**
  * @brief

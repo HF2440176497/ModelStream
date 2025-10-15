@@ -14,8 +14,8 @@
 *
 *************************************************************************/
 
-#ifndef CNSTREAM_CORE_LOGGING_HPP_
-#define CNSTREAM_CORE_LOGGING_HPP_
+#ifndef CNSTREAM_LOGGING_HPP_
+#define CNSTREAM_LOGGING_HPP_
 #include <glog/logging.h>
 
 #define LOGF(tag) LOG(FATAL) << "[CNStream " << (#tag) << " FATAL] "
@@ -25,11 +25,12 @@
 #define LOGD(tag) VLOG(1) << "[CNStream " << (#tag) << " DEBUG] "
 #define LOGT(tag) VLOG(2) << "[CNStream " << (#tag) << " TRACE] "
 
+// 条件日志
 #define LOGF_IF(tag, condition) LOG_IF(FATAL, condition) << "[CNStream " << (#tag) << " FATAL] "
 #define LOGE_IF(tag, condition) LOG_IF(ERROR, condition) << "[CNStream " << (#tag) << " ERROR] "
-#define LOGW_IF(tag, condition) LOG_IF(WARNING, condition) << << "[CNStream " << (#tag) << " WARN] "
+#define LOGW_IF(tag, condition) LOG_IF(WARNING, condition) << "[CNStream " << (#tag) << " WARN] "
 #define LOGI_IF(tag, condition) LOG_IF(INFO, condition) << "[CNStream " << (#tag) << " INFO] "
 #define LOGD_IF(tag, condition) VLOG_IF(1, condition) << "[CNStream " << (#tag) << " DEBUG] "
 #define LOGT_IF(tag, condition) VLOG_IF(2, condition) << "[CNStream " << (#tag) << " TRACE] "
 
-#endif  // CNSTREAM_CORE_LOGGING_HPP_
+#endif  // CNSTREAM_LOGGING_HPP_

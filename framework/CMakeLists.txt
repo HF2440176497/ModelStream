@@ -20,10 +20,6 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src core_srcs)
 
-# add macro definitions
-if(build_tests)
-  add_definitions(-DUNIT_TEST)
-endif()
 
 add_library(modelstream_core SHARED ${core_srcs})
 target_link_libraries(modelstream_core dl pthread ${GFLAGS_LIBRARIES})

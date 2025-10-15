@@ -6,7 +6,7 @@ endif()
 
 cmake_minimum_required(VERSION 3.13)
 
-project(ModelStream LANGUAGES C CXX CUDA)
+project(ModelStream LANGUAGES C CXX)
 set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -31,16 +31,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${MODELSTREAM_ROOT_PATH}/lib)
 # 可执行文件输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${MODELSTREAM_ROOT_PATH}/bin)
 
+# add macro definitions
+if(build_tests)
+  add_definitions(-DUNIT_TEST)
+endif()
+
 if(build_tests)
   # ---[ gtest
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest)
 
-  # 打印验证编译输出
-  get_target_property(GTEST_LOCATION gtest LOCATION)
-  message(STATUS "GTest library location: ${GTEST_LOCATION}")
+  # get_target_property(GTEST_LOCATION gtest LOCATION)
+  # message(STATUS "GTest library location: ${GTEST_LOCATION}")
   
-  get_target_property(GTEST_TYPE gtest TYPE)
-  message(STATUS "GTest target type: ${GTEST_TYPE}")
+  # get_target_property(GTEST_TYPE gtest TYPE)
+  # message(STATUS "GTest target type: ${GTEST_TYPE}")
 
   set(build_gtest_already ON)  # used by subdirectories
 endif()

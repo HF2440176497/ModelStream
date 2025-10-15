@@ -15,19 +15,22 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/incl
 # include source in framework/core
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../core/src)
 
-# ---[ gflags
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
-include_directories(${GFLAGS_INCLUDE_DIRS})
-
-# ---[ glog
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
-include_directories(${GLOG_INCLUDE_DIRS})
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
-# unitest/core/ and test_main.cpp
+# unitest/core/ and main.cpp
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core core_test_srcs)
-list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp)
+list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
-add_executable(cnstream_core_test ${core_test_srcs})
-add_dependencies(cnstream_core_test cnstream_core gtest)
-
+if(TARGET modelstream_core AND TARGET gtest)
+    add_executable(modelstream_core_test ${core_test_srcs})
+    target_link_libraries(modelstream_core_test 
+        modelstream_core
+        gtest
+    )
+else()
+    if(NOT TARGET modelstream_core)
+        message(STATUS "modelstream_core target not found - skipping modelstream_core_test")
+    endif()
+    if(NOT TARGET gtest)
+        message(STATUS "gtest target not found - skipping modelstream_core_test")
+    endif()
+endif()

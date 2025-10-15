@@ -25,8 +25,6 @@
 #include <thread>
 #include <utility>
 
-#include "cnstream_pipeline.hpp"
-
 namespace cnstream {
 
 EventBus::~EventBus() {
@@ -65,11 +63,6 @@ void EventBus::ClearAllWatchers() {
 }
 
 const std::list<BusWatcher> &EventBus::GetBusWatchers() const {
-  RwLockReadGuard lk(watcher_rwlock_);
-  return bus_watchers_;
-}
-
-std::list<BusWatcher> GetBusWatchersCopy() const {
   RwLockReadGuard lk(watcher_rwlock_);
   return bus_watchers_;
 }

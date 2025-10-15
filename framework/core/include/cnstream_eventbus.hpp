@@ -36,6 +36,7 @@
 #include <utility>
 
 #include "cnstream_common.hpp"
+#include "cnstream_logging.hpp"
 #include "util/cnstream_queue.hpp"
 #include "util/cnstream_rwlock.hpp"
 

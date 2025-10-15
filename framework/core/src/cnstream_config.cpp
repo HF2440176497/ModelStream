@@ -297,6 +297,7 @@ bool CNGraphConfig::ParseByJSONStr(const std::string& json_str) {
 
 std::string GetPathRelativeToTheJSONFile(const std::string& path, const ModuleParamSet& param_set) {
   std::string jsf_dir = "./";
+  // pipeline json dir
   if (param_set.find(CNS_JSON_DIR_PARAM_NAME) != param_set.end()) {
     jsf_dir = param_set.find(CNS_JSON_DIR_PARAM_NAME)->second;
   }

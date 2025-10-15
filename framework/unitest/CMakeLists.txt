@@ -16,14 +16,17 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/incl
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../core/src)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
-# unitest/core/ and main.cpp
+# unitest/core/, base.cpp, main.cpp
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core core_test_srcs)
+list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/base.cpp)
 list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
 if(TARGET modelstream_core AND TARGET gtest)
     add_executable(modelstream_core_test ${core_test_srcs})
     target_link_libraries(modelstream_core_test 
         modelstream_core
+        gflags
+        glog
         gtest
     )
 else()

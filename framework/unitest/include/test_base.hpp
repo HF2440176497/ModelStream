@@ -1,7 +1,0 @@
-
-#ifndef UNITEST_INCLUDE_TEST_BASE_HPP_
-#define UNITEST_INCLUDE_TEST_BASE_HPP_
-
-
-
-#endif

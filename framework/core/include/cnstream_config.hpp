@@ -44,7 +44,6 @@ namespace cnstream {
  */
 using ModuleParamSet = std::map<std::string, std::string>;
 
-// Group:Framework Function
 /**
  * @brief Gets the complete path of a file.
  *
@@ -339,6 +338,7 @@ class ParametersChecker {
    */
   bool CheckPath(const std::string &path, const ModuleParamSet &paramSet) {
     std::string relative_path = GetPathRelativeToTheJSONFile(path, paramSet);
+    // From posix <unistd.h>
     if ((access(relative_path.c_str(), R_OK)) == -1) {
       return false;
     }

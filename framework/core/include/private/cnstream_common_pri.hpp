@@ -30,6 +30,8 @@
 #include <mutex>
 #include <map>
 #include <atomic>
+#include <filesystem>
+
 
 // 弃用标记
 #if defined(__GNUC__) || defined(__clang__)
@@ -193,6 +195,25 @@ inline std::vector<std::string> StringSplit(const std::string& s, char c) {
     result.push_back(piece);
   }
   return result;
+}
+
+/**
+ * @brief Creates directories if not exists.
+ *
+ * @param[in] path The path of directories.
+ *
+ * @return Returns true if the directories have been created successfully, otherwise returns false.
+ */
+inline bool create_directories_if_not_exists(const std::string& path) {
+    if (std::filesystem::exists(path)) { return true; }
+    try {
+        return std::filesystem::create_directories(path);
+    } catch (const std::filesystem::filesystem_error& e) {
+        return false;
+    } catch (const std::exception& e) {
+        return false;
+    }
+    return false;
 }
 
 }  // namespace cnstream

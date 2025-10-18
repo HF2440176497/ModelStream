@@ -50,6 +50,10 @@ std::string GetPathDir(const std::string& path) {
   return slash_pos == std::string::npos ? "" : path.substr(0, slash_pos) + "/";
 }
 
+/**
+ * @brief 从 JSON 文件中解析配置
+ * 调用接口 ParseByJSONStr (pure virtual func interface)
+ */
 bool CNConfigBase::ParseByJSONFile(const std::string& jfile) {
   std::ifstream ifs(jfile);
   if (!ifs.is_open()) {
@@ -81,7 +85,7 @@ bool ProfilerConfig::ParseByJSONStr(const std::string& jstr) {
         LOGE(CORE) << "enable_profiling must be boolean type.";
         return false;
       }
-    } else if ("enable_tracing"  == iter->name) {
+    } else if ("enable_tracing" == iter->name) {
       if (iter->value.IsBool()) {
         this->enable_tracing = iter->value.GetBool();
       } else {
@@ -104,6 +108,9 @@ bool ProfilerConfig::ParseByJSONStr(const std::string& jstr) {
   return true;
 }
 
+/**
+ * @detail 注意：没有设置 name (std::string) 成员
+ */
 bool CNModuleConfig::ParseByJSONStr(const std::string& jstr) {
   rapidjson::Document doc;
   if (doc.Parse<rapidjson::kParseCommentsFlag>(jstr.c_str()).HasParseError()) {

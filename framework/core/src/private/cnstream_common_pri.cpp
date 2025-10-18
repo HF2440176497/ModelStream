@@ -21,7 +21,7 @@ bool CheckStreamEosReached(const std::string &stream_id, bool sync = true) {
       if (iter != s_stream_eos_map_.end()) {
         if (iter->second == true) {
           s_stream_eos_map_.erase(iter);
-          // LOGI(CORE) << "check stream eos reached, stream_id =  " << stream_id;
+          LOGI(CORE) << "check stream eos reached, stream_id =  " << stream_id;
           return true;
         }
       } else {
@@ -54,7 +54,7 @@ void SetStreamRemoved(const std::string &stream_id, bool value = true) {
   } else {
     s_stream_removed_map_[stream_id] = value;
   }
-  // LOGI(CORE) << "_____SetStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
+  LOGI(CORE) << "_____SetStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
 }
 
 
@@ -62,7 +62,7 @@ bool IsStreamRemoved(const std::string &stream_id) {
   std::lock_guard<std::mutex> guard(s_remove_lock_);
   auto iter = s_stream_removed_map_.find(stream_id);
   if (iter != s_stream_removed_map_.end()) {
-    // LOGI(CORE) << "_____IsStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
+    LOGI(CORE) << "_____IsStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
     return s_stream_removed_map_[stream_id];
   }
   return false;

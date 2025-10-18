@@ -9,10 +9,16 @@
 #define UNITEST_INCLUDE_TEST_BASE_HPP_
 
 #include <string>
+#include <string.h>
+#include <utility>
+#include <cstdlib>
+#include <unistd.h>
+#include <cerrno>
 #include <utility>
 
-#define PATH_MAX_LENGTH 1024
+#include "cnstream_logging.hpp"
 
+#define PATH_MAX_LENGTH 1024
 
 /**
  * @brief 获取当前执行程序的路径

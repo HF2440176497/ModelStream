@@ -20,15 +20,6 @@
 
 #include "base.hpp"
 
-#include <unistd.h>
-#include <string.h>
-
-#include <cerrno>
-#include <string>
-#include <utility>
-
-#include "cnstream_logging.hpp"
-
 extern int errno;
 
 std::string random_field_str = "XXXXXX";
@@ -59,7 +50,7 @@ void CheckExePath(const std::string& path) {
 }
 
 // Unix-like systems function
-// 根据路径创建临时文件需要手动维护关闭
+// 根据路径创建临时文件，在外需要手动维护关闭
 std::pair<int, std::string> CreateTempFile(const std::string& filename_prefix) {
   char filename[PATH_MAX_LENGTH];
   if (filename_prefix.size() > PATH_MAX_LENGTH - random_field_str.size()) {

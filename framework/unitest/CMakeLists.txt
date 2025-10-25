@@ -12,8 +12,6 @@ if(NOT build_gtest_already)
 endif()
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
 
-# include source in framework/core
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../core/src)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
 # unitest/core/, base.cpp, main.cpp

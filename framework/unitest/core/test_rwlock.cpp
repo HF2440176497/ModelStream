@@ -1,14 +1,12 @@
 
-#include <gtest/gtest.h>
-#include "util/cnstream_rwlock.hpp"
 
 #include <thread>
 #include <vector>
 #include <atomic>
 #include <chrono>
-/**
- * 
- */
+#include <gtest/gtest.h>
+
+#include "util/cnstream_rwlock.hpp"
 
 namespace cnstream {
 

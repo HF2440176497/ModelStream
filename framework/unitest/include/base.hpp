@@ -15,6 +15,16 @@
 #include <unistd.h>
 #include <cerrno>
 #include <utility>
+#include <vector>
+#include <memory>
+
+#include <iostream>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/writer.h>
 
 #include "cnstream_logging.hpp"
 
@@ -37,5 +47,10 @@ void CheckExePath(const std::string& path);
  **/
 std::pair<int, std::string> CreateTempFile(const std::string& filename_prefix);
 
+/**
+ * @brief 截取自 CNConfigBase::ParseByJSONFile
+ * 读取 json 文件内容为 json 字符串
+ */
+std::string readFile(const char* filename);
 
 #endif

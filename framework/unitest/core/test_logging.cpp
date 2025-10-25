@@ -1,6 +1,4 @@
 
-#include <gtest/gtest.h>
-
 #include "base.hpp"
 #include "cnstream_logging.hpp"
 
@@ -10,6 +8,6 @@
  */
 TEST(Logging, TestLog) {
     LOGI(COREUNITEST) << "Test log info";
-    LOGW(COREUNITEST) << "Test log warning";
-    LOGE(COREUNITEST) << "Test log error";
+    LOGW(COREUNITEST) << "Test log warning; Please ignore";
+    LOGE(COREUNITEST) << "Test log error; Please ignore";
 }

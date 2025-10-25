@@ -63,3 +63,15 @@ std::pair<int, std::string> CreateTempFile(const std::string& filename_prefix) {
       << strerror(errno);
   return std::make_pair(fd, std::string(filename));
 }
+
+
+std::string readFile(const char* filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        LOGE(COREUNITEST) << "Open file " << filename << " failed";
+        return "";
+    }
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+    return content;
+}

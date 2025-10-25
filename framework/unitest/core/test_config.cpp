@@ -3,33 +3,10 @@
 * 测试 Json 文件读取，配置解析
 */
 
-
-#include <iostream>
-#include <fstream>
-#include <gtest/gtest.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/writer.h>
-
 #include "base.hpp"
 #include "cnstream_config.hpp"
 
-std::string test_pipeline_json = "pipeline.json";
-
-/**
- * @brief 截取自 CNConfigBase::ParseByJSONFile
- */
-std::string readFile(const char* filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        LOGE(COREUNITEST) << "Open file " << filename << " failed";
-        return "";
-    }
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    file.close();
-    return content;
-}
+static std::string test_pipeline_json = "pipeline.json";
 
 TEST(JSON, ReadFile) {
     std::string json_str = readFile(test_pipeline_json.c_str());
@@ -55,8 +32,9 @@ TEST(JSON, ReadFile2Str) {
     doc.Parse(json_str.c_str());
     EXPECT_FALSE(doc.HasParseError()) << "Parse json file failed";
 
-    EXPECT_TRUE(doc.HasMember("Inferencer")) << "Json file has no Inferencer field";
-    const rapidjson::Value& inferencer = doc["Inferencer"];
+    std::string infer_name = "InferencerYolo";
+    EXPECT_TRUE(doc.HasMember(infer_name.c_str())) << "Json file has no Inferencer field";
+    const rapidjson::Value& inferencer = doc[infer_name.c_str()];
     EXPECT_TRUE(inferencer.IsObject()) << "Inferencer field is not object";
     
     rapidjson::StringBuffer buffer;
@@ -92,8 +70,9 @@ TEST(CoreConfig, ModuleConfig) {
     doc.Parse(json_str.c_str());
     EXPECT_FALSE(doc.HasParseError()) << "Parse json file failed";
 
-    EXPECT_TRUE(doc.HasMember("Inferencer")) << "Json file has no Inferencer field";
-    const rapidjson::Value& inferencer = doc["Inferencer"];
+    std::string infer_name = "InferencerYolo";
+    EXPECT_TRUE(doc.HasMember(infer_name.c_str())) << "Json file has no Inferencer field";
+    const rapidjson::Value& inferencer = doc[infer_name.c_str()];
     EXPECT_TRUE(inferencer.IsObject()) << "Inferencer field is not object";
     
     rapidjson::StringBuffer buffer;

@@ -20,7 +20,7 @@ option(build_modules_contrib "build extra modules" OFF)
 option(build_samples "build sample programs" OFF)
 option(build_tests "build unit tests" ON)
 option(build_test_coverage  "Test code coverage" OFF)
-option(build_tools "build tools" OFF)
+option(build_tools "build tools" ON)
 option(build_python_api "build python api" OFF)
 
 
@@ -35,6 +35,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${MODELSTREAM_ROOT_PATH}/bin)
 if(build_tests)
   add_definitions(-DUNIT_TEST)
 endif()
+
+# 关闭 Profiler 模块的编译
+add_definitions(-DCLOSE_PROFILER)
 
 if(build_tests)
   # ---[ gtest

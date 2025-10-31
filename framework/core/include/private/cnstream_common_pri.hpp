@@ -32,6 +32,8 @@
 #include <atomic>
 #include <filesystem>
 
+#include "private/cnstream_constants_pri.hpp"
+
 
 // 弃用标记
 #if defined(__GNUC__) || defined(__clang__)
@@ -122,20 +124,13 @@ class NonCopyable {
   NonCopyable& operator=(NonCopyable&&) = delete;
 };
 
-constexpr size_t INVALID_MODULE_ID = (size_t)(-1);
-constexpr uint32_t INVALID_STREAM_IDX = (uint32_t)(-1);
-static constexpr uint32_t MAX_STREAM_NUM = 128; /*!< The streams at most allowed. */
 
-#define CNS_JSON_DIR_PARAM_NAME "json_file_dir"
+// some static variables for stream EOS and removed status
+static std::mutex s_eos_lock_;
+static std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
 
-/**
- * @brief Profiler configuration title in JSON configuration file.
- **/
-static constexpr char kProfilerConfigName[] = "profiler_config";
-/**
- * @brief Subgraph node item prefix.
- **/
-static constexpr char kSubgraphConfigPrefix[] = "subgraph:";
+static std::mutex s_remove_lock_;
+static std::map<std::string, bool> s_stream_removed_map_;
 
 /**
  *

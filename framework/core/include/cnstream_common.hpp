@@ -29,29 +29,6 @@
 
 #include "private/cnstream_common_pri.hpp"
 
-namespace cnstream {
-
-// Group:Framework Function
-/*!
- * @brief Gets the number of modules that a pipeline is able to hold.
- *
- * @return The maximum modules of a pipeline can own.
- */
-uint32_t GetMaxModuleNumber();
-
-// Group:Framework Function
-/*!
- * @brief Gets the number of streams that a pipeline can hold, regardless of the limitation of hardware resources.
- *
- * @return Returns the value of `MAX_STREAM_NUM`.
- *
- * @note The factual stream number that a pipeline can process is always subject to hardware resources, no more than
- * `MAX_STREAM_NUM`.
- */
-uint32_t GetMaxStreamNumber();
-
-}  // namespace cnstream
-
 #ifndef ROUND_UP
 #define ROUND_UP(addr, boundary) (((uint64_t)(addr) + (boundary)-1) & ~((boundary)-1))
 #endif

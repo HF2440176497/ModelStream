@@ -1,18 +1,15 @@
 
+#include "cnstream_logging.hpp"
 #include "private/cnstream_common_pri.hpp"
 
 namespace cnstream {
 
 // ----------- Some related function definitions; Originally located at framework/src/cntream_frame.cpp
 
-// some static variables for stream EOS and removed status
-static std::mutex s_eos_lock_;
-static std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
-
-static std::mutex s_remove_lock_;
-static std::map<std::string, bool> s_stream_removed_map_;
-
-bool CheckStreamEosReached(const std::string &stream_id, bool sync = true) {
+/**
+ * sync == true: 找到 steam_id 的情况下一直等到 second == true 才返回
+ */
+bool CheckStreamEosReached(const std::string &stream_id, bool sync) {
   if (sync) {
     while (1) {
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -42,7 +39,7 @@ bool CheckStreamEosReached(const std::string &stream_id, bool sync = true) {
   }
 }
 
-void SetStreamRemoved(const std::string &stream_id, bool value = true) {
+void SetStreamRemoved(const std::string &stream_id, bool value) {
   std::lock_guard<std::mutex> guard(s_remove_lock_);
   auto iter = s_stream_removed_map_.find(stream_id);
   if (iter != s_stream_removed_map_.end()) {

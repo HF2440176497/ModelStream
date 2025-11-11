@@ -130,7 +130,8 @@ static std::mutex s_eos_lock_;
 static std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
 
 static std::mutex s_remove_lock_;
-static std::map<std::string, bool> s_stream_removed_map_;
+// static std::map<std::string, bool> s_stream_removed_map_;
+static std::set<std::string> s_stream_removed_set_;
 
 /**
  *

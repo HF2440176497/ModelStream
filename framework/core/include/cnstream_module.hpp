@@ -192,9 +192,10 @@ class Module : private NonCopyable {
    * @param[in] data A pointer to the information of the frame.
    *
    * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
+   *
+   * bool TransmitData(std::shared_ptr<CNFrameInfo> data);
    */
-  bool TransmitData(std::shared_ptr<CNFrameInfo> data);
-
+  
   /**
    * @brief Checks parameters for a module, including parameter name, type, value, validity, and so on.
    *
@@ -211,6 +212,8 @@ class Module : private NonCopyable {
    */
   Pipeline* GetContainer() const { return container_; }
 
+  std::shared_ptr<Connector> GetConnector() const { return connector_; }
+
 #ifndef CLOSE_PROFILER
   /**
    * @brief Gets module profiler.
@@ -220,15 +223,8 @@ class Module : private NonCopyable {
   ModuleProfiler* GetProfiler();
 #endif
 
-  /**
-   * @brief Checks if this module has permission to transmit data by itself.
-   *
-   * @return Returns true if this module has permission to transmit data by itself. Otherwise, returns false.
-   *
-   * @see Process
-   */
-
-  bool HasTransmit() const { return hasTransmit_.load(); }
+  // 改进后的 Pipeline 不需要此函数
+  // bool HasTransmit() const { return hasTransmit_.load(); }
 
   /**
    * Each module registers its own parameters and descriptions.
@@ -256,23 +252,27 @@ class Module : private NonCopyable {
   void SetContainer(Pipeline *container);
 
   /**
+   * @brief Sets a connector to this module.
+   * 因为在 Module 中我们也需要引用 connector, SourceMdule 需要放入数据
+   */
+  void SetConnector(std::shared_ptr<Connector> connector) { connector_ = connector; }
+
+  /**
    * @brief Processes the data. This function is called by a pipeline.
    *
    * @param[in] data A pointer to the information of the frame.
    *
    * @retval 0: The process has been run successfully. The data should be transmitted by framework then.
-   * @retval >0: The process has been run successfully. The data has been handled by this module. The ``hasTransmit_``
-   * must be set. The Pipeline::ProvideData should be called by Module to transmit data to the next modules in the
-   * pipeline.
+   * @retval >0: The process has been run successfully. The data has been handled by this module. 
+   * The Pipeline::ProvideData should be called by Module to transmit data to the next modules in the pipeline.
+   * 
    * @retval <0: Pipeline posts an event with the EVENT_ERROR event type and return number.
    */
   int DoProcess(std::shared_ptr<CNFrameInfo> data);
 
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;
-
   std::string name_;                      ///< The name of the module.
-  std::atomic<bool> hasTransmit_{false};  ///< Whether it has permission to transmit data.
 
 #ifdef UNIT_TEST
  public:  // NOLINT
@@ -292,25 +292,8 @@ class Module : private NonCopyable {
 
   size_t GetId();
   size_t id_ = INVALID_MODULE_ID;
-  NodeContext* context_ = nullptr;  // used by pipeline
-};
-
-/**
- * @class ModuleEx
- *
- * @brief ModuleEx is the base class of the modules who have permission to transmit processed data by themselves.
- */
-class ModuleEx : public Module {
- public:
-  /**
-   * @brief Constructor. A constructor to construct the module which has permission to transmit processed data by
-   *        itself.
-   *
-   * @param[in] name The name of a module. Modules defined in a pipeline must have different names.
-   *
-   * @return No return value.
-   */
-  explicit ModuleEx(const std::string &name) : Module(name) { hasTransmit_.store(true); }
+  NodeContext* context_ = nullptr;  // 外界创建传入的 使用裸指针
+  std::shared_ptr<Connector> connector_ = nullptr;  // 完全交给 Module
 };
 
 }  // namespace cnstream

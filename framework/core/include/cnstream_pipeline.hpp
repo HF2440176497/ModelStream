@@ -58,11 +58,9 @@ namespace cnstream {
  */
  struct NodeContext {
   std::shared_ptr<Module> module;
-  std::shared_ptr<Connector> connector;
   uint64_t parent_nodes_mask = 0;
   uint64_t route_mask = 0;  // for head nodes
-  // for gets node instance by a module, see Module::context_;
-  std::weak_ptr<CNGraph<NodeContext>::CNNode> node;
+  std::weak_ptr<CNGraph<NodeContext>::CNNode> node;  // for gets node instance by a module, see Module::context_;
 };
 
 
@@ -249,6 +247,8 @@ class Pipeline : private NonCopyable {
    * @return Returns true if tracing is enabled.
    **/
   bool IsTracingEnabled() const;
+#endif
+
   /**
    * @brief Provides data for the pipeline that is used in source module or the module transmitted by itself.
    *
@@ -263,8 +263,6 @@ class Pipeline : private NonCopyable {
    *
    * @see Module::Process.
    */
-#endif
-
   bool ProvideData(const Module* module, std::shared_ptr<CNFrameInfo> data);
   /**
    * @brief Gets the event bus in the pipeline.
@@ -337,7 +335,11 @@ class Pipeline : private NonCopyable {
    */
   void RegisterFrameDoneCallBack(const std::function<void(std::shared_ptr<CNFrameInfo>)>& callback);
 
+#ifdef UNIT_TEST
+ public:
+#else
  private:
+#endif
   /** called by BuildPipeline **/
   bool CreateModules(std::vector<std::shared_ptr<Module>>* modules);
   void GenerateModulesMask();
@@ -350,7 +352,7 @@ class Pipeline : private NonCopyable {
   void OnProcessFailed(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data, int ret);
   void OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
   void OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
-  void OnPassThrough(const std::shared_ptr<CNFrameInfo>& data);
+  void OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
 
   void TransmitData(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
   void TaskLoop(NodeContext* context, uint32_t conveyor_idx);
@@ -362,7 +364,7 @@ class Pipeline : private NonCopyable {
   std::unique_ptr<CNGraph<NodeContext>> graph_;
   std::vector<std::string> sorted_module_names_;
 
-  std::string name_;
+  std::string name_;  // pipeline_name
   std::atomic<bool> running_{false};
   std::unique_ptr<EventBus> event_bus_ = nullptr;
 
@@ -381,6 +383,7 @@ class Pipeline : private NonCopyable {
   std::unique_ptr<PipelineProfiler> profiler_;
 #endif
 
+  // OnPassThrough 调用的回调函数
   std::function<void(std::shared_ptr<CNFrameInfo>)> frame_done_cb_ = NULL;
 
   /**

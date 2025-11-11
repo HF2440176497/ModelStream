@@ -85,15 +85,11 @@ bool Module::PostEvent(Event e) {
 }
 
 int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
-  if (data->IsEos() && data->payload && IsStreamRemoved(data->stream_id)) {
-    // FIMXE
-    SetStreamRemoved(data->stream_id, false);
-  }
   RwLockReadGuard guard(container_lock_);
   if (container_) {
     return container_->ProvideData(this, data);
   } else {
-    if (HasTransmit()) NotifyObserver(data);  // 可以设置 Module 缺省 Observer
+    NotifyObserver(data);  // 可以设置 Module 缺省 Observer
     return 0;
   }
 }
@@ -103,49 +99,19 @@ int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
  */
 int Module::DoProcess(std::shared_ptr<CNFrameInfo> data) {
   bool removed = IsStreamRemoved(data->stream_id);
-  if (!removed) {
-    // For the case that module is implemented by a pipeline
-    if (data->payload && IsStreamRemoved(data->payload->stream_id)) {
-      SetStreamRemoved(data->stream_id, true);
-      removed = true;
-    }
-  }
-
-  if (!HasTransmit()) {  // 默认通过 Pipeline 传输
-    if (!data->IsEos()) {
-      if (!removed) {
-        int ret = Process(data);
-        if (ret != 0) {
-          return ret;
-        }
+  if (!data->IsEos()) {
+    if (!removed) {
+      int ret = Process(data);
+      if (ret != 0) {
+        return ret;
       }
-    } else {
-      this->OnEos(data->stream_id);
     }
-    return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
   } else {
-    if (removed) {
-      data->flags |= static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_REMOVED);
-    }
-    return Process(data);  // Module 内的 Process 进行传输
+    this->OnEos(data->stream_id);
   }
-  return -1;
+  return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
 }
 
-/**
- * 相比 DoProcess，TransmitData() 并没有调用 Process
- * 调用处：cnstream_source 和 infer_trans_data_helper
- */
-bool Module::TransmitData(std::shared_ptr<CNFrameInfo> data) {
-  if (!HasTransmit()) {
-    return true;
-  }
-  // 必须要求 HasTransmit() == true
-  if (!DoTransmitData(data)) {
-    return true;
-  }
-  return false;
-}
 
 #ifndef CLOSE_PROFILER
 ModuleProfiler* Module::GetProfiler() {

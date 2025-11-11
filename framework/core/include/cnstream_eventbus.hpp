@@ -55,6 +55,7 @@ enum class EventType {
   EVENT_WARNING,      /*!< A warning event. */
   EVENT_EOS,          /*!< An EOS event. */
   EVENT_STOP,         /*!< A stop event. */
+  EVENT_FRAME_ERROR,  /*!< A frame error event. */
   EVENT_STREAM_ERROR, /*!< A stream error event. */
   EVENT_TYPE_END      /*!< Reserved for users custom events. */
 };

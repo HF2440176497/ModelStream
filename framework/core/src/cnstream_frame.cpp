@@ -45,7 +45,7 @@ std::shared_ptr<CNFrameInfo> CNFrameInfo::Create(const std::string& stream_id, b
   ptr->payload = payload;
   if (eos) {
     ptr->flags |= static_cast<size_t>(cnstream::CNFrameFlag::CN_FRAME_FLAG_EOS);
-    if (!ptr->payload) {
+    if (!ptr->payload) {  // 不存在 payload 的情况下，查询字典中的 stream_id 需要准备好处理 EOS 
       std::lock_guard<std::mutex> guard(s_eos_lock_);
       s_stream_eos_map_[stream_id] = false;
     }
@@ -57,7 +57,7 @@ std::shared_ptr<CNFrameInfo> CNFrameInfo::Create(const std::string& stream_id, b
 CNS_IGNORE_DEPRECATED_PUSH
 CNFrameInfo::~CNFrameInfo() {
   if (this->IsEos()) {
-    if (!this->payload) {
+    if (!this->payload) {  // 不存在 payload 的情况下
       std::lock_guard<std::mutex> guard(s_eos_lock_);
       s_stream_eos_map_[stream_id] = true;
     }

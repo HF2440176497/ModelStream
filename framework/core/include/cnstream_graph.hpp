@@ -881,6 +881,9 @@ std::string CNGraph<T>::GetLogPrefix() const {
   return "[Graph:" + GetFullName() + "]: ";
 }
 
+/**
+ * 在 Init 中调用，
+ */
 template<typename T>
 bool CNGraph<T>::AddVertex(const CNModuleConfig& config) {
   if (!__help_functions__::IsNodeNameValid(config.name)) {

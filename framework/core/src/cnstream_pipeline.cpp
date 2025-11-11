@@ -98,6 +98,9 @@ bool Pipeline::BuildPipeline(const CNGraphConfig& graph_config) {
   return CreateConnectors();
 }
 
+/**
+ * 在 BuildPipeline 后调用
+ */
 bool Pipeline::Start() {
   if (IsRunning()) {
     LOGW(CORE) << "Pipeline is running, the Pipeline::Start function is called multiple times.";
@@ -126,7 +129,7 @@ bool Pipeline::Start() {
   // start data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
     if (!node->data.parent_nodes_mask) continue;  // head node
-    node->data.connector->Start();
+    node->data.module->GetConnector()->Start();
   }
 
   // create process threads
@@ -148,7 +151,7 @@ bool Pipeline::Stop() {
   // stop data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
     if (!node->data.parent_nodes_mask) continue;  // head node
-    auto connector = node->data.connector;
+    auto connector = node->data.module->GetConnector();
     if (connector) {
       // push data will be rejected after Stop()
       // stop first to ensure connector will be empty
@@ -204,6 +207,9 @@ bool Pipeline::ProvideData(const Module* module, std::shared_ptr<CNFrameInfo> da
     return false;
   }
   // data can only created by root nodes.
+  // 非根节点时，module_mask 标记了已经过的节点，因为不会为 0
+  // 根节点时，module_mask 标记的所有 module 中不会经过节点
+  // 两种节点的设置都会在后续的 TransmitData 中，这里要求只有根节点才能创建 modules_mask_ 为 0 的全新数据
   if (!data->GetModulesMask() && module->context_->parent_nodes_mask) {
     LOGE(CORE) << "Provide data to pipeline [" << GetName() << "] failed, "
         << "Data created by module named [" << module->GetName() << "]. "
@@ -228,6 +234,10 @@ bool Pipeline::IsLeafNode(const std::string& module_name) const {
 
 bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
   all_modules_mask_ = 0;
+
+  /**
+   * 我们通过迭代器访问的都是 std::shared_ptr<typename CNGraph<T>::CNNode>
+   */
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
     const CNModuleConfig& config = node_iter->GetConfig();
     // use GetFullName with a graph name prefix to create modules to prevent nodes with the same name in subgraphs.
@@ -237,12 +247,12 @@ bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
           << "], class name : [" << config.className << "].";
       return false;
     }
-    module->context_ = &node_iter->data;
+    module->context_ = &node_iter->data;  // 指向裸指针，因为一定存在
     node_iter->data.node = *node_iter;
     node_iter->data.parent_nodes_mask = 0;
     node_iter->data.route_mask = 0;
     node_iter->data.module = std::shared_ptr<Module>(module);
-    node_iter->data.module->SetContainer(this);
+    node_iter->data.module->SetContainer(this);  // 设置 Pipeline
     modules->push_back(node_iter->data.module);
     all_modules_mask_ |= 1UL << node_iter->data.module->GetId();
   }
@@ -256,6 +266,9 @@ std::vector<std::string> Pipeline::GetSortedModuleNames() {
   return sorted_module_names_;
 }
 
+/**
+ * 在 BuildPipeline 中调用，用于生成每个模块的 parent_nodes_mask
+ */
 void Pipeline::GenerateModulesMask() {
   // parent mask helps to determine whether the data has passed all the parent nodes.
   for (auto cur_node = graph_->DFSBegin(); cur_node != graph_->DFSEnd(); ++cur_node) {
@@ -272,6 +285,7 @@ void Pipeline::GenerateModulesMask() {
       head->data.route_mask |= 1UL << iter->data.module->GetId();
     }
   }
+  // 在 head nodes 中标记可达的节点
 }
 
 bool Pipeline::CreateConnectors() {
@@ -286,12 +300,15 @@ bool Pipeline::CreateConnectors() {
                    "max_input_queue_size[" << config.maxInputQueueSize << "].";
         return false;
       }
-      node_iter->data.connector = std::make_shared<Connector>(config.parallelism, config.maxInputQueueSize);
+      node_iter->data.module->SetConnector(std::make_shared<Connector>(config.parallelism, config.maxInputQueueSize));
     }
   }
   return true;
 }
 
+/**
+ * 是否经过所有的父节点
+ */
 static inline
 bool PassedByAllParentNodes(NodeContext* context, uint64_t data_mask) {
   uint64_t parent_masks = context->parent_nodes_mask;
@@ -335,12 +352,22 @@ void Pipeline::OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrame
   auto module = context->module;
   LOGW(CORE) << "[" << GetName() << "]" << " got frame error from " << module->GetName() <<
     " stream_id: " << data->stream_id << ", pts: " << data->timestamp;
-  StreamMsg msg;
-  msg.type = StreamMsgType::FRAME_ERR_MSG;
-  msg.stream_id = data->stream_id;
-  msg.module_name = module->GetName();
-  msg.pts = data->timestamp;
-  UpdateByStreamMsg(msg);
+
+  Event e;
+  e.type = EventType::EVENT_FRAME_ERROR;
+  e.module_name = module->GetName();
+  e.message = module->GetName() + " frame failed";
+  e.stream_id = data->stream_id;
+  e.thread_id = std::this_thread::get_id();
+  event_bus_->PostEvent(e);
+  
+  // Sasha: 交给 EventBus 再执行
+  // StreamMsg msg;
+  // msg.type = StreamMsgType::FRAME_ERR_MSG;
+  // msg.stream_id = data->stream_id;
+  // msg.module_name = module->GetName();
+  // msg.pts = data->timestamp;
+  // UpdateByStreamMsg(msg);
 }
 
 void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
@@ -367,29 +394,33 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& d
 /**
  * 仅在 Pipeline::TransmitData 中调用
  */
-void Pipeline::OnPassThrough(const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
-    StreamMsg msg;
-    msg.type = StreamMsgType::EOS_MSG;
-    msg.stream_id = data->stream_id;
-    UpdateByStreamMsg(msg);
-    if (IsProfilingEnabled()) profiler_->OnStreamEos(data->stream_id);
+    OnEos(context, data);
+    // StreamMsg msg;
+    // msg.type = StreamMsgType::EOS_MSG;
+    // msg.stream_id = data->stream_id;
+    // UpdateByStreamMsg(msg);
+    if (IsProfilingEnabled()) {
+      profiler_->OnStreamEos(data->stream_id);
+    }
   } else {
-    if (IsProfilingEnabled()) profiler_->RecordOutput(
-        std::make_pair(data->stream_id, data->timestamp));
+    if (IsProfilingEnabled()) profiler_->RecordOutput(std::make_pair(data->stream_id, data->timestamp));
   }
 }
 
 #else
 
-void Pipeline::OnPassThrough(const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
-    StreamMsg msg;
-    msg.type = StreamMsgType::EOS_MSG;
-    msg.stream_id = data->stream_id;
-    UpdateByStreamMsg(msg);
+    OnEos(context, data);
+    // Sasha: 通过 EventBus 通知 EOS
+    // StreamMsg msg;
+    // msg.type = StreamMsgType::EOS_MSG;
+    // msg.stream_id = data->stream_id;
+    // UpdateByStreamMsg(msg);
   }
 }
 
@@ -405,6 +436,9 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
     // set mask to 1 for never touched modules, for case which has multiple source modules.
     data->SetModulesMask(all_modules_mask_ ^ context->route_mask);
   }
+  // SetModulesMask 标记当前根节点不会经过的节点
+  // 异或：相同为 0，不同为 1
+
   if (data->IsEos()) {
     OnEos(context, data);
   } else {
@@ -419,7 +453,7 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
   const bool passed_by_all_modules = PassedByAllModules(cur_mask);
 
   if (passed_by_all_modules) {
-    OnPassThrough(data);
+    OnPassThrough(context, data);
     return;
   }
 
@@ -427,7 +461,7 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
   for (auto next_node : node->GetNext()) {
     if (!PassedByAllParentNodes(&next_node->data, cur_mask)) continue;
     auto next_module = next_node->data.module;
-    auto connector = next_node->data.connector;
+    auto connector = next_module->GetConnector();
     // push data to conveyor only after data passed by all parent nodes.
 
 #ifndef CLOSE_PROFILER
@@ -450,16 +484,15 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
 
 void Pipeline::TaskLoop(NodeContext* context, uint32_t conveyor_idx) {
   auto module = context->module;
-  auto connector = context->connector;
+  auto connector = module->GetConnector();
   auto node_name = module->GetName();
 
   // process loop
   while (IsRunning()) {
     std::shared_ptr<CNFrameInfo> data = nullptr;
-    // pull data from conveyor
-    // connector 在外层判断
-    while (!connector->IsStopped() && data == nullptr)
+    while (!connector->IsStopped() && data == nullptr) {
       data = connector->PopDataBufferFromConveyor(conveyor_idx);
+    }
     if (connector->IsStopped())
       break;
     if (data == nullptr)
@@ -484,18 +517,22 @@ EventHandleFlag Pipeline::DefaultBusWatch(const Event& event) {
                  << event.message;
       ret = EventHandleFlag::EVENT_HANDLE_STOP;
       break;
-    case EventType::EVENT_WARNING:
-      LOGW(CORE) << "[" << event.module_name << "]: "
-                 << event.message;
-      ret = EventHandleFlag::EVENT_HANDLE_SYNCED;
-      break;
     case EventType::EVENT_STOP:
       LOGI(CORE) << "[" << event.module_name << "]: "
                  << event.message;
       ret = EventHandleFlag::EVENT_HANDLE_STOP;
       break;
+    // EVENT_ERROR 和 EVENT_STOP 导致 EventBus 停止
+    case EventType::EVENT_WARNING:
+      LOGW(CORE) << "[" << event.module_name << "] " << event.message;
+      ret = EventHandleFlag::EVENT_HANDLE_SYNCED;
+      break;
     case EventType::EVENT_EOS: {
       LOGD(CORE) << "Pipeline received eos from module " + event.module_name << " of stream " << event.stream_id;
+      smsg.type = StreamMsgType::EOS_MSG;
+      smsg.module_name = event.module_name;
+      smsg.stream_id = event.stream_id;
+      UpdateByStreamMsg(smsg);  // 执行 EOS 逻辑
       ret = EventHandleFlag::EVENT_HANDLE_SYNCED;
       break;
     }
@@ -525,6 +562,10 @@ void Pipeline::UpdateByStreamMsg(const StreamMsg& msg) {
   msgq_.Push(msg);
 }
 
+/**
+ * Pipeline 级别的消息处理执行，用于操作 Pipeline 内的成员，例如停止流
+ * EventBus 用于产生执行消息
+ */
 void Pipeline::StreamMsgHandleFunc() {
   while (!exit_msg_loop_) {
     StreamMsg msg;

@@ -231,6 +231,7 @@ class ThreadSafeJobQueue {
    * @brief 停止队列操作（唤醒所有等待线程）
    */
   void stop() {
+    clear();  // 可以首先清空队列
     {
       std::unique_lock<std::mutex> lock(mutex_);
       run_ = false;

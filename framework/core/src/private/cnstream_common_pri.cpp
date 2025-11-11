@@ -8,10 +8,11 @@ namespace cnstream {
 
 /**
  * sync == true: 找到 steam_id 的情况下一直等到 second == true 才返回
+ * s_stream_eos_map_ 仅在 CNFrameInfo 析构函数中设置 
  */
 bool CheckStreamEosReached(const std::string &stream_id, bool sync) {
   if (sync) {
-    while (1) {
+    while (true) {
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
       std::lock_guard<std::mutex> guard(s_eos_lock_);
       auto iter = s_stream_eos_map_.find(stream_id);
@@ -39,30 +40,45 @@ bool CheckStreamEosReached(const std::string &stream_id, bool sync) {
   }
 }
 
+// void SetStreamRemoved(const std::string &stream_id, bool value) {
+//   std::lock_guard<std::mutex> guard(s_remove_lock_);
+//   auto iter = s_stream_removed_map_.find(stream_id);
+//   if (iter != s_stream_removed_map_.end()) {
+//     if (value != true) {
+//       s_stream_removed_map_.erase(iter);
+//       return;
+//     }
+//     iter->second = true;
+//   } else {
+//     s_stream_removed_map_[stream_id] = value;
+//   }
+//   LOGI(CORE) << "_____SetStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
+// }
+
+
+/**
+ * value == true: 设置移除标志
+ * value == false: 删除移除标志
+ * 当我们确定不再需要的时候的，才可以放心的删除 stream_id
+ */
 void SetStreamRemoved(const std::string &stream_id, bool value) {
   std::lock_guard<std::mutex> guard(s_remove_lock_);
-  auto iter = s_stream_removed_map_.find(stream_id);
-  if (iter != s_stream_removed_map_.end()) {
-    if (value != true) {
-      s_stream_removed_map_.erase(iter);
-      return;
-    }
-    iter->second = true;
+  if (value) {  // 设置移除标志：添加或更新为true
+    s_stream_removed_set_.insert(stream_id);
   } else {
-    s_stream_removed_map_[stream_id] = value;
+    auto iter = s_stream_removed_set_.find(stream_id);
+    if (iter != s_stream_removed_set_.end()) {
+      s_stream_removed_set_.erase(stream_id);
+    }
   }
-  LOGI(CORE) << "_____SetStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
 }
 
-
+/**
+ * Sasha: 改进后的 stream_set 仅保存需要移除的 streamid
+ */
 bool IsStreamRemoved(const std::string &stream_id) {
   std::lock_guard<std::mutex> guard(s_remove_lock_);
-  auto iter = s_stream_removed_map_.find(stream_id);
-  if (iter != s_stream_removed_map_.end()) {
-    LOGI(CORE) << "_____IsStreamRemoved " << stream_id << ":" << s_stream_removed_map_[stream_id];
-    return s_stream_removed_map_[stream_id];
-  }
-  return false;
+  bool removed = s_stream_removed_set_.find(stream_id) != s_stream_removed_set_.end();
 }
 
 }  // namespace cnstream

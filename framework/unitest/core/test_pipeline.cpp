@@ -56,7 +56,6 @@ TEST_F(PipelineConfigLoad, PipelineInit) {
   EXPECT_TRUE(graph->Init(graph_config_));
 
   Pipeline pipeline("test_pipeline");
-  
 
   EXPECT_TRUE(pipeline.graph_->Init(graph_config_));
   std::vector<std::shared_ptr<Module>> modules;
@@ -69,15 +68,11 @@ TEST_F(PipelineConfigLoad, PipelineInit) {
   for (auto cur_node = pipeline.graph_->DFSBegin(); cur_node != pipeline.graph_->DFSEnd(); ++cur_node) {
     std::cout << "----- Node: "<< GetName() << "; Module id: " << cur_node->data.module->GetId() 
     << "; parent_nodes_mask: " << cur_node->data.parent_nodes_mask
-    << std::endl
+    << std::endl;
   }
-
 
   EXPECT_TRUE(pipeline.BuildPipeline(graph_config_));
 
-
-
-  
 
 }  // PipelineInit
 

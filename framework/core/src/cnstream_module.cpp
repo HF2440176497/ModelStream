@@ -84,12 +84,16 @@ bool Module::PostEvent(Event e) {
   }
 }
 
+/**
+ * @return 1 传输成功
+ * @return 0 传输失败
+ */
 int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
   RwLockReadGuard guard(container_lock_);
   if (container_) {
     return container_->ProvideData(this, data);
   } else {
-    NotifyObserver(data);  // 可以设置 Module 缺省 Observer
+    LOGE(CORE) << "[" << GetName() << "] module's container is not set";
     return 0;
   }
 }
@@ -100,14 +104,14 @@ int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
 int Module::DoProcess(std::shared_ptr<CNFrameInfo> data) {
   bool removed = IsStreamRemoved(data->stream_id);
   if (!data->IsEos()) {
-    if (!removed) {
+    if (!removed) {  // 并且不能是正在移除的 stream_id
       int ret = Process(data);
       if (ret != 0) {
         return ret;
       }
     }
   } else {
-    this->OnEos(data->stream_id);
+    this->OnEos(data->stream_id);  // 首先调用 Module 的 OnEos() 逻辑
   }
   return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
 }

@@ -83,7 +83,11 @@ class Connector : private NonCopyable {
   bool IsStopped();
   void EmptyDataQueue();
 
+#ifdef UNIT_TEST
+ public:
+#else
  private:
+#endif
   Conveyor* GetConveyorByIdx(int idx) const;
   Conveyor* GetConveyor(int conveyor_idx) const;
 

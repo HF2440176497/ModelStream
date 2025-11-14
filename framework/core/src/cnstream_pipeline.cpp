@@ -328,6 +328,7 @@ void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<CNFram
 }
 
 void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+  if (data->IsEos()) return;
 #ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
     context->module->GetProfiler()->RecordProcessEnd(
@@ -397,11 +398,7 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& d
 void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
-    OnEos(context, data);
-    // StreamMsg msg;
-    // msg.type = StreamMsgType::EOS_MSG;
-    // msg.stream_id = data->stream_id;
-    // UpdateByStreamMsg(msg);
+    // OnEos(context, data);
     if (IsProfilingEnabled()) {
       profiler_->OnStreamEos(data->stream_id);
     }
@@ -414,18 +411,17 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrame
 
 void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
-  if (data->IsEos()) {
-    OnEos(context, data);
-    // Sasha: 通过 EventBus 通知 EOS
-    // StreamMsg msg;
-    // msg.type = StreamMsgType::EOS_MSG;
-    // msg.stream_id = data->stream_id;
-    // UpdateByStreamMsg(msg);
-  }
+  // 在 Pipeline::TransmitData 调用 OnPassThrough 之前，就已经判断了 EOS
+  // if (data->IsEos()) {
+  //   OnEos(context, data);
+  // }
 }
 
 #endif
 
+/**
+ * @note: 数据传输的核心函数，在 Module 处理完后
+ */
 void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (data->IsInvalid()) {
     OnDataInvalid(context, data);
@@ -442,10 +438,10 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
   if (data->IsEos()) {
     OnEos(context, data);
   } else {
-    OnProcessEnd(context, data);
-    if (IsStreamRemoved(data->stream_id))
+    if (IsStreamRemoved(data->stream_id))  // 表示当前 stream_id 是需要移除的
       return;
   }
+  OnProcessEnd(context, data);
 
   auto node = context->node.lock();
   auto module = context->module;
@@ -453,7 +449,7 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
   const bool passed_by_all_modules = PassedByAllModules(cur_mask);
 
   if (passed_by_all_modules) {
-    OnPassThrough(context, data);
+    OnPassThrough(context, data);  // 不需要再调用 OnEos 操作
     return;
   }
 
@@ -591,8 +587,8 @@ void Pipeline::StreamMsgHandleFunc() {
       case StreamMsgType::USER_MSG7:
       case StreamMsgType::USER_MSG8:
       case StreamMsgType::USER_MSG9:
-        LOGD(CORE) << "[" << GetName() << "] "
-                   << "stream: " << msg.stream_id << " notify message: " << static_cast<std::size_t>(msg.type);
+        LOGD(CORE) << "[" << GetName() << "]" << " stream: " << msg.stream_id 
+                   << " notify message: " << static_cast<std::size_t>(msg.type);
         if (smsg_observer_) {
           smsg_observer_->Update(msg);
         }

@@ -15,6 +15,9 @@
 #include "cnstream_source.hpp"
 #include "data_source_param.hpp"
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 namespace cnstream {
 
@@ -84,6 +87,14 @@ class DataSource : public SourceModule, public ModuleCreator<DataSource> {
    */
   DataSourceParam GetSourceParam() const { return param_; }
 
+  /**
+   * override Module::Process
+   */
+  int Process(std::shared_ptr<CNFrameInfo> data) override {
+    LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->frame_id;
+    return 0;
+  }
+
  private:
   DataSourceParam param_;
 };  // class DataSource
@@ -118,6 +129,8 @@ class ImageQueueHandler : public SourceHandler {
 
 #ifdef UNIT_TEST
  public:
+#else
+ private:
 #endif
   std::unique_ptr<ImageQueueHandlerImpl> impl_;
 };

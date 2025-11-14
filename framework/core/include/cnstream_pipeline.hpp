@@ -384,6 +384,7 @@ class Pipeline : private NonCopyable {
 #endif
 
   // OnPassThrough 调用的回调函数
+  // 可以进行相关的 统计、清理
   std::function<void(std::shared_ptr<CNFrameInfo>)> frame_done_cb_ = NULL;
 
   /**

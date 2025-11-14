@@ -78,6 +78,7 @@ static int GetDeviceId(ModuleParamSet paramSet) {
  */
 bool DataSource::Open(ModuleParamSet paramSet) {
   if(!CheckParamSet(paramSet)) {
+    LOGE(SOURCE) << "CheckParamSet failed";
     return false;
   }
   if (paramSet.find("output_type") != paramSet.end()) {
@@ -166,6 +167,9 @@ bool DataSource::Open(ModuleParamSet paramSet) {
   return true;
 }
 
+/**
+ * Pipeline 中调用 Module->Close()
+ */
 void DataSource::Close() { RemoveSources(); }
 
 /**

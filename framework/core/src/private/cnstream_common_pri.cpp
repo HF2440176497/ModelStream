@@ -9,6 +9,7 @@ namespace cnstream {
 /**
  * sync == true: 找到 steam_id 的情况下一直等到 second == true 才返回
  * s_stream_eos_map_ 仅在 CNFrameInfo 析构函数中设置 
+ * @return true: 查询到 second == true 移除成功
  */
 bool CheckStreamEosReached(const std::string &stream_id, bool sync) {
   if (sync) {
@@ -63,7 +64,7 @@ bool CheckStreamEosReached(const std::string &stream_id, bool sync) {
  */
 void SetStreamRemoved(const std::string &stream_id, bool value) {
   std::lock_guard<std::mutex> guard(s_remove_lock_);
-  if (value) {  // 设置移除标志：添加或更新为true
+  if (value) {  // 设置移除标志
     s_stream_removed_set_.insert(stream_id);
   } else {
     auto iter = s_stream_removed_set_.find(stream_id);

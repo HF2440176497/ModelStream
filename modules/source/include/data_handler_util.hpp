@@ -60,8 +60,7 @@ class SourceRender {
     }
     SendFrameInfo(data);
     eos_sent_ = true;
-    LOGI(SOURCE) << "[" << handler_->GetStreamId() << "]: "
-                  << "Send EOS frame info";
+    LOGI(SOURCE) << "[" << handler_->GetStreamId() << "]: " << "Send EOS frame info";
   }
 
   /**

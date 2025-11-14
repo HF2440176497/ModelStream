@@ -13,6 +13,10 @@
 #include <thread>
 #include <vector>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
 #include "cnstream_logging.hpp"
 #include "data_source.hpp"
 
@@ -55,6 +59,7 @@ class ImageQueueHandlerImpl: public SourceRender {
   void Close();
   void Stop();
   void Loop();
+  bool IsRunning();
 
 public:
   void OnDecodeFrame(std::shared_ptr<ImageFrame> frame);

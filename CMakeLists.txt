@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 
-option(build_modules "build modules" OFF)
+option(build_modules "build modules" ON)
 option(build_modules_contrib "build extra modules" OFF)
 option(build_samples "build sample programs" OFF)
 option(build_tests "build unit tests" ON)

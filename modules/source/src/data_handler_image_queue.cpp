@@ -2,7 +2,7 @@
 
 #include "data_source.hpp"
 
-#include "cnstream_constants_pri.hpp"
+#include "private/cnstream_constants_pri.hpp"
 #include "data_handler_image_queue.hpp"
 
 #include "data_handler_util.hpp"
@@ -48,7 +48,7 @@ bool ImageQueueHandler::Open() {
 
 void ImageQueueHandler::Close() {
   if (impl_) {
-    impl_->Close();
+    impl_->Close();  // for image_queue_impl: close consumer thread
     impl_.reset();
   }
 }
@@ -57,6 +57,10 @@ void ImageQueueHandler::Stop() {
   if (impl_) {
     impl_->Stop();
   }
+}
+
+bool ImageQueueHandler::IsRunning() const { 
+  return running_.load(); 
 }
 
 void ImageQueueHandler::PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images) {
@@ -147,6 +151,7 @@ void ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
   // TODO: 这里的 SetupDataFrame 暂定为抽象接口
   int ret = SetupDataFrame(data, frame, frame_id_++, param_);
   if (ret < 0) {
+    LOGE(SOURCE) << "[" << stream_id_ << "]: SetupDataFrame function, failed to setup data frame.";
     return;
   }
   this->SendFrameInfoConn(data);

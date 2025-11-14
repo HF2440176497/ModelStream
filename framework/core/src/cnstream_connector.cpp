@@ -28,12 +28,14 @@
 namespace cnstream {
 
 Connector::Connector(const size_t conveyor_count, size_t conveyor_capacity) {
-  conveyor_capacity_ = conveyor_capacity;
-  conveyors_.reserve(conveyor_count);
-  fail_times_.reserve(conveyor_count);
-  for (size_t i = 0; i < conveyor_count; ++i) {
+  // 保证至少为 1
+  conveyor_count_ = conveyor_count > 0 ? conveyor_count : 1;
+  conveyor_capacity_ = conveyor_capacity > 0 ? conveyor_capacity : 1;
+  conveyors_.reserve(conveyor_count_);
+  fail_times_.reserve(conveyor_count_);
+  for (size_t i = 0; i < conveyor_count_; ++i) {
     // conveyor_capacity as max_size of Conveyor
-    std::unique_ptr<Conveyor> conveyor(new (std::nothrow) Conveyor(conveyor_capacity));
+    std::unique_ptr<Conveyor> conveyor(new (std::nothrow) Conveyor(conveyor_capacity_));
     LOGF_IF(CORE, nullptr == conveyor) << "Connector::Connector()  new Conveyor failed.";
     conveyors_.push_back(std::move(conveyor));
     fail_times_.push_back(0);

@@ -155,6 +155,7 @@ class Module : private NonCopyable {
    * @note This function will be invoked when flow-EOS is forwarded by the framework.
    */
   virtual void OnEos(const std::string &stream_id) {}
+  // TODO: CNstream 的编解码模块进行了重写，此项目暂时未用到
 
   /**
    * @brief Gets the name of this module.
@@ -282,6 +283,10 @@ class Module : private NonCopyable {
 
   IModuleObserver *observer_ = nullptr;
   RwLock observer_lock_;
+
+  /**
+   * Pipeline::OnEos 和 Pipeline::OnProcessEnd 都调用此函数
+   */
   void NotifyObserver(std::shared_ptr<CNFrameInfo> data) {
     RwLockReadGuard guard(observer_lock_);
     if (observer_) {

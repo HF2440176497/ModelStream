@@ -125,7 +125,7 @@ class ImageQueueHandler : public SourceHandler {
 
  public:
   void PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images);
-  bool SendDataConn(const std::shared_ptr<CNFrameInfo>& data);
+  bool SendDataQueue(const std::shared_ptr<CNFrameInfo>& data);
 
  public:
  // private:

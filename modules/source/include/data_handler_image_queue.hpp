@@ -63,7 +63,9 @@ class ImageQueueHandlerImpl: public SourceRender {
 
 public:
   void OnEndFrame();
-  void OnDecodeFrame(std::shared_ptr<ImageFrame> frame);
+  std::shared_ptr<CNFrameInfo> OnDecodeFrame(std::shared_ptr<ImageFrame> frame);
+
+private:
   int SetupDataFrame(std::shared_ptr<CNFrameInfo> frame_info,
                     std::shared_ptr<ImageFrame> frame, uint64_t frame_id,
                     const DataSourceParam &param_);

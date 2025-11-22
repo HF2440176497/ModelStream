@@ -52,7 +52,7 @@ bool ImageQueueHandler::Open() {
   return impl_->Open();
 }
 
-bool ImageQueueHandler::SendDataConn(const std::shared_ptr<CNFrameInfo>& data) {
+bool ImageQueueHandler::SendDataQueue(const std::shared_ptr<CNFrameInfo>& data) {
   if (!module_->GetConnector()) {
     LOGE(DATASOURCE) << "[" << stream_id_ << "]: connector not connected";
     return false;
@@ -125,6 +125,7 @@ void ImageQueueHandlerImpl::Close() {
  * consumer thread
  */
 void ImageQueueHandlerImpl::Loop() {
+  ImageQueueHandler* image_handler_ = dynamic_cast<ImageQueueHandler*>(handler_);
   while (running_.load()) {
     std::shared_ptr<ImageFrame> frame;
     if (!queue_.WaitAndTryPop(frame, std::chrono::milliseconds(50))) {
@@ -133,11 +134,12 @@ void ImageQueueHandlerImpl::Loop() {
     if (frame_count_++ % param_.interval_ != 0) {
       continue;  // discard frame
     }
-    OnDecodeFrame(frame);
-    if (!module_) {
-      LOGE(SOURCE) << "[" << stream_id_ << "]: module_ null";
+    auto data = OnDecodeFrame(frame);
+    if (!module_ || !image_handler_) {
+      LOGE(SOURCE) << "[" << stream_id_ << "]: module_ or handler_ is null";
       break;
     }
+    image_handler_->SendDataQueue(data);
   }
   OnEndFrame();
 }
@@ -147,29 +149,28 @@ void ImageQueueHandlerImpl::Loop() {
  * 为了和 CNStream 保持一致 仍称 OnDecodeFrame
  * 调用处：Loop 线程
  */
-void ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
+std::shared_ptr<CNFrameInfo> ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
   if (!frame) {
     LOGW(SOURCE) << "[FileHandlerImpl] OnDecodeFrame function frame is nullptr.";
-    return;
+    return nullptr;
   }
   std::shared_ptr<CNFrameInfo> data = this->CreateFrameInfo();  // 规定了 CNFrameInfo 内含的基本基本成员
   if (!data) {
     LOGW(SOURCE) << "[FileHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
-    return;
+    return nullptr;
   }
   data->timestamp = frame->pts;
   if (!frame->valid) {
     data->flags = static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_INVALID);
     this->SendFrameInfo(data);
-    return;
+    return nullptr;
   }
-  // TODO: 这里的 SetupDataFrame 暂定为抽象接口
   int ret = SetupDataFrame(data, frame, frame_id_++, param_);
   if (ret < 0) {
     LOGE(SOURCE) << "[" << stream_id_ << "]: SetupDataFrame function, failed to setup data frame.";
-    return;
+    return nullptr;
   }
-  module_->SendDataConn(data);
+  return data;
 }
 
 /**

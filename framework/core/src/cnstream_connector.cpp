@@ -89,16 +89,16 @@ uint64_t Connector::GetFailTime(int conveyor_idx) const {
   return GetConveyor(conveyor_idx)->GetFailTime();
 }
 
-bool Connector::IsStopped() {
-  return stop_.load();
+bool Connector::IsRunning() {
+  return running_.load();
 }
 
 void Connector::Start() {
-  stop_.store(false);
+  running_.store(true);
 }
 
 void Connector::Stop() {
-  stop_.store(true);
+  running_.store(false);
 }
 
 /**

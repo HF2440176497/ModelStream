@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include <opencv2/opencv.hpp>
+
 #include "cnstream_common.hpp"
 #include "cnstream_frame.hpp"
 
@@ -80,39 +82,40 @@ inline int CNGetPlanes(CNDataFormat fmt) {
  * 在外使用 shared_ptr 管理
  */
 class CNDataFrame : public NonCopyable {
- public:
-  /**
-   * @brief Constructs an object.
-   *
-   * @return No return value.
-   */
-  CNDataFrame() = default;
-  /**
-   * @brief Destructs an object.
-   *
-   * @return No return value.
-   */
-  ~CNDataFrame() = default;
-  /**
-   * @brief Gets plane count for a specified frame.
-   *
-   * @return Returns the plane count of this frame.
-   */
-  int GetPlanes() const { return CNGetPlanes(fmt); }
-  /**
-   * @brief Gets the number of bytes in a specified plane.
-   *
-   * @param[in] plane_idx The index of the plane. The index increments from 0.
-   *
-   * @return Returns the number of bytes in the plane.
-   */
-  size_t GetPlaneBytes(int plane_idx) const;
-  /**
-   * @brief Gets the number of bytes in a frame.
-   *
-   * @return Returns the number of bytes in a frame.
-   */
-  size_t GetBytes() const;
+//  public:
+//   /**
+//    * @brief Constructs an object.
+//    *
+//    * @return No return value.
+//    */
+//   CNDataFrame() = default;
+//   /**
+//    * @brief Destructs an object.
+//    *
+//    * @return No return value.
+//    */
+//   ~CNDataFrame() = default;
+
+//   /**
+//    * @brief Gets plane count for a specified frame.
+//    *
+//    * @return Returns the plane count of this frame.
+//    */
+//   int GetPlanes() const { return CNGetPlanes(fmt); }
+//   /**
+//    * @brief Gets the number of bytes in a specified plane.
+//    *
+//    * @param[in] plane_idx The index of the plane. The index increments from 0.
+//    *
+//    * @return Returns the number of bytes in the plane.
+//    */
+//   size_t GetPlaneBytes(int plane_idx) const;
+//   /**
+//    * @brief Gets the number of bytes in a frame.
+//    *
+//    * @return Returns the number of bytes in a frame.
+//    */
+//   size_t GetBytes() const;
 
  public:
   /**

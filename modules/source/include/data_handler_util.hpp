@@ -58,9 +58,9 @@ class SourceRender {
                    << "SendFlowEos: Create CNFrameInfo failed";
       return;
     }
+    LOGI(SOURCE) << "[" << handler_->GetStreamId() << "]: " << "Send EOS frame info";
     SendFrameInfo(data);
     eos_sent_ = true;
-    LOGI(SOURCE) << "[" << handler_->GetStreamId() << "]: " << "Send EOS frame info";
   }
 
   /**

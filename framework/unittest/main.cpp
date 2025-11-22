@@ -1,7 +1,6 @@
 
-#include "gtest/gtest.h"
-#include "base.hpp"
 
+#include "base.hpp"
 
 int main(int argc, char **argv) {
     google::InitGoogleLogging(argv[0]);

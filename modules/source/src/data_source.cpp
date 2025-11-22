@@ -168,9 +168,10 @@ bool DataSource::Open(ModuleParamSet paramSet) {
 }
 
 /**
- * Pipeline 中调用 Module->Close()
+ * Pipeline::Stop() 调用 Module->Close()
+ * @todo 可尝试同步方式等待各模块接收 EOS
  */
-void DataSource::Close() { RemoveSources(); }
+void DataSource::Close() { RemoveSources(true); }
 
 /**
  * 在 Open 中，使用 paramSet 首先进行检查
@@ -220,6 +221,15 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
     }
   }
   return ret;
+}
+
+int DataSource::Process(std::shared_ptr<CNFrameInfo> data) {
+  LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->stream_id;
+  return 0;
+}
+
+DataSourceParam DataSource::GetSourceParam() const { 
+  return param_; 
 }
 
 

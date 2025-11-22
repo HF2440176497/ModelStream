@@ -19,6 +19,7 @@
 
 #include "cnstream_logging.hpp"
 #include "data_source.hpp"
+#include "data_handler_util.hpp"
 
 namespace cnstream {
 
@@ -55,18 +56,17 @@ class ImageQueueHandlerImpl: public SourceRender {
   /**
    * Impl 接口通过 SourceHandler 调用
    */
-  void Open();
+  bool Open();
   void Close();
   void Stop();
   void Loop();
-  bool IsRunning();
 
 public:
-  void OnDecodeFrame(std::shared_ptr<ImageFrame> frame);
   void OnEndFrame();
-  virtual int SetupDataFrame(std::shared_ptr<CNFrameInfo> frame_info,
-                             std::shared_ptr<ImageFrame> frame, uint64_t frame_id,
-                             const DataSourceParam &param_);
+  void OnDecodeFrame(std::shared_ptr<ImageFrame> frame);
+  int SetupDataFrame(std::shared_ptr<CNFrameInfo> frame_info,
+                    std::shared_ptr<ImageFrame> frame, uint64_t frame_id,
+                    const DataSourceParam &param_);
 #ifdef UNIT_TEST
  public:
 #else

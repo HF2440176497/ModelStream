@@ -31,6 +31,7 @@
 #include <map>
 #include <atomic>
 #include <filesystem>
+#include <set>
 
 #include "private/cnstream_constants_pri.hpp"
 
@@ -122,16 +123,16 @@ class NonCopyable {
   NonCopyable(NonCopyable&&) = delete;
   NonCopyable& operator=(const NonCopyable&) = delete;
   NonCopyable& operator=(NonCopyable&&) = delete;
-};
+};  // end NonCopyable
 
 
 // some static variables for stream EOS and removed status
-static std::mutex s_eos_lock_;
-static std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
+inline std::mutex s_eos_lock_;
+inline std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
 
-static std::mutex s_remove_lock_;
+inline std::mutex s_remove_lock_;
 // static std::map<std::string, bool> s_stream_removed_map_;
-static std::set<std::string> s_stream_removed_set_;
+inline std::set<std::string> s_stream_removed_set_;
 
 /**
  *
@@ -179,6 +180,8 @@ void SetStreamRemoved(const std::string &stream_id, bool value = true);
  * @note It's used for removing sources forcedly.
  */
 bool IsStreamRemoved(const std::string &stream_id);
+
+void PrintStreamEos();
 
 /**
  * @brief

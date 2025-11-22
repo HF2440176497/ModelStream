@@ -16,6 +16,8 @@ include_directories(${GLOG_INCLUDE_DIRS})
 # ---[ rapidjson
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 
+# ---[ framework
+include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 
 option(build_source "build module source" ON)
 
@@ -27,6 +29,7 @@ endif()
 set(3RDPARTY_LIBS "")
 set(DEPENDENCIES "")
 
+include(${MODELSTREAM_ROOT_PATH}/cmake/have_cnstream_target.cmake)
 # ---[ framework
 have_framework_target(${MODELSTREAM_ROOT_PATH})
 list(APPEND 3RDPARTY_LIBS modelstream_core)
@@ -51,6 +54,7 @@ set(module_list "")
 if(build_source)
   list(APPEND module_list source)
   # install(DIRECTORY source/include/ DESTINATION include)
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/util/include)
@@ -60,6 +64,7 @@ file(GLOB util_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
 list(APPEND srcs ${util_src})
 
 # 递归添加模块的源文件
+# 要求每个 module 目录都是 include src 目录结构
 foreach(module ${module_list})
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${module}/include)
   file(GLOB_RECURSE module_src ${CMAKE_CURRENT_SOURCE_DIR}/${module}/*.cpp)
@@ -76,5 +81,5 @@ set_target_properties(modelstream_va PROPERTIES LINK_FLAGS_RELEASE -s)
 target_link_libraries(modelstream_va ${3RDPARTY_LIBS} rt dl pthread)
 
 if(build_tests)
-  add_subdirectory(unitest)
+  add_subdirectory(unittest)
 endif()

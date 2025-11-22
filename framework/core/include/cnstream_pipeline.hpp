@@ -59,7 +59,7 @@ namespace cnstream {
  struct NodeContext {
   std::shared_ptr<Module> module;
   uint64_t parent_nodes_mask = 0;
-  uint64_t route_mask = 0;  // for head nodes
+  uint64_t route_mask = 0;  // for head nodes 标记头节点会经过的节点
   std::weak_ptr<CNGraph<NodeContext>::CNNode> node;  // for gets node instance by a module, see Module::context_;
 };
 
@@ -444,7 +444,7 @@ inline bool Pipeline::BuildPipelineByJSONFile(const std::string& config_file) {
 }
 
 inline bool Pipeline::IsRunning() const {
-  return running_;
+  return running_.load();
 }
 
 inline EventBus* Pipeline::GetEventBus() const {

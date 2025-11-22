@@ -54,7 +54,7 @@ class SourceModule : public Module {
    *
    * @return No return value.
    */
-  explicit SourceModule(const std::string &name) : Module(name) { hasTransmit_.store(true); }
+  explicit SourceModule(const std::string &name) : Module(name) { }
   /**
    * @brief Destructs a source module.
    *
@@ -245,9 +245,11 @@ class SourceHandler : private NonCopyable {
     return false;
   }
 
+  int GetStreamIndex() const { return stream_index_; }
+
  protected:
   SourceModule *module_ = nullptr;
-  mutable std::string stream_id_;
+  mutable std::string stream_id_;  // 在构造时指定
   uint32_t stream_index_ = INVALID_STREAM_IDX;
 };
 

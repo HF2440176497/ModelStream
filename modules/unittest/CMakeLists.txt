@@ -14,8 +14,11 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/incl
 
 # 必须包含框架头文件
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
-include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/private)
-include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/util)
+include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/private)
+include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/util)
+
+# unittest 头文件
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(test_srcs "")
 list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/base.cpp)
@@ -27,23 +30,9 @@ if(build_source)
   list(APPEND test_srcs ${test_source_srcs})
 endif()
 
-if(TARGET modelstream_va AND TARGET gtest)
-    add_executable(modelstream_modules_test ${test_srcs})
-    target_link_libraries(modelstream_modules_test 
-        modelstream_va
-        gflags
-        glog
-        gtest
-        gtest
-        dl 
-        pthread
-        rt
-    )
-else()
-    if(NOT TARGET modelstream_va)
-        message(STATUS "modelstream_va target not found - skipping modelstream_modules_test")
-    endif()
-    if(NOT TARGET gtest)
-        message(STATUS "gtest target not found - skipping modelstream_modules_test")
-    endif()
-endif()
+# 检查 modelstream_va 
+have_modules_target(${MODELSTREAM_ROOT_PATH})
+
+add_executable(modelstream_modules_test ${test_srcs})
+add_dependencies(modelstream_modules_test modelstream_va)
+target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread)

@@ -113,9 +113,11 @@ class ModuleFactory {
     if (nullptr == pFunc) {
       return (false);
     }
+#ifdef UNIT_TEST
     std::cout << "=== FACTORY REGISTRATION ===" << std::endl;
     std::cout << "Registering type: " << strTypeName << std::endl;
     std::cout << "=== REGISTRATION COMPLETE ===" << std::endl;
+#endif
     bool ret = map_.insert(std::make_pair(strTypeName, pFunc)).second;
     return ret;
   }
@@ -156,6 +158,17 @@ class ModuleFactory {
   bool IsRegist(const std::string &strTypeName) {
     return (map_.find(strTypeName) != map_.end());
   }
+
+#ifdef UNIT_TEST
+  void PrintRegistedModules() {
+    std::vector<std::string> registed_modules = GetRegisted();
+    std::cout << "------- registed_modules: ";
+    for (auto &it : registed_modules) {
+      std::cout << it << "; ";
+    }
+    std::cout << std::endl;
+  }
+#endif
 
  private:
   ModuleFactory() {}
@@ -217,9 +230,6 @@ class ModuleCreator {
         strTypeName = szDemangleName;
         free(szDemangleName);
       }
-#ifdef UNIT_TEST
-      LOGI(REGISTER) << "Register class name: " << szDemangleName;
-#endif
       ModuleFactory::Instance()->Regist(strTypeName, CreateObject);
     }
     inline void do_nothing() const {}

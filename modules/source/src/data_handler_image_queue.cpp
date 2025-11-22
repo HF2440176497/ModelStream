@@ -39,11 +39,33 @@ bool ImageQueueHandler::Open() {
     LOGE(SOURCE) << "[" << stream_id_ << "]: File handler open failed, no memory left";
     return false;
   }
-  if (stream_index_ == cnstream::INVALID_STREAM_IDX) {
+  if (stream_index_ == INVALID_STREAM_IDX) {
     LOGE(SOURCE) << "[" << stream_id_ << "]: Invalid stream_idx";
     return false;
   }
+  auto conn = module_->GetConnector();
+  conveyor_idx_ = stream_index_ % (conn->GetConveyorCount());
+  if (conn->GetConveyorCount() != 1) {
+    LOGW(DataSource) << "[" << stream_id_ << "] conveyor count not 1, actual: " << conn->GetConveyorCount()
+                     << "; conveyor_idx: " << conveyor_idx_;
+  }
   return impl_->Open();
+}
+
+bool ImageQueueHandler::SendDataConn(const std::shared_ptr<CNFrameInfo>& data) {
+  if (!module_->GetConnector()) {
+    LOGE(DATASOURCE) << "[" << stream_id_ << "]: connector not connected";
+    return false;
+  }
+  if (!module_->GetConnector()->IsRunning()) {
+    LOGE(DATASOURCE) << "[" << stream_id_ << "]: connector is stopped";
+    return false;
+  }
+  FrController controller(frame_rate_);
+  controller.Start();
+  bool ret = module_->GetConnector()->PushDataBufferToConveyor(conveyor_idx_, data);
+  controller.Control();
+  return ret;
 }
 
 void ImageQueueHandler::Close() {
@@ -57,10 +79,6 @@ void ImageQueueHandler::Stop() {
   if (impl_) {
     impl_->Stop();
   }
-}
-
-bool ImageQueueHandler::IsRunning() const { 
-  return running_.load(); 
 }
 
 void ImageQueueHandler::PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images) {
@@ -78,15 +96,13 @@ void ImageQueueHandler::PushDatas(std::vector<uint64_t> timestamps, std::vector<
     frame->data = images[i].clone();  // 深拷贝图像数据
     frame->device_id = -1;
     frame->planeNum = 1;
-    queue_.Push(frame);
+    impl_->queue_.Push(frame);
   }
   return;
 }
 
 bool ImageQueueHandlerImpl::Open() {
-  DataSource *source = dynamic_cast<DataSource *>(module_);
-  param_ = source->GetSourceParam();
-
+  param_ = module_->GetSourceParam();
   running_.store(true);
   thread_ = std::thread(&ImageQueueHandlerImpl::Loop, this);
   return true;
@@ -106,14 +122,16 @@ void ImageQueueHandlerImpl::Close() {
 }
 
 /**
- * 作为消费者线程
+ * consumer thread
  */
 void ImageQueueHandlerImpl::Loop() {
-  int frame_rate = 20;
-  while (!running_.load()) {
+  while (running_.load()) {
     std::shared_ptr<ImageFrame> frame;
     if (!queue_.WaitAndTryPop(frame, std::chrono::milliseconds(50))) {
       continue;
+    }
+    if (frame_count_++ % param_.interval_ != 0) {
+      continue;  // discard frame
     }
     OnDecodeFrame(frame);
     if (!module_) {
@@ -130,9 +148,6 @@ void ImageQueueHandlerImpl::Loop() {
  * 调用处：Loop 线程
  */
 void ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
-  if (frame_count_++ % param_.interval_ != 0) {
-    return;  // discard frames
-  }
   if (!frame) {
     LOGW(SOURCE) << "[FileHandlerImpl] OnDecodeFrame function frame is nullptr.";
     return;
@@ -142,7 +157,7 @@ void ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
     LOGW(SOURCE) << "[FileHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
     return;
   }
-  data->timestamp = frame->pts;  // FIXME
+  data->timestamp = frame->pts;
   if (!frame->valid) {
     data->flags = static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_INVALID);
     this->SendFrameInfo(data);
@@ -154,23 +169,7 @@ void ImageQueueHandlerImpl::OnDecodeFrame(std::shared_ptr<ImageFrame> frame) {
     LOGE(SOURCE) << "[" << stream_id_ << "]: SetupDataFrame function, failed to setup data frame.";
     return;
   }
-  this->SendFrameInfoConn(data);
-}
-
-
-/**
- * Sasha: 为了借助 Pipeline 进行数据传输管理，放入自己的 connector
- */
-void ImageQueueHandlerImpl::SendFrameInfoConn(std::shared_ptr<CNFrameInfo> data) {
-  if (!module_->GetConnector()) {
-    LOGE(SOURCE) << "[" << stream_id_ << "]: connector not connected";
-    return;
-  }
-  FrController controller(frame_rate);
-  controller.Start();
-  int conveyor_idx = stream_id_ % (module_->GetConnector()->GetConveyorCount());
-  module_->GetConnector()->PushDataBufferToConveyor(conveyor_idx, data);
-  controller.Control();
+  module_->SendDataConn(data);
 }
 
 /**
@@ -206,11 +205,12 @@ int ImageQueueHandlerImpl::SetupDataFrame(std::shared_ptr<CNFrameInfo> frame_inf
 
   // 目前只是支持 BGR24
   dataframe->fmt = CNDataFormat::CN_PIXEL_FORMAT_BGR24;  // same as cv::Mat
-  if (dataframe->GetPlanes() != 1) {
-    LOGE(SOURCE) << "[ImageQueueHandlerImpl] SetupDataFrame function, "
-                 << "only support single plane image.";
-    return -1;
-  }
+  
+  // if (dataframe->GetPlanes() != 1) {
+  //   LOGE(SOURCE) << "[ImageQueueHandlerImpl] SetupDataFrame function, "
+  //                << "only support single plane image.";
+  //   return -1;
+  // }
 
   // convert to cpu first always
   dataframe->ctx.dev_type = DevContext::DevType::CPU;
@@ -218,7 +218,7 @@ int ImageQueueHandlerImpl::SetupDataFrame(std::shared_ptr<CNFrameInfo> frame_inf
   dataframe->ctx.ddr_channel = -1;  // unused for cpu
 
   // 临时测试，直接将 cv::Mat 数据赋值，后面 dataframe 直接通过 GetBGR() 方法获取
-  dataframe->bgr_data = frame->data;
+  dataframe->bgr_mat = frame->data;
   return 0;
 }
 

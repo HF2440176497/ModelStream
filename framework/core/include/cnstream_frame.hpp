@@ -132,8 +132,7 @@ CNS_IGNORE_DEPRECATED_POP
 
   /**
    * @brief Gets index number which identifies stream.
-   *
-   *
+   * 与创建时的 SourceModule 的 stream_id 保持一致
    *
    * @return Index number.
    *

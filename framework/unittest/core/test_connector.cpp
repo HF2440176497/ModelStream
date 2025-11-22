@@ -45,7 +45,7 @@ TEST_F(ConnectorTest, MultiThread) {
       for (int j = 0; j < data_nums; ++j) {
         CNFrameInfoPtr frame = CNFrameInfo::Create("test-stream-" + std::to_string(i));
         frame->test_idx = i;  // thread 对应 idx, 因此每个 conveyor 内的 frame->idx 也相同
-        while (!connector_->IsStopped() && (connector_->PushDataBufferToConveyor(i, frame) == false)) {
+        while (connector_->IsRunning() && (connector_->PushDataBufferToConveyor(i, frame) == false)) {
           // std::cout << "producer: " << i << " conveyor size: " << connector_->GetConveyorSize(i) << std::endl;
           std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
@@ -56,7 +56,7 @@ TEST_F(ConnectorTest, MultiThread) {
       for (int j = 0; j < data_nums; ++j) {
         CNFrameInfoPtr get_frame = nullptr;
         // 仿照 Pipeline 的做法
-        while (!connector_->IsStopped() && (get_frame == nullptr)) {
+        while (connector_->IsRunning() && (get_frame == nullptr)) {
           get_frame = connector_->PopDataBufferFromConveyor(i);
           std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }

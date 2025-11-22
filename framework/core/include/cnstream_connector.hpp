@@ -80,7 +80,7 @@ class Connector : private NonCopyable {
 
   void Start();
   void Stop();
-  bool IsStopped();
+  bool IsRunning();
   void EmptyDataQueue();
 
 #ifdef UNIT_TEST
@@ -93,9 +93,10 @@ class Connector : private NonCopyable {
 
   // std::vector<Conveyor*> conveyors_;
   std::vector<std::unique_ptr<Conveyor>> conveyors_;
+  size_t conveyor_count_ = 0;
   size_t conveyor_capacity_ = 20;
   std::vector<uint64_t> fail_times_;
-  std::atomic<bool> stop_{false};
+  std::atomic<bool> running_{false};
 };  // class Connector
 
 }  // namespace cnstream

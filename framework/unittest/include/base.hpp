@@ -5,8 +5,8 @@
  * @details 
 */
 
-#ifndef UNITEST_INCLUDE_TEST_BASE_HPP_
-#define UNITEST_INCLUDE_TEST_BASE_HPP_
+#ifndef FRAMEWORK_UNITEST_INCLUDE_TEST_BASE_HPP_
+#define FRAMEWORK_UNITEST_INCLUDE_TEST_BASE_HPP_
 
 #include <string>
 #include <string.h>
@@ -21,6 +21,7 @@
 #include <iostream>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <glog/logging.h>
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/prettywriter.h>

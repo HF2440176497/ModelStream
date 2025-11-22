@@ -78,6 +78,11 @@ class DataSource : public SourceModule, public ModuleCreator<DataSource> {
    */
   bool CheckParamSet(const ModuleParamSet &paramSet) const override;
 
+  /**
+   * override Module::Process
+   */
+  int Process(std::shared_ptr<CNFrameInfo> data) override;
+
   /*!
    * @brief Gets the parameters of the DataSource module.
    *
@@ -85,18 +90,14 @@ class DataSource : public SourceModule, public ModuleCreator<DataSource> {
    *
    * @note This function should be called after ``Open`` function.
    */
-  DataSourceParam GetSourceParam() const { return param_; }
+  DataSourceParam GetSourceParam() const;
 
-  /**
-   * override Module::Process
-   */
-  int Process(std::shared_ptr<CNFrameInfo> data) override {
-    LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->frame_id;
-    return 0;
-  }
-
- private:
-  DataSourceParam param_;
+#ifdef UNIT_TEST
+  public:
+#else
+  private:
+#endif
+   DataSourceParam param_;
 };  // class DataSource
 
 REGISTER_MODULE(DataSource);  // 启动反射
@@ -113,6 +114,7 @@ class ImageQueueHandler : public SourceHandler {
 
  public:
   static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
+  ~ImageQueueHandler();
 
   /**
    * 通过 SourceModule::AddSource 调用
@@ -123,15 +125,19 @@ class ImageQueueHandler : public SourceHandler {
 
  public:
   void PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images);
+  bool SendDataConn(const std::shared_ptr<CNFrameInfo>& data);
 
- private:
-  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id): SourceHandler(module, stream_id);
+ public:
+ // private:
+  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id);
 
 #ifdef UNIT_TEST
  public:
 #else
  private:
 #endif
+  int frame_rate_ = 10;   // == 0 表示没有限制
+  int conveyor_idx_ = 0;  // 每个 handler 对应固定的 conveyor
   std::unique_ptr<ImageQueueHandlerImpl> impl_;
 };
 

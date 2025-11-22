@@ -27,66 +27,58 @@
 #include "cnstream_source.hpp"
 #include "cnstream_eventbus.hpp"
 #include "cnstream_pipeline.hpp"
-#include "profiler/module_profiler.hpp"
 
 
 namespace cnstream {
 
-#ifdef UNIT_TEST
-
-/*default */
-static std::mutex stream_idx_lock;
-static std::map<std::string, uint32_t> stream_idx_map;
-static std::bitset<MAX_STREAM_NUM> stream_bitset(0);
-
-static uint32_t _GetStreamIndex(const std::string &stream_id) {
-  std::lock_guard<std::mutex>  guard(stream_idx_lock);
-  auto search = stream_idx_map.find(stream_id);
-  if (search != stream_idx_map.end()) {
-    return search->second;
-  }
-
-  for (uint32_t i = 0; i < GetMaxStreamNumber(); i++) {
-    if (!stream_bitset[i]) {
-      stream_bitset.set(i);
-      stream_idx_map[stream_id] = i;
-      return i;
-    }
-  }
-  return INVALID_STREAM_IDX;
-}
-
-static int _ReturnStreamIndex(const std::string &stream_id) {
-  std::lock_guard<std::mutex>  guard(stream_idx_lock);
-  auto search = stream_idx_map.find(stream_id);
-  if (search == stream_idx_map.end()) {
-    return -1;
-  }
-  uint32_t stream_idx = search->second;
-  if (stream_idx >= GetMaxStreamNumber()) {
-    return -1;
-  }
-  stream_bitset.reset(stream_idx);
-  stream_idx_map.erase(search);
-  return 0;
-}
-#endif
+// #ifdef UNIT_TEST
+// 
+// static std::mutex stream_idx_lock;
+// static std::map<std::string, uint32_t> stream_idx_map;
+// static std::bitset<MAX_STREAM_NUM> stream_bitset(0);
+// 
+// static uint32_t _GetStreamIndex(const std::string &stream_id) {
+//   std::lock_guard<std::mutex>  guard(stream_idx_lock);
+//   auto search = stream_idx_map.find(stream_id);
+//   if (search != stream_idx_map.end()) {
+//     return search->second;
+//   }
+//   for (uint32_t i = 0; i < GetMaxStreamNumber(); i++) {
+//     if (!stream_bitset[i]) {
+//       stream_bitset.set(i);
+//       stream_idx_map[stream_id] = i;
+//       return i;
+//     }
+//   }
+//   return INVALID_STREAM_IDX;
+// }
+// 
+// static int _ReturnStreamIndex(const std::string &stream_id) {
+//   std::lock_guard<std::mutex>  guard(stream_idx_lock);
+//   auto search = stream_idx_map.find(stream_id);
+//   if (search == stream_idx_map.end()) {
+//     return -1;
+//   }
+//   uint32_t stream_idx = search->second;
+//   if (stream_idx >= GetMaxStreamNumber()) {
+//     return -1;
+//   }
+//   stream_bitset.reset(stream_idx);
+//   stream_idx_map.erase(search);
+//   return 0;
+// }
+// 
+// #endif
 
 uint32_t SourceModule::GetStreamIndex(const std::string &stream_id) {
   RwLockReadGuard guard(container_lock_);
   if (container_) return container_->GetStreamIndex(stream_id);
-#ifdef UNIT_TEST
-  return _GetStreamIndex(stream_id);
-#endif
   return INVALID_STREAM_IDX;
 }
 
 void SourceModule::ReturnStreamIndex(const std::string &stream_id) {
   RwLockReadGuard guard(container_lock_);
   if (container_) container_->ReturnStreamIndex(stream_id);
-#ifdef UNIT_TEST
-  _ReturnStreamIndex(stream_id);
-#endif
 }
 
 int SourceModule::AddSource(std::shared_ptr<SourceHandler> handler) {
@@ -100,7 +92,6 @@ int SourceModule::AddSource(std::shared_ptr<SourceHandler> handler) {
     LOGE(CORE) << "[" << stream_id << "]: " << "Duplicate stream_id";
     return -1;
   }
-
   if (source_map_.size() >= GetMaxStreamNumber()) {
     LOGW(CORE) << "[" << stream_id << "]: "
                << " doesn't add to pipeline because of maximum limitation: " << GetMaxStreamNumber();
@@ -166,8 +157,9 @@ std::shared_ptr<SourceHandler> SourceModule::GetSourceHandler(const std::string 
 // }
 
 /**
+ * @brief 调用 handler 的 Close 函数
  * 根据更改后的 SetStreamRemoved 函数，其用来表示清理状态
- * force: 仅仅表示是否等待 FrameInfo 析构
+ * force: 仅仅表示是否等待 eos FrameInfo 的析构
  */
 int SourceModule::RemoveSource(const std::string &stream_id, bool force) {
   LOGI(CORE) << "Begin to remove stream, stream id : [" << stream_id << "]";
@@ -183,13 +175,16 @@ int SourceModule::RemoveSource(const std::string &stream_id, bool force) {
     iter->second->Close();
     LOGI(CORE) << "[" << stream_id << "]: Stream close done";
   }
-  CheckStreamEosReached(stream_id, force);
+  bool ret = CheckStreamEosReached(stream_id, force);
+  if (!ret) {
+    LOGW(CORE) << "[" << stream_id << "]: check stream eos, return false";
+  }
   SetStreamRemoved(stream_id, false);  // 设置清除完成
   {
     std::unique_lock<std::mutex> lock(mutex_);
     auto iter = source_map_.find(stream_id);
     if (iter == source_map_.end()) {
-      LOGW(CORE) << "source does not exist\n";
+      LOGW(CORE) << "[" << stream_id << "]: source does not exist";
       return 0;  // 认为是成功的
     }
     source_map_.erase(iter);
@@ -230,7 +225,7 @@ int SourceModule::RemoveSource(const std::string &stream_id, bool force) {
  * 直接复用 RemoveSource 函数
  */
 int SourceModule::RemoveSources(bool force) {
-  LOGI(CORE) << "Begin to remove all streams, force: " << force;
+  LOGI(CORE) << "Begin to remove all streams, force: " << std::boolalpha << force;
   std::vector<std::string> stream_ids;
   {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -238,6 +233,12 @@ int SourceModule::RemoveSources(bool force) {
       stream_ids.push_back(iter.first);
     }
   }
+#ifdef UNIT_TEST
+  for (const auto &stream_id : stream_ids) {
+    std::cout << "RemoveSource stream_id: " << stream_id << "; ";
+  }
+  if (stream_ids.size() > 0) { std::cout << std::endl; }
+#endif
   for (const auto &stream_id : stream_ids) {
     RemoveSource(stream_id, force);
   }

@@ -19,6 +19,7 @@
  *************************************************************************/
 
 #include "base.hpp"
+#include "cnstream_logging.hpp"
 
 extern int errno;
 

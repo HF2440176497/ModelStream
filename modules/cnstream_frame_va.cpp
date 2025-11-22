@@ -1,6 +1,5 @@
 
 
-
 #include <mutex>
 #include <memory>
 
@@ -9,8 +8,9 @@
 
 namespace cnstream {
 
-
+/*
 namespace color_cvt {
+
 static
 cv::Mat BGRToBGR(const CNDataFrame& frame) {
   const cv::Mat bgr(frame.height, frame.stride[0], CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
@@ -51,11 +51,6 @@ cv::Mat YUV420SPToBGR(const CNDataFrame& frame, bool nv21) {
 }
 
 
-/**
- * 目前使用 CPU 进行前端的图像格式转换
- * 未来使用统一内存，可以集成图像格式转换
- */
-
 static inline
 cv::Mat NV12ToBGR(const CNDataFrame& frame) {
   return YUV420SPToBGR(frame, false);
@@ -83,11 +78,10 @@ cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
   // never be here
   return cv::Mat();
 }
-
-
 }  // namespace color_cvt
+*/
 
-
+/*
 size_t CNDataFrame::GetPlaneBytes(int plane_idx) const {
   if (plane_idx < 0 || plane_idx >= GetPlanes()) return 0;
   switch (fmt) {
@@ -115,13 +109,14 @@ size_t CNDataFrame::GetBytes() const {
   }
   return bytes;
 }
+*/
 
 cv::Mat CNDataFrame::ImageBGR() {
   std::lock_guard<std::mutex> lk(mtx);
   if (!bgr_mat.empty()) {
     return bgr_mat;
   }
-  bgr_mat = color_cvt::FrameToImageBGR(*this);
+  // bgr_mat = color_cvt::FrameToImageBGR(*this);
   return bgr_mat;
 }
 

@@ -33,5 +33,5 @@ set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
 
 # unitest
 if(build_tests)
-  add_subdirectory(unitest)
+  add_subdirectory(unittest)
 endif()

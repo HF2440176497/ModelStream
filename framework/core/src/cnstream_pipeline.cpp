@@ -128,13 +128,13 @@ bool Pipeline::Start() {
 
   // start data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     node->data.module->GetConnector()->Start();
   }
 
   // create process threads
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     const auto& config = node->GetConfig();
     for (int conveyor_idx = 0; conveyor_idx < config.parallelism; ++conveyor_idx) {
       threads_.push_back(std::thread(&Pipeline::TaskLoop, this, &node->data, conveyor_idx));
@@ -145,12 +145,21 @@ bool Pipeline::Start() {
 }
 
 bool Pipeline::Stop() {
+  LOGI(CORE) << "Pipeline[" << GetName() << "] " << "Ready to stop";
   if (!IsRunning()) return true;
+
+  // frist close head module
+  for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
+    if (!node->data.parent_nodes_mask) {
+      node->data.module->Close();
+    }
+  }
+  // stop task loop thread
   running_.store(false);
 
   // stop data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     auto connector = node->data.module->GetConnector();
     if (connector) {
       // push data will be rejected after Stop()
@@ -164,11 +173,11 @@ bool Pipeline::Stop() {
     if (it.joinable()) it.join();
   }
   threads_.clear();
-  // event_bus_->Stop();  // Sasha: 个人认为 eventbus 不用调用 Stop()，运行可以随着 Pipeline 生命周期
-                          // 因此此处暂不调用
+  // event_bus_->Stop();  // Sasha: 此处暂不调用
 
-  // close modules
+  // close other modules
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
+    if (!node->data.parent_nodes_mask) continue;
     node->data.module->Close();
   }
 
@@ -176,7 +185,7 @@ bool Pipeline::Stop() {
   // the callback function will manage the life cycle of a python object.
   // When a circular reference occurs, GC(python) cannot handle it, resulting in a memory leak.
   RegisterFrameDoneCallBack(NULL);
-  LOGI(CORE) << "Pipeline[" << GetName() << "] " << "Stop";
+  LOGI(CORE) << "Pipeline[" << GetName() << "] " << "Stop complete";
   return true;
 }
 
@@ -207,7 +216,7 @@ bool Pipeline::ProvideData(const Module* module, std::shared_ptr<CNFrameInfo> da
     return false;
   }
   // data can only created by root nodes.
-  // 非根节点时，module_mask 标记了已经过的节点，因为不会为 0
+  // 非根节点时，module_mask 标记了已经过的节点，在 TransmitData - MarkPassed 中会被更新
   // 根节点时，module_mask 标记的所有 module 中不会经过节点
   // 两种节点的设置都会在后续的 TransmitData 中，这里要求只有根节点才能创建 modules_mask_ 为 0 的全新数据
   if (!data->GetModulesMask() && module->context_->parent_nodes_mask) {
@@ -247,12 +256,12 @@ bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
           << "], class name : [" << config.className << "].";
       return false;
     }
-    module->context_ = &node_iter->data;  // 指向裸指针，因为一定存在
-    node_iter->data.node = *node_iter;
+    module->context_ = &node_iter->data;  // raw pointer
+    node_iter->data.node = *node_iter;  // 反向引用到 CNNode, 但是不增加引用
     node_iter->data.parent_nodes_mask = 0;
     node_iter->data.route_mask = 0;
-    node_iter->data.module = std::shared_ptr<Module>(module);
-    node_iter->data.module->SetContainer(this);  // 设置 Pipeline
+    node_iter->data.module = std::shared_ptr<Module>(module);  // 完全控制, Module 是在图中遍历的
+    node_iter->data.module->SetContainer(this);  // 设置 Pipeline, Sasha: 可以是 weak_ref
     modules->push_back(node_iter->data.module);
     all_modules_mask_ |= 1UL << node_iter->data.module->GetId();
   }
@@ -291,17 +300,16 @@ void Pipeline::GenerateModulesMask() {
 bool Pipeline::CreateConnectors() {
   // node_iter: std::shared_ptr<CNNode> 
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
-    if (node_iter->data.parent_nodes_mask)  {  // not a head node
-      const auto &config = node_iter->GetConfig();
-      // check if parallelism and max_input_queue_size is valid.
-      if (config.parallelism <= 0 || config.maxInputQueueSize <= 0) {
-        LOGE(CORE) << "Module [" << config.name << "]: parallelism or max_input_queue_size is not valid, "
-                   "parallelism[" << config.parallelism << "], "
-                   "max_input_queue_size[" << config.maxInputQueueSize << "].";
-        return false;
-      }
-      node_iter->data.module->SetConnector(std::make_shared<Connector>(config.parallelism, config.maxInputQueueSize));
+    // if (!node_iter->data.parent_nodes_mask) continue;
+    const auto &config = node_iter->GetConfig();
+    // check if parallelism and max_input_queue_size is valid.
+    if (config.parallelism <= 0 || config.maxInputQueueSize <= 0) {
+      LOGE(CORE) << "Module [" << config.name << "]: parallelism or max_input_queue_size is not valid, "
+                  "parallelism[" << config.parallelism << "], "
+                  "max_input_queue_size[" << config.maxInputQueueSize << "].";
+      return false;
     }
+    node_iter->data.module->SetConnector(std::make_shared<Connector>(config.parallelism, config.maxInputQueueSize));
   }
   return true;
 }
@@ -362,7 +370,6 @@ void Pipeline::OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrame
   e.thread_id = std::this_thread::get_id();
   event_bus_->PostEvent(e);
   
-  // Sasha: 交给 EventBus 再执行
   // StreamMsg msg;
   // msg.type = StreamMsgType::FRAME_ERR_MSG;
   // msg.stream_id = data->stream_id;
@@ -468,7 +475,7 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
 #endif
 
     const int conveyor_idx = data->GetStreamIndex() % connector->GetConveyorCount();
-    while (!connector->IsStopped() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {
+    while (connector->IsRunning() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {
       if (connector->GetFailTime(conveyor_idx) % 50 == 0) {
         // Show infomation when conveyor is full in every second
         LOGD(CORE) << "[" << next_module->GetName() << " " << conveyor_idx << "] " << "Input buffer is full";
@@ -486,10 +493,10 @@ void Pipeline::TaskLoop(NodeContext* context, uint32_t conveyor_idx) {
   // process loop
   while (IsRunning()) {
     std::shared_ptr<CNFrameInfo> data = nullptr;
-    while (!connector->IsStopped() && data == nullptr) {
+    while (connector->IsRunning() && data == nullptr) {
       data = connector->PopDataBufferFromConveyor(conveyor_idx);
     }
-    if (connector->IsStopped())
+    if (!connector->IsRunning())
       break;
     if (data == nullptr)
       continue;

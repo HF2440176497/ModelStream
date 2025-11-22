@@ -68,7 +68,7 @@ const std::list<BusWatcher> &EventBus::GetBusWatchers() const {
 }
 
 bool EventBus::PostEvent(Event event) {
-  if (!running_.load()) {
+  if (!IsRunning()) {
     LOGW(CORE) << "Post event failed, pipeline not running";
     return false;
   }

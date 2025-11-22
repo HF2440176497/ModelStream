@@ -42,6 +42,7 @@
 #include "cnstream_eventbus.hpp"
 #include "cnstream_frame.hpp"
 #include "cnstream_logging.hpp"
+#include "cnstream_connector.hpp"
 
 #include "util/cnstream_queue.hpp"
 #include "util/cnstream_rwlock.hpp"

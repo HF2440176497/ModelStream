@@ -111,9 +111,12 @@ class ImageQueueHandlerImpl;
  * 图像队列接口
  */
 class ImageQueueHandler : public SourceHandler {
+ public:
+  // provided for external use
+  static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
+  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id);
 
  public:
-  static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
   ~ImageQueueHandler();
 
   /**
@@ -125,19 +128,14 @@ class ImageQueueHandler : public SourceHandler {
 
  public:
   void PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images);
-  bool SendDataQueue(const std::shared_ptr<CNFrameInfo>& data);
-
- public:
- // private:
-  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id);
 
 #ifdef UNIT_TEST
  public:
 #else
  private:
 #endif
+  // int conveyor_idx_ = 0;  // DEPRECATED
   int frame_rate_ = 10;   // == 0 表示没有限制
-  int conveyor_idx_ = 0;  // 每个 handler 对应固定的 conveyor
   std::unique_ptr<ImageQueueHandlerImpl> impl_;
 };
 

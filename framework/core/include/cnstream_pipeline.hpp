@@ -377,7 +377,11 @@ class Pipeline : private NonCopyable {
   StreamMsgObserver* smsg_observer_ = nullptr;
   std::atomic<bool> exit_msg_loop_{false};
 
+  // store all module's id mask
   uint64_t all_modules_mask_ = 0;
+
+  // module - push_failed_time, init at Start()
+  std::unordered_map<std::string, uint32_t> fail_push_count_;
 
 #ifndef CLOSE_PROFILER
   std::unique_ptr<PipelineProfiler> profiler_;

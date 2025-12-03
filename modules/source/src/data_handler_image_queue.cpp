@@ -43,29 +43,12 @@ bool ImageQueueHandler::Open() {
     LOGE(SOURCE) << "[" << stream_id_ << "]: Invalid stream_idx";
     return false;
   }
-  auto conn = module_->GetConnector();
-  conveyor_idx_ = stream_index_ % (conn->GetConveyorCount());
-  if (conn->GetConveyorCount() != 1) {
-    LOGW(DataSource) << "[" << stream_id_ << "] conveyor count not 1, actual: " << conn->GetConveyorCount()
-                     << "; conveyor_idx: " << conveyor_idx_;
-  }
+  // auto conn = module_->GetConnector();
+  // conveyor_idx_ = stream_index_ % (conn->GetConveyorCount());
+  // if (conn->GetConveyorCount() != 1) {
+  //   LOGW(DataSource) << "[" << stream_id_ << "] conveyor count not 1, actual: " << conn->GetConveyorCount();
+  // }
   return impl_->Open();
-}
-
-bool ImageQueueHandler::SendDataQueue(const std::shared_ptr<CNFrameInfo>& data) {
-  if (!module_->GetConnector()) {
-    LOGE(DATASOURCE) << "[" << stream_id_ << "]: connector not connected";
-    return false;
-  }
-  if (!module_->GetConnector()->IsRunning()) {
-    LOGE(DATASOURCE) << "[" << stream_id_ << "]: connector is stopped";
-    return false;
-  }
-  FrController controller(frame_rate_);
-  controller.Start();
-  bool ret = module_->GetConnector()->PushDataBufferToConveyor(conveyor_idx_, data);
-  controller.Control();
-  return ret;
 }
 
 void ImageQueueHandler::Close() {
@@ -125,7 +108,6 @@ void ImageQueueHandlerImpl::Close() {
  * consumer thread
  */
 void ImageQueueHandlerImpl::Loop() {
-  ImageQueueHandler* image_handler_ = dynamic_cast<ImageQueueHandler*>(handler_);
   while (running_.load()) {
     std::shared_ptr<ImageFrame> frame;
     if (!queue_.WaitAndTryPop(frame, std::chrono::milliseconds(50))) {
@@ -135,11 +117,11 @@ void ImageQueueHandlerImpl::Loop() {
       continue;  // discard frame
     }
     auto data = OnDecodeFrame(frame);
-    if (!module_ || !image_handler_) {
+    if (!module_ || !handler_) {
       LOGE(SOURCE) << "[" << stream_id_ << "]: module_ or handler_ is null";
       break;
     }
-    image_handler_->SendDataQueue(data);
+    handler_->SendFrameInfo(data);
   }
   OnEndFrame();
 }

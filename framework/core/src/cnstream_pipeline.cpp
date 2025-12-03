@@ -117,6 +117,7 @@ bool Pipeline::Start() {
       break;
     }
     opened_modules.push_back(node->data.module);
+    fail_push_count_[node->data.module->GetName()] = 0;
   }
   if (open_module_failed) {
     for (auto it : opened_modules) it->Close();
@@ -434,6 +435,11 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
     OnDataInvalid(context, data);
     return;
   }
+  // Sasha: 这部分在当前模块处理后调用 移除的 data 不再需要传输
+  if (data->IsRemoved()) {
+    LOGW(CORE) << "Get removed frame from " << context->module->GetName() << " stream: " << data->stream_id;
+    return;
+  }
   if (!context->parent_nodes_mask) {
     // root node
     // set mask to 1 for never touched modules, for case which has multiple source modules.
@@ -465,23 +471,21 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
     if (!PassedByAllParentNodes(&next_node->data, cur_mask)) continue;
     auto next_module = next_node->data.module;
     auto connector = next_module->GetConnector();
-    // push data to conveyor only after data passed by all parent nodes.
-
 #ifndef CLOSE_PROFILER
     if (IsProfilingEnabled() && !data->IsEos()) {
       next_module->GetProfiler()->RecordProcessStart(
         kINPUT_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
     }
 #endif
-
-    const int conveyor_idx = data->GetStreamIndex() % connector->GetConveyorCount();
-    while (connector->IsRunning() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {
-      if (connector->GetFailTime(conveyor_idx) % 50 == 0) {
-        // Show infomation when conveyor is full in every second
-        LOGD(CORE) << "[" << next_module->GetName() << " " << conveyor_idx << "] " << "Input buffer is full";
+    
+    while (connector->IsRunning() && connector->PushDataBuffer(data) == false) {
+      fail_push_count_[next_module->GetName()]++;
+      if (fail_push_count_[next_module->GetName()] % 50 == 0) {
+        LOGD(CORE) << "[" << next_module->GetName() << "] " << "Push data to conveyor failed";
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }  // while try push
+    fail_push_count_[next_module->GetName()] = 0;
   }  // loop next nodes
 }
 

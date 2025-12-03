@@ -195,8 +195,8 @@ class Module : private NonCopyable {
    *
    * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
    *
-   * bool TransmitData(std::shared_ptr<CNFrameInfo> data);
    */
+  bool TransmitData(std::shared_ptr<CNFrameInfo> data);
   
   /**
    * @brief Checks parameters for a module, including parameter name, type, value, validity, and so on.
@@ -215,6 +215,8 @@ class Module : private NonCopyable {
   Pipeline* GetContainer() const { return container_; }
 
   std::shared_ptr<Connector> GetConnector() const { return connector_; }
+
+  bool HasTransmit() const { return hasTransmit_.load(); }
 
 #ifndef CLOSE_PROFILER
   /**
@@ -275,6 +277,7 @@ class Module : private NonCopyable {
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;
   std::string name_;                      ///< The name of the module.
+  std::atomic<bool> hasTransmit_{false};  ///< Whether it has permission to transmit data.
 
 #ifdef UNIT_TEST
  public:  // NOLINT

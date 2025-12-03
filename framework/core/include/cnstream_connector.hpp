@@ -77,6 +77,7 @@ class Connector : private NonCopyable {
 
   CNFrameInfoPtr PopDataBufferFromConveyor(int conveyor_idx);
   bool PushDataBufferToConveyor(int conveyor_idx, CNFrameInfoPtr data);
+  bool PushDataBuffer(CNFrameInfoPtr data);
 
   void Start();
   void Stop();

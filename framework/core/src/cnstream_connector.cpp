@@ -85,6 +85,15 @@ bool Connector::PushDataBufferToConveyor(int conveyor_idx, CNFrameInfoPtr data) 
   return GetConveyor(conveyor_idx)->PushDataBuffer(data);
 }
 
+/**
+ * 自动计算 conveyor_idx，根据 stream_id 取模
+ * @note 如果未来我们能找到同一个流进行并发处理的方式 Connector 就需要集成这个功能
+ */
+bool Connector::PushDataBuffer(CNFrameInfoPtr data) {
+  int conveyor_idx = data->GetStreamIndex() % conveyor_count_;
+  return PushDataBufferToConveyor(conveyor_idx, data);
+}
+
 uint64_t Connector::GetFailTime(int conveyor_idx) const {
   return GetConveyor(conveyor_idx)->GetFailTime();
 }

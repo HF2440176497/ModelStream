@@ -96,6 +96,7 @@ int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
     LOGE(CORE) << "[" << GetName() << "] module's container is not set";
     return 0;
   }
+  // NotifyObserver(data);  // TODO: 可选择通知
 }
 
 /**
@@ -103,17 +104,41 @@ int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
  */
 int Module::DoProcess(std::shared_ptr<CNFrameInfo> data) {
   bool removed = IsStreamRemoved(data->stream_id);
-  if (!data->IsEos()) {
-    if (!removed) {  // 并且不能是正在移除的 stream_id
-      int ret = Process(data);
-      if (ret != 0) {
-        return ret;
-      }
-    }
-  } else {
-    this->OnEos(data->stream_id);  // 首先调用 Module 的 OnEos() 逻辑
+  if (removed) {
+    data->flags |= static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_REMOVED);
   }
-  return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
+  if (!HasTransmit()) {
+    if (!data->IsEos()) {
+      if (!removed) {  // 并且不能是正在移除的 stream_id
+        int ret = Process(data);
+        if (ret != 0) {
+          return ret;
+        }
+      }
+    } else {
+      this->OnEos(data->stream_id);  // 首先调用 Module 的 OnEos() 逻辑
+    }
+    return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
+  } else {
+    return Process(data);
+  }
+}
+
+/**
+ * @brief Transmits data to the next module.
+ *
+ * @param[in] data The data to be transmitted.
+ *
+ * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
+ */
+bool Module::TransmitData(std::shared_ptr<CNFrameInfo> data) {
+  if (!HasTransmit()) {  // 没有传输权限，直接返回 false
+    return false;
+  }
+  if (!DoTransmitData(data)) {
+    return false;
+  }
+  return true;
 }
 
 

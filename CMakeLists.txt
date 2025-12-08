@@ -36,9 +36,6 @@ if(build_tests)
   add_definitions(-DUNIT_TEST)
 endif()
 
-# 关闭 Profiler 模块的编译
-add_definitions(-DCLOSE_PROFILER)
-
 if(build_tests)
   # ---[ gtest
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest)

@@ -28,7 +28,6 @@
 
 #include "cnstream_logging.hpp"
 #include "data_source.hpp"
-// #include "profiler/module_profiler.hpp"
 
 namespace cnstream {
 
@@ -224,7 +223,8 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
 }
 
 int DataSource::Process(std::shared_ptr<CNFrameInfo> data) {
-  LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->stream_id;
+  // LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->stream_id;
+  LOGW(SOURCE) << "[DataSource] Process should not be called";
   return 0;
 }
 

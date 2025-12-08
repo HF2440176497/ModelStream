@@ -27,8 +27,7 @@
 #include "cnstream_module.hpp"
 #include "cnstream_pipeline.hpp"
 
-// #include "profiler/pipeline_profiler.hpp"
-
+#include "profiler/module_profiler.hpp"
 
 namespace cnstream {
 
@@ -141,18 +140,17 @@ bool Module::TransmitData(std::shared_ptr<CNFrameInfo> data) {
   return true;
 }
 
-
-#ifndef CLOSE_PROFILER
+/**
+ * @brief 通过 Pipeline 得到初始化时创建的 ModuleProfiler
+ */
 ModuleProfiler* Module::GetProfiler() {
   RwLockReadGuard guard(container_lock_);
-  if (container_ && container_->GetProfiler())
-    return container_->GetProfiler()->GetModuleProfiler(GetName());
+  if (container_)
+    return container_->GetModuleProfiler(GetName());
   return nullptr;
 }
-#endif
 
 ModuleFactory* ModuleFactory::factory_ = nullptr;
-
 
 class TestModuleOne : public Module, public ModuleCreator<TestModuleOne> {
   public:

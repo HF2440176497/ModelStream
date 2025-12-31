@@ -84,16 +84,17 @@ bool Module::PostEvent(Event e) {
 }
 
 /**
- * @return 1 传输成功
- * @return 0 传输失败
+ * @return 0 传输成功
+ * @return -1 传输失败
  */
 int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
   RwLockReadGuard guard(container_lock_);
   if (container_) {
-    return container_->ProvideData(this, data);
+    if (container_->ProvideData(this, data))
+      return 0;
   } else {
     LOGE(CORE) << "[" << GetName() << "] module's container is not set";
-    return 0;
+    return -1;
   }
   // NotifyObserver(data);  // TODO: 可选择通知
 }

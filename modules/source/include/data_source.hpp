@@ -105,19 +105,16 @@ REGISTER_MODULE(DataSource);
 // 派生关系: Module SourceModule DataSource
 // SourceModule 并没有提供虚函数接口, DataSource 主要重写 Module 的相关 virtual func
 
-class ImageQueueHandlerImpl;
+class ImageHandlerImpl;
 
-/**
- * 图像队列接口
- */
-class ImageQueueHandler : public SourceHandler {
+class ImageHandler : public SourceHandler {
  public:
   // provided for external use
   static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
-  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id);
+  explicit ImageHandler(DataSource *module, const std::string &stream_id);
 
  public:
-  ~ImageQueueHandler();
+  ~ImageHandler();
 
   /**
    * 通过 SourceModule::AddSource 调用
@@ -126,17 +123,12 @@ class ImageQueueHandler : public SourceHandler {
   void Stop() override;
   void Close() override;
 
- public:
-  void PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images);
-
 #ifdef UNIT_TEST
  public:
 #else
  private:
 #endif
-  // int conveyor_idx_ = 0;  // DEPRECATED
-  int frame_rate_ = 10;   // == 0 表示没有限制
-  std::unique_ptr<ImageQueueHandlerImpl> impl_;
+  std::unique_ptr<ImageHandlerImpl> impl_;
 };
 
 }  // namespace cnstream

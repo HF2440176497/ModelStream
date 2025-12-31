@@ -12,6 +12,13 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(NVIDIA_PLATFORM "NVIDIA platform (Enable CUDA)" OFF)
+
+if(NVIDIA_PLATFORM)
+  enable_language(CUDA)
+  add_compile_definitions(NVIDIA_PLATFORM)
+endif()
+
 set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 

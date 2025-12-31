@@ -83,7 +83,8 @@ static bool STR2FLOAT(const std::string &value, float *ret) {
 }
 
 /**
- * pregister 保存 std::vector<std::pair>
+ * pregister 为 Inferencer 成员 
+ * RegisterParam pregister 保存 std::vector<std::pair>
  */
 void InferParamManager::RegisterAll(ParamRegister *pregister) {
   InferParamDesc param;
@@ -383,6 +384,9 @@ void InferParamManager::RegisterAll(ParamRegister *pregister) {
   ASSERT(RegisterParam(pregister, param));
 }
 
+/**
+ * @brief 对于 Inferencer  InferParamManager
+ */
 bool InferParamManager::RegisterParam(ParamRegister *pregister, const InferParamDesc &param_desc) {
   if (!pregister) return false;
   if (!param_desc.IsLegal()) return false;
@@ -394,21 +398,29 @@ bool InferParamManager::RegisterParam(ParamRegister *pregister, const InferParam
   return true;
 }
 
+/**
+ * 调用处：Inferencer::Open 将 ModuleParamSet 解析到 InferParams 对象
+ * @param raw_params: Inferencer::Open 传入的参数
+ * @note raw_params 需要 与 RegisterAll 注册的参数 name 对应
+ */
 bool InferParamManager::ParseBy(const ModuleParamSet &raw_params, InferParams *pout) {
   if (!pout) return false;
   ModuleParamSet raws = raw_params;
+
+  // param_descs_：RegisterAll 注册的参数
   for (const InferParamDesc &desc : param_descs_) {
     std::string value = desc.default_value;
     auto it = raws.find(desc.name);
     if (it != raws.end()) {
-      value = it->second;
-      raws.erase(it);
+      value = it->second;  // 取出 raw_params 中的值，否则采用注册时的默认值
+      raws.erase(it);  // 标记已经取出的参数值
     }
     if (!desc.parser(value, pout)) {
       LOGE(INFERENCER) << "Parse parameter [" << desc.name << "] failed. value is [" << value << "]";
       return false;
     }
   }
+  // raw_params 必须要含有 json_file_dir 参数
   for (const auto &it : raws) {
     if (it.first != CNS_JSON_DIR_PARAM_NAME) {
       LOGE(INFERENCER) << "Parameter named [" << it.first << "] did not registered.";

@@ -17,12 +17,20 @@ include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/private)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/util)
 
+# 包含CUDA头文件
+find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
+
 # unittest 头文件
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(test_srcs "")
 list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/base.cpp)
 list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+
+# util 单元测试文件
+file(GLOB_RECURSE test_util_srcs ${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp)
+list(APPEND test_srcs ${test_util_srcs})
 
 if(build_source)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../source/include)
@@ -35,4 +43,4 @@ have_modules_target(${MODELSTREAM_ROOT_PATH})
 
 add_executable(modelstream_modules_test ${test_srcs})
 add_dependencies(modelstream_modules_test modelstream_va)
-target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread)
+target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread ${CUDA_LIBRARIES})

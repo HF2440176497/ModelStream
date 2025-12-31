@@ -18,7 +18,7 @@ class SourceRender {
 
   virtual bool CreateInterrupt() { return interrupt_.load(); }
 
-  // 调用处：HandlerImpl::OnDecodeFrame
+  // OnDecodeFrame
   std::shared_ptr<CNFrameInfo> CreateFrameInfo(bool eos = false) {
     std::shared_ptr<CNFrameInfo> data;
     if (handler_ == nullptr) {
@@ -79,8 +79,16 @@ class SourceRender {
   std::atomic<bool> interrupt_{false};
   uint64_t frame_count_ = 0;
   uint64_t frame_id_ = 0;
+
+ public:
+   static int Process(std::shared_ptr<CNFrameInfo> frame_info,
+                      DecodeFrame *frame, uint64_t frame_id, 
+                      const DataSourceParam &param_) ;
+
 };  // class SourceRender
 
+// RenderOp and RenderOpProvider classes have been removed
+// Logic has been integrated directly into SourceRender::Process
 
 /**********************************************************************
  * @brief FrController is used to control the frequency of sending data.
@@ -89,7 +97,12 @@ class FrController {
  public:
   FrController() {}
   explicit FrController(uint32_t frame_rate) : frame_rate_(frame_rate) {
-    delay_ = 1000.0 / frame_rate_;
+    if (frame_rate_ <= 0) {
+      frame_rate_ = 0;
+      delay_ = 0;
+    } else {
+      delay_ = 1000.0 / frame_rate_;
+    }
   }
   void Start() { start_ = std::chrono::steady_clock::now(); }
   

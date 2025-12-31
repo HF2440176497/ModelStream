@@ -41,9 +41,8 @@ struct InferParams {
   uint32_t batching_timeout = 3000;  // ms
   bool keep_aspect_ratio = false;  // mlu preprocessing, keep aspect ratio
   CNDataFormat model_input_pixel_format = CNDataFormat::CN_PIXEL_FORMAT_RGBA32;
-  bool mem_on_mlu_for_postproc = false;
-  edk::DimOrder data_order = edk::DimOrder::NHWC;
-  std::string func_name;  // TODO: 
+  // bool mem_on_mlu_for_postproc = false;
+  std::string func_name;
   std::string model_path;
   std::string preproc_name;
   std::string postproc_name;
@@ -75,13 +74,12 @@ struct InferParamDescLessCompare {
 class InferParamManager {
  public:
   void RegisterAll(ParamRegister *pregister);
-
   bool ParseBy(const ModuleParamSet &raw_params, InferParams *pout);
 
  private:
   bool RegisterParam(ParamRegister *pregister, const InferParamDesc &param_desc);
   std::set<InferParamDesc, InferParamDescLessCompare> param_descs_;
-};  // struct InferParams
+};  // class InferParamManager
 
 }  // namespace cnstream
 

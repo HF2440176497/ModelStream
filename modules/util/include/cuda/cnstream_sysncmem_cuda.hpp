@@ -8,7 +8,8 @@
 #include "cnstream_common.hpp"
 #include "cnstream_logging.hpp"
 
-#include "util/include/cnstream_sysncmem.hpp"
+#include "cnstream_sysncmem.hpp"
+#include "cuda/cuda_check.hpp"
 
 namespace cnstream {
 

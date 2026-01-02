@@ -42,7 +42,7 @@ void ProcessProfiler::RecordEnd(const RecordKey& key) {
 
 /**
  * @brief 记录丢弃的帧数
- * 当存在开始记录时，丢弃，认为有关记录失效
+ * 当存在 start_record 时丢弃 start，认为有关记录失效
  */
 void ProcessProfiler::RecordDropped(const RecordKey& key) {
   std::lock_guard<std::mutex> lock(mutex_);

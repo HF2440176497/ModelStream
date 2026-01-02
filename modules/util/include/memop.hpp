@@ -6,6 +6,8 @@
 #include <map>
 #include <mutex>
 
+#include "cnstream_syncmem.hpp"
+
 namespace cnstream {
 
 /**

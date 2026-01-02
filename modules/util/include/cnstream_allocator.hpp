@@ -25,7 +25,6 @@
 #include <new>
 #include "cnstream_common.hpp"
 #include "cnstream_logging.hpp"
-#include "util/cnstream_queue.hpp"
 
 
 /**

@@ -158,17 +158,17 @@ TEST_F(SourceModuleTest, Loop) {
   image_handler_->impl_->SendFlowEos();
   PrintStreamEos();  // 创建 eos 帧之后应当看到 eos_map 注册了 false
   EXPECT_FALSE(StreamEosMapValue(stream_id_));
-  
   std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 等待 EOS 消息被处理
 
-  // 同步等待
   LOGI(SourceModuleTest) << "Wait for EOS message to be processed";
   LOGI(SourceModuleTest) << "CheckStreamEosReached(stream_id_) = " << std::boolalpha << CheckStreamEosReached(stream_id_, true);
   LOGI(SourceModuleTest) << "Wait for EOS message complete";
 }
 
-
-// TODO: 我们如果启动多个线程，操作 Handler 发送数据
+/**
+ * Sasha: 2026-01-02
+ * 修改之后的 ImageHandler 循环生成 DecodeFrame，然后通过 SourceModule 自己向 Pipeline 发送
+ */
 
 
 }  // namespace cnstream

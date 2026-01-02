@@ -38,8 +38,9 @@
 
 #include <cstddef>
 #include <mutex>
+#include <memory>
+#include <map>
 
-#include <cuda_runtime.h>
 #include "cnstream_common.hpp"
 #include "cnstream_logging.hpp"
 

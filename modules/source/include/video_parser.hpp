@@ -42,7 +42,7 @@ namespace cnstream {
 struct VideoInfo {
   AVCodecID codec_id;
   int progressive;
-  MaximumVideoResolution maximum_resolution;
+  // MaximumVideoResolution maximum_resolution;
   std::vector<unsigned char> extra_data;
 };
 

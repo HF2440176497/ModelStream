@@ -222,7 +222,8 @@ TEST(ProcessProfilerTest, PrintString) {
 }
 
 /**
- * @brief 
+ * @brief 启动 NumThreads 线程，
+ * 每个线程都对 process_profiler 进行操作 
  */
 TEST(ProcessProfilerTest, ThreadSafety) {
   ProfilerConfig config;

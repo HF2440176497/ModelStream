@@ -1,7 +1,7 @@
 // cuda_memop.cpp
 
-#include "cuda_check.hpp"
-#include "memop_cuda.hpp"
+#include "cuda/memop_cuda.hpp"
+#include "cuda/cuda_check.hpp"
 #include "cuda/cnstream_sysncmem_cuda.hpp"
 
 namespace cnstream {

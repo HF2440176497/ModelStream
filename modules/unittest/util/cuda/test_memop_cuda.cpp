@@ -1,11 +1,10 @@
 
 #include "base.hpp"
 
+#include "cuda/cuda_check.hpp"
+#include "cuda/memop_cuda.hpp"
 
-#include "util/cuda/cuda_check.hpp"  // framework
-
-#include "util/include/cuda/memop_cuda.hpp"
-#include "util/include/memop_factory.hpp"
+#include "memop_factory.hpp"
 
 namespace cnstream {
 
@@ -48,6 +47,7 @@ TEST(CudaMemOp, CreateSyncedMemory) {
   void* data_ptr = data.get();
 
   // note: 创建内存，手动填充内容，后续可以验证
+  // 注意是将 host 内存填充到 cuda 内存
   ASSERT_EQ(RoundUpSize(bytes), bytes);
   void *tmp = malloc(bytes);
   const uint8_t pattern = 0xAB;

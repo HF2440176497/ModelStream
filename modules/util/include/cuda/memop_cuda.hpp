@@ -4,10 +4,13 @@
 
 #include "cnstream_logging.hpp"  // framework
 
-#include "util/include/memop.hpp"
-#include "util/include/memop_factory.hpp"
-#include "util/include/cnstream_sysncmem.hpp"
-#include "util/include/cuda/cnstream_allocator_cuda.hpp"
+#include "memop.hpp"
+#include "memop_factory.hpp"
+
+#include "cnstream_allocator.hpp"
+#include "cnstream_sysncmem.hpp"
+#include "cuda/cnstream_allocator_cuda.hpp"
+#include "cuda/cnstream_sysncmem_cuda.hpp"
 
 
 namespace cnstream {

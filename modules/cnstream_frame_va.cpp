@@ -153,7 +153,7 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     for (int i = 0; i < GetPlanes(); i++) {
       const size_t plane_bytes = GetPlaneBytes(i);
       this->data[i] = memop->CreateSyncedMemory(plane_bytes);
-      memop->SetData(this->data[i], ptr_src[i]);
+      memop->SetData(this->data[i], decode_frame->plane[i]);
     }
     return;
   }

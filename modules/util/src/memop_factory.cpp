@@ -1,6 +1,5 @@
-#include "memop_factory.hpp"
-#include "memop.hpp"
 
+#include "memop_factory.hpp"
 #include "util/cnstream_logging.hpp"
 
 namespace cnstream {

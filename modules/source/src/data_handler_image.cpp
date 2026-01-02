@@ -1,10 +1,11 @@
 
+#include "private/cnstream_constants_pri.hpp"  // framework
 
 #include "data_source.hpp"
-#include "private/cnstream_constants_pri.hpp"
 #include "data_handler_image.hpp"
 #include "data_handler_util.hpp"
-#include "util/memop.hpp"
+#include "memop.hpp"
+#include "memop_factory.hpp"
 
 namespace cnstream {
 
@@ -76,6 +77,7 @@ void ImageHandlerImpl::Close() {
 
 /**
  * @brief 循环读取图片，模拟 decode 生成 DecodeFrame
+ * 调用处：ImageHandlerImpl::Open
  */
 void ImageHandlerImpl::Loop() {
   FrController controller(framerate_);

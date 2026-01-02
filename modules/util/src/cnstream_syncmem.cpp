@@ -27,11 +27,9 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <string.h>
-#include <cuda_runtime.h>
+#include "cnstream_common.hpp"
 #include "cnstream_logging.hpp"
 
-#include "cnstream_common.hpp"
 #include "cnstream_syncmem.hpp"
 
 namespace cnstream {

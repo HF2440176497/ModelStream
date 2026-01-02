@@ -29,8 +29,14 @@ list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/base.cpp)
 list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
 # util 单元测试文件
-file(GLOB_RECURSE test_util_srcs ${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp)
+file(GLOB test_util_srcs ${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp)
 list(APPEND test_srcs ${test_util_srcs})
+
+if(NVIDIA_PLATFORM)
+  file(GLOB test_util_cuda_srcs ${CMAKE_CURRENT_SOURCE_DIR}/cuda/*.cpp)
+  list(APPEND test_srcs ${test_util_cuda_srcs})
+endif()
+
 
 if(build_source)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../source/include)

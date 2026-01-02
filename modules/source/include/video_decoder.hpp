@@ -43,13 +43,14 @@ public:
  * @brief 零拷贝内存引用器 作为 DecodeFrame 的 buf_ref
  */
 class Deallocator : public IDataDeallocator {
-  public:
+ public:
   explicit Deallocator(IDecBufRef *ptr) {
     ptr_.reset(ptr);
   }
-  ~Deallocator() = default;
-
-  private:
+  ~Deallocator() {
+    ptr_.reset();
+  }
+ private:
   std::unique_ptr<IDecBufRef> ptr_;
 };
 

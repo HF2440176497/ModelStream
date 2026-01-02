@@ -1,9 +1,7 @@
 
-
 /**
  * 提供生产者-消费者的接口，读取图片
  */
-
 
 #ifndef MODULES_SOURCE_HANDLER_IMAGE_QUEUE_HPP_
 #define MODULES_SOURCE_HANDLER_IMAGE_QUEUE_HPP_
@@ -53,7 +51,7 @@ public:
  private:
 #endif
   std::atomic<bool> running_{false};
-  int framerate_ = 10;
+  int framerate_ = 5;
   std::string image_path_ = "test_image.jpg";
   
   // ThreadSafeQueue<std::shared_ptr<ImageFrame>> queue_;

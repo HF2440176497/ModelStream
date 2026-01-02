@@ -1,6 +1,6 @@
 
-#include "util/cuda/cuda_check.hpp"  // framework
-#include "util/include/cuda/cnstream_sysncmem_cuda.hpp"
+#include "cuda/cuda_check.hpp"
+#include "cuda/cnstream_sysncmem_cuda.hpp"
 
 namespace cnstream {
 

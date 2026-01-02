@@ -6,7 +6,8 @@
 #include <atomic>
 #include <memory>
 #include <new>
-#include <cuda_runtime.h>
+
+#include "cuda/cuda_check.hpp"
 
 
 /*!

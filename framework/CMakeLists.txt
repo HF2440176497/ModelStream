@@ -20,9 +20,10 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src core_srcs)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/private private_srcs)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/profiler profile_srcs)
 
 
-add_library(modelstream_core SHARED ${core_srcs} ${private_srcs})
+add_library(modelstream_core SHARED ${core_srcs} ${private_srcs} ${profile_srcs})
 target_link_libraries(modelstream_core dl pthread ${GFLAGS_LIBRARIES})
 set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
 

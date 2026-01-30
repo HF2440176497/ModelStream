@@ -9,7 +9,6 @@ namespace cnstream {
 // ----------- Some related function definitions; Originally located at framework/src/cntream_frame.cpp
 
 /**
- * @brief 用于在 EOS 发送出去后，检查 frame 已走完流程
  * sync == true: 找到 steam_id 的情况下一直等到 second == true 才返回
  * s_stream_eos_map_ 仅在 CNFrameInfo 析构函数中设置 
  * @return true: 查询到 second == true 移除成功

@@ -128,22 +128,11 @@ class NonCopyable {
 
 // some static variables for stream EOS and removed status
 inline std::mutex s_eos_lock_;
-inline std::map<std::string, std::atomic<bool>> s_stream_eos_map_;  // stream_id -> eos_reached; false 表示 EOS 产生，但是没有 frame 没有析构
-                                                                     // true 表示 EOS帧 产生，并且 frame 被析构
+inline std::map<std::string, std::atomic<bool>> s_stream_eos_map_;
 
 inline std::mutex s_remove_lock_;
 // static std::map<std::string, bool> s_stream_removed_map_;
 inline std::set<std::string> s_stream_removed_set_;
-
-
-
-#ifdef UNIT_TEST
-
-bool StreamEosMapValue(const std::string& stream_id) {
-  return s_stream_eos_map_.at(stream_id);  // 未找到 stream_id 会抛出异常
-}
-
-#endif
 
 /**
  *

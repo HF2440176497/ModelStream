@@ -26,7 +26,6 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/writer.h>
-#include <opencv2/opencv.hpp>
 
 #define PATH_MAX_LENGTH 1024
 

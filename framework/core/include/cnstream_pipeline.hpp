@@ -47,6 +47,8 @@
 #include "cnstream_module.hpp"
 #include "cnstream_connector.hpp"
 
+// #include "profiler/pipeline_profiler.hpp"
+
 
 namespace cnstream {
 
@@ -232,12 +234,20 @@ class Pipeline : private NonCopyable {
    */
   CNModuleConfig GetModuleConfig(const std::string& module_name) const;
 
+#ifndef CLOSE_PROFILER
   /**
    * @brief Checks if profiling is enabled.
    *
    * @return Returns true if profiling is enabled.
    **/
   bool IsProfilingEnabled() const;
+  /**
+   * @brief Checks if tracing is enabled.
+   *
+   * @return Returns true if tracing is enabled.
+   **/
+  bool IsTracingEnabled() const;
+#endif
 
   /**
    * @brief Provides data for the pipeline that is used in source module or the module transmitted by itself.
@@ -279,11 +289,22 @@ class Pipeline : private NonCopyable {
    */
   StreamMsgObserver* GetStreamMsgObserver() const;
 
+#ifndef CLOSE_PROFILER
   /**
-   * @brief 查找指定模块的 Profiler
+   * @brief Gets this pipeline's profiler.
+   *
+   * @return Returns profiler.
    */
-  ModuleProfiler* GetModuleProfiler(const std::string& module_name) const;
-  
+  PipelineProfiler* GetProfiler() const;
+  /**
+   * @brief Gets this pipeline's tracer.
+   *
+   * @return Returns tracer.
+   */
+  PipelineTracer* GetTracer() const;
+
+#endif  // CLOSE_PROFILER
+
   /**
    * @brief Checks if module is root node of pipeline or not.
    * The module name can be specified by two ways, see Pipeline::GetModule for detail.
@@ -322,7 +343,6 @@ class Pipeline : private NonCopyable {
   /** called by BuildPipeline **/
   bool CreateModules(std::vector<std::shared_ptr<Module>>* modules);
   void GenerateModulesMask();
-  void InitModulesProfiler(std::vector<std::shared_ptr<Module>> modules);
   bool CreateConnectors();
 
   /* ------Internal methods------ */
@@ -357,16 +377,14 @@ class Pipeline : private NonCopyable {
   StreamMsgObserver* smsg_observer_ = nullptr;
   std::atomic<bool> exit_msg_loop_{false};
 
-  // store all module's id mask
   uint64_t all_modules_mask_ = 0;
 
-  // module_name - push_failed_time, init at Start()
-  std::unordered_map<std::string, uint32_t> fail_push_count_;
+#ifndef CLOSE_PROFILER
+  std::unique_ptr<PipelineProfiler> profiler_;
+#endif
 
-  // module_name - module_profiler
-  std::unordered_map<std::string, std::shared_ptr<ModuleProfiler>> module_profilers_;
-
-  // OnPassThrough 调用的回调函数; 可以进行相关的统计清理
+  // OnPassThrough 调用的回调函数
+  // 可以进行相关的 统计、清理
   std::function<void(std::shared_ptr<CNFrameInfo>)> frame_done_cb_ = NULL;
 
   /**
@@ -441,6 +459,8 @@ inline StreamMsgObserver* Pipeline::GetStreamMsgObserver() const {
   return smsg_observer_;
 }
 
+#ifndef CLOSE_PROFILER
+
 inline bool Pipeline::IsProfilingEnabled() const {
   return profiler_ ? profiler_->GetConfig().enable_profiling : false;
 }
@@ -448,6 +468,16 @@ inline bool Pipeline::IsProfilingEnabled() const {
 inline bool Pipeline::IsTracingEnabled() const {
   return profiler_ ? profiler_->GetConfig().enable_tracing : false;
 }
+
+inline PipelineProfiler* Pipeline::GetProfiler() const {
+  return IsProfilingEnabled() ? profiler_.get() : nullptr;
+}
+
+inline PipelineTracer* Pipeline::GetTracer() const {
+  return IsTracingEnabled() ? profiler_->GetTracer() : nullptr;
+}
+
+#endif  // CLOSE_PROFILER
 
 inline bool Pipeline::PassedByAllModules(uint64_t mask) const {
   return mask == all_modules_mask_;

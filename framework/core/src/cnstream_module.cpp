@@ -27,7 +27,8 @@
 #include "cnstream_module.hpp"
 #include "cnstream_pipeline.hpp"
 
-#include "profiler/module_profiler.hpp"
+// #include "profiler/pipeline_profiler.hpp"
+
 
 namespace cnstream {
 
@@ -84,19 +85,17 @@ bool Module::PostEvent(Event e) {
 }
 
 /**
- * @return 0 传输成功
- * @return -1 传输失败
+ * @return 1 传输成功
+ * @return 0 传输失败
  */
 int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
   RwLockReadGuard guard(container_lock_);
   if (container_) {
-    if (container_->ProvideData(this, data))
-      return 0;
+    return container_->ProvideData(this, data);
   } else {
     LOGE(CORE) << "[" << GetName() << "] module's container is not set";
-    return -1;
+    return 0;
   }
-  // NotifyObserver(data);  // TODO: 可选择通知
 }
 
 /**
@@ -104,54 +103,31 @@ int Module::DoTransmitData(std::shared_ptr<CNFrameInfo> data) {
  */
 int Module::DoProcess(std::shared_ptr<CNFrameInfo> data) {
   bool removed = IsStreamRemoved(data->stream_id);
-  if (removed) {
-    data->flags |= static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_REMOVED);
-  }
-  if (!HasTransmit()) {
-    if (!data->IsEos()) {
-      if (!removed) {  // 并且不能是正在移除的 stream_id
-        int ret = Process(data);
-        if (ret != 0) {
-          return ret;
-        }
+  if (!data->IsEos()) {
+    if (!removed) {  // 并且不能是正在移除的 stream_id
+      int ret = Process(data);
+      if (ret != 0) {
+        return ret;
       }
-    } else {
-      this->OnEos(data->stream_id);  // 首先调用 Module 的 OnEos() 逻辑
     }
-    return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
   } else {
-    return Process(data);
+    this->OnEos(data->stream_id);  // 首先调用 Module 的 OnEos() 逻辑
   }
+  return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
 }
 
-/**
- * @brief Transmits data to the next module.
- *
- * @param[in] data The data to be transmitted.
- *
- * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
- */
-bool Module::TransmitData(std::shared_ptr<CNFrameInfo> data) {
-  if (!HasTransmit()) {  // 没有传输权限，直接返回 false
-    return false;
-  }
-  if (!DoTransmitData(data)) {
-    return false;
-  }
-  return true;
-}
 
-/**
- * @brief 通过 Pipeline 得到初始化时创建的 ModuleProfiler
- */
+#ifndef CLOSE_PROFILER
 ModuleProfiler* Module::GetProfiler() {
   RwLockReadGuard guard(container_lock_);
-  if (container_)
-    return container_->GetModuleProfiler(GetName());
+  if (container_ && container_->GetProfiler())
+    return container_->GetProfiler()->GetModuleProfiler(GetName());
   return nullptr;
 }
+#endif
 
 ModuleFactory* ModuleFactory::factory_ = nullptr;
+
 
 class TestModuleOne : public Module, public ModuleCreator<TestModuleOne> {
   public:

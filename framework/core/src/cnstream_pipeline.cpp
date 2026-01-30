@@ -82,11 +82,15 @@ bool Pipeline::BuildPipeline(const CNGraphConfig& graph_config) {
     LOGE(CORE) << "Create modules failed.";
     return false;
   }
+
   // generate parant mask for all nodes and route mask for head nodes.
   GenerateModulesMask();
 
-  // 初始化所有 Module 的 Profiler
-  CreateModuleProfilers(modules);
+#ifndef CLOSE_PROFILER
+  // This call must after GenerateModulesMask called,
+  profiler_.reset(new PipelineProfiler(graph_->GetConfig().profiler_config, GetName(), modules,
+      GetSortedModuleNames()));
+#endif
 
   // create connectors for all nodes beside head nodes.
   // This call must after GenerateModulesMask called,
@@ -113,7 +117,6 @@ bool Pipeline::Start() {
       break;
     }
     opened_modules.push_back(node->data.module);
-    fail_push_count_[node->data.module->GetName()] = 0;
   }
   if (open_module_failed) {
     for (auto it : opened_modules) it->Close();
@@ -125,13 +128,13 @@ bool Pipeline::Start() {
 
   // start data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     node->data.module->GetConnector()->Start();
   }
 
   // create process threads
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     const auto& config = node->GetConfig();
     for (int conveyor_idx = 0; conveyor_idx < config.parallelism; ++conveyor_idx) {
       threads_.push_back(std::thread(&Pipeline::TaskLoop, this, &node->data, conveyor_idx));
@@ -156,7 +159,7 @@ bool Pipeline::Stop() {
 
   // stop data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    if (!node->data.parent_nodes_mask) continue;  // head node
+    // if (!node->data.parent_nodes_mask) continue;  // head node
     auto connector = node->data.module->GetConnector();
     if (connector) {
       // push data will be rejected after Stop()
@@ -170,11 +173,11 @@ bool Pipeline::Stop() {
     if (it.joinable()) it.join();
   }
   threads_.clear();
-  // event_bus_->Stop();  // Sasha: 暂不调用
+  // event_bus_->Stop();  // Sasha: 此处暂不调用
 
   // close other modules
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    // if (!node->data.parent_nodes_mask) continue;  // Sasha: 根节点同样调用
+    if (!node->data.parent_nodes_mask) continue;
     node->data.module->Close();
   }
 
@@ -294,29 +297,10 @@ void Pipeline::GenerateModulesMask() {
   // 在 head nodes 中标记可达的节点
 }
 
-void Pipeline::CreateModuleProfilers(std::vector<std::shared_ptr<Module>> modules)  {
-  for (auto module : modules) {
-    module_profilers_.insert({module->GetName(), std::make_shared<ModuleProfiler>(module->GetName())});
-    // by default, register "PROCESS" profiler.
-    module_profilers_[module->GetName()]->RegisterProcess(kPROCESS_PROFILER_NAME);
-  }
-}
-
-/**
- * 调用处: Module::GetProfiler()
- */
-ModuleProfiler* Pipeline::GetModuleProfiler(const std::string& module_name) const {
-  auto it = module_profilers_.find(module_name);
-  if (it == module_profilers_.end()) {
-    return nullptr;
-  }
-  return it->second.get();
-}
-
 bool Pipeline::CreateConnectors() {
   // node_iter: std::shared_ptr<CNNode> 
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
-    if (!node_iter->data.parent_nodes_mask) continue;
+    // if (!node_iter->data.parent_nodes_mask) continue;
     const auto &config = node_iter->GetConfig();
     // check if parallelism and max_input_queue_size is valid.
     if (config.parallelism <= 0 || config.maxInputQueueSize <= 0) {
@@ -341,18 +325,24 @@ bool PassedByAllParentNodes(NodeContext* context, uint64_t data_mask) {
 
 void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (data->IsEos()) return;
+#ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
-    context->module->GetProfiler()->RecordProcessStart(
-      kPROCESS_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
+    auto record_key = std::make_pair(data->stream_id, data->timestamp);
+    auto profiler = context->module->GetProfiler();
+    profiler->RecordProcessEnd(kINPUT_PROFILER_NAME, record_key);
+    profiler->RecordProcessStart(kPROCESS_PROFILER_NAME, record_key);
   }
+#endif
 }
 
 void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (data->IsEos()) return;
+#ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
     context->module->GetProfiler()->RecordProcessEnd(
       kPROCESS_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
   }
+#endif
   context->module->NotifyObserver(data);
 }
 
@@ -392,9 +382,10 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& d
   auto module = context->module;
   module->NotifyObserver(data);
 
-  if (IsProfilingEnabled()) {
+#ifndef CLOSE_PROFILER
+  if (IsProfilingEnabled())
     module->GetProfiler()->OnStreamEos(data->stream_id);
-  }
+#endif
 
   LOGI(CORE) << "[" << module->GetName() << "]" << " [" << data->stream_id << "] got eos.";
   // eos message
@@ -406,15 +397,34 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& d
   event_bus_->PostEvent(e);
 }
 
+#ifndef CLOSE_PROFILER
+
 /**
  * 仅在 Pipeline::TransmitData 中调用
  */
 void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
-    // OnEos(context, data);  // TransmitData 中已经判断并调用 OnEos
+    // OnEos(context, data);
+    if (IsProfilingEnabled()) {
+      profiler_->OnStreamEos(data->stream_id);
+    }
+  } else {
+    if (IsProfilingEnabled()) profiler_->RecordOutput(std::make_pair(data->stream_id, data->timestamp));
   }
 }
+
+#else
+
+void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+  if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
+  // 在 Pipeline::TransmitData 调用 OnPassThrough 之前，就已经判断了 EOS
+  // if (data->IsEos()) {
+  //   OnEos(context, data);
+  // }
+}
+
+#endif
 
 /**
  * @note: 数据传输的核心函数，在 Module 处理完后
@@ -424,17 +434,14 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
     OnDataInvalid(context, data);
     return;
   }
-  // Sasha: 这部分在当前模块处理后调用 移除的 data 不再需要传输
-  if (data->IsRemoved()) {
-    LOGW(CORE) << "Get removed frame from " << context->module->GetName() << " stream: " << data->stream_id;
-    return;
-  }
   if (!context->parent_nodes_mask) {
     // root node
     // set mask to 1 for never touched modules, for case which has multiple source modules.
     data->SetModulesMask(all_modules_mask_ ^ context->route_mask);
   }
-  // SetModulesMask 标记当前根节点不会经过的节点; 异或：相同为 0，不同为 1
+  // SetModulesMask 标记当前根节点不会经过的节点
+  // 异或：相同为 0，不同为 1
+
   if (data->IsEos()) {
     OnEos(context, data);
   } else {
@@ -447,24 +454,34 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameI
   auto module = context->module;
   const uint64_t cur_mask = data->MarkPassed(module.get());
   const bool passed_by_all_modules = PassedByAllModules(cur_mask);
+
   if (passed_by_all_modules) {
     OnPassThrough(context, data);  // 不需要再调用 OnEos 操作
     return;
   }
+
   // transmit to next nodes
   for (auto next_node : node->GetNext()) {
     if (!PassedByAllParentNodes(&next_node->data, cur_mask)) continue;
     auto next_module = next_node->data.module;
     auto connector = next_module->GetConnector();
+    // push data to conveyor only after data passed by all parent nodes.
 
-    while (connector->IsRunning() && connector->PushDataBuffer(data) == false) {
-      fail_push_count_[next_module->GetName()]++;
-      if (fail_push_count_[next_module->GetName()] % 50 == 0) {
-        LOGD(CORE) << "[" << next_module->GetName() << "] " << "Push data to conveyor failed";
+#ifndef CLOSE_PROFILER
+    if (IsProfilingEnabled() && !data->IsEos()) {
+      next_module->GetProfiler()->RecordProcessStart(
+        kINPUT_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
+    }
+#endif
+
+    const int conveyor_idx = data->GetStreamIndex() % connector->GetConveyorCount();
+    while (connector->IsRunning() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {
+      if (connector->GetFailTime(conveyor_idx) % 50 == 0) {
+        // Show infomation when conveyor is full in every second
+        LOGD(CORE) << "[" << next_module->GetName() << " " << conveyor_idx << "] " << "Input buffer is full";
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }  // while try push
-    fail_push_count_[next_module->GetName()] = 0;
   }  // loop next nodes
 }
 

@@ -195,8 +195,8 @@ class Module : private NonCopyable {
    *
    * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
    *
+   * bool TransmitData(std::shared_ptr<CNFrameInfo> data);
    */
-  bool TransmitData(std::shared_ptr<CNFrameInfo> data);
   
   /**
    * @brief Checks parameters for a module, including parameter name, type, value, validity, and so on.
@@ -207,19 +207,33 @@ class Module : private NonCopyable {
    */
   virtual bool CheckParamSet(const ModuleParamSet &paramSet) const { return true; }
 
+  /**
+   * @brief Gets the pipeline this module belongs to.
+   *
+   * @return Returns the pointer to pipeline instance.
+   */
   Pipeline* GetContainer() const { return container_; }
 
   std::shared_ptr<Connector> GetConnector() const { return connector_; }
 
-  bool HasTransmit() const { return hasTransmit_.load(); }
-
+#ifndef CLOSE_PROFILER
+  /**
+   * @brief Gets module profiler.
+   *
+   * @return Returns a pointer to the module's profiler.
+   */
   ModuleProfiler* GetProfiler();
+#endif
+
+  // 改进后的 Pipeline 不需要此函数
+  // bool HasTransmit() const { return hasTransmit_.load(); }
 
   /**
    * Each module registers its own parameters and descriptions.
    * CNStream Inspect tool uses this class to detect parameters of each module.
    */
   ParamRegister param_register_;
+
 
 #ifdef UNIT_TEST
  public:  // NOLINT
@@ -261,7 +275,6 @@ class Module : private NonCopyable {
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;
   std::string name_;                      ///< The name of the module.
-  std::atomic<bool> hasTransmit_{false};  ///< Whether it has permission to transmit data.
 
 #ifdef UNIT_TEST
  public:  // NOLINT

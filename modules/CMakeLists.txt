@@ -37,6 +37,7 @@ if(HAVE_FRAMEWORK_TARGET)
   list(APPEND DEPENDENCIES modelstream_core)
 endif()
 
+
 # ---[ opencv
 find_package(OpenCV REQUIRED COMPONENTS 
     core imgproc highgui features2d imgcodecs videoio)
@@ -47,26 +48,6 @@ if(OpenCV_FOUND)
   message(STATUS "OpenCV version: ${OpenCV_VERSION}; Include dirs: ${OpenCV_INCLUDE_DIRS}; Libraries: ${OpenCV_LIBS}")
 else()
   message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed and set in CMAKE_PREFIX_PATH")
-endif()
-
-# ---[ yuv
-# 检查是否从根目录构建了libyuv
-if(BUILD_LIBYUV)
-  if(TARGET yuv or TARGET yuv_shared)  # 根据 libyuv 内的 cmake 文件确定
-    include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
-    message(STATUS "Using libyuv library from root build - target yuv")
-    if(TARGET yuv)  # 优先使用静态库
-      list(APPEND 3RDPARTY_LIBS yuv)
-      list(APPEND DEPENDENCIES yuv)
-      message(STATUS "Using libyuv static library: yuv")
-    elseif(TARGET yuv_shared)
-      list(APPEND 3RDPARTY_LIBS yuv_shared)
-      list(APPEND DEPENDENCIES yuv_shared)
-      message(STATUS "Using libyuv shared library: yuv_shared")
-    endif()
-  endif()
-else()
-  message(FATAL_ERROR "libyuv not found. Set BUILD_LIBYUV=ON in root CMakeLists.txt to build")
 endif()
 
 set(module_list "")
@@ -81,13 +62,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/util/include)
 file(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB util_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
 list(APPEND srcs ${util_src})
-
-# 根据NVIDIA_PLATFORM选项决定是否包含CUDA源码
-if(NVIDIA_PLATFORM)
-  file(GLOB cuda_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cpp)
-  list(APPEND srcs ${cuda_src})
-  message(STATUS "CUDA support enabled - adding CUDA source files")
-endif()
 
 # 递归添加模块的源文件
 # 要求每个 module 目录都是 include src 目录结构

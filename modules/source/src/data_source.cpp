@@ -28,6 +28,7 @@
 
 #include "cnstream_logging.hpp"
 #include "data_source.hpp"
+// #include "profiler/module_profiler.hpp"
 
 namespace cnstream {
 
@@ -82,12 +83,21 @@ bool DataSource::Open(ModuleParamSet paramSet) {
   }
   if (paramSet.find("output_type") != paramSet.end()) {
     std::string out_type = paramSet["output_type"];
-    auto it = StrDevTypeMap.find(out_type);
-    if (it == StrDevTypeMap.end()) {
+    if (out_type == "cpu") {
+      param_.output_type_ = OutputType::OUTPUT_CPU;
+    } else if (out_type == "mlu") {
+      param_.output_type_ = OutputType::OUTPUT_MLU;
+    } else {
       LOGE(SOURCE) << "output_type " << paramSet["output_type"] << " not supported";
       return false;
     }
-    param_.output_type_ = it->second;
+    if (param_.output_type_ == OutputType::OUTPUT_MLU) {
+      param_.device_id_ = GetDeviceId(paramSet);
+      if (param_.device_id_ < 0) {
+        LOGE(SOURCE) << "output_type MLU : device_id must be set";
+        return false;
+      }
+    }
   }
 
   if (paramSet.find("interval") != paramSet.end()) {
@@ -101,16 +111,36 @@ bool DataSource::Open(ModuleParamSet paramSet) {
     }
     param_.interval_ = interval;
   }
+
   if (paramSet.find("decoder_type") != paramSet.end()) {
     std::string dec_type = paramSet["decoder_type"];
-    auto it = StrDecoderTypeMap.find(dec_type);
-    if (it == StrDecoderTypeMap.end()) {
+    if (dec_type == "cpu") {
+      param_.decoder_type_ = DecoderType::DECODER_CPU;
+    } else if (dec_type == "mlu") {
+      param_.decoder_type_ = DecoderType::DECODER_MLU;
+    } else {
       LOGE(SOURCE) << "decoder_type " << paramSet["decoder_type"] << " not supported";
       return false;
     }
-    param_.decoder_type_ = it->second;
+    if (dec_type == "mlu") {
+      param_.device_id_ = GetDeviceId(paramSet);
+      if (param_.device_id_ < 0) {
+        LOGE(SOURCE) << "decoder_type MLU : device_id must be set";
+        return false;
+      }
+    }
   }
-  param_.device_id_ = GetDeviceId(paramSet);  // 缺省值 = -1
+
+  if (param_.decoder_type_ == DecoderType::DECODER_MLU) {
+    param_.reuse_cndec_buf = false;
+    if (paramSet.find("reuse_cndec_buf") != paramSet.end()) {
+      if (paramSet["reuse_cndec_buf"] == "true") {
+        param_.reuse_cndec_buf = true;
+      } else {
+        param_.reuse_cndec_buf = false;
+      }
+    }
+  }
 
   if (paramSet.find("input_buf_number") != paramSet.end()) {
     std::string ibn_str = paramSet["input_buf_number"];
@@ -156,39 +186,45 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
   }
   int device_id = GetDeviceId(paramSet);
   if (paramSet.find("output_type") != paramSet.end()) {
-    std::string out_type = paramSet["output_type"];
-    if (StrDevTypeMap.find(out_type) == StrDevTypeMap.end()) {
-      LOGE(SOURCE) << "[DataSource] [output_type] " << out_type << " not supported";
+    if (paramSet.at("output_type") != "cpu" && paramSet.at("output_type") != "mlu") {
+      LOGE(SOURCE) << "[DataSource] [output_type] " << paramSet.at("output_type") << " not supported";
       ret = false;
     }
-    if (StrDevTypeMap[out_type] != DevType::CPU && device_id < 0) {
-      LOGE(SOURCE) << "[DataSource] [output_type] " << out_type << " : device_id must be set";
+    // device_id == -1: cpu
+    if (paramSet.at("output_type") == "mlu" && device_id < 0) {
+      LOGE(SOURCE) << "[DataSource] [output_type] MLU : device_id must be set";
       ret = false;
     }
   }
-  // interval
+
   std::string err_msg;
   if (!checker.IsNum({"interval", "input_buf_number", "output_buf_number"}, paramSet, err_msg, true)) {
     LOGE(SOURCE) << "[DataSource] " << err_msg;
     ret = false;
   }
-  // decoder_type
+
   if (paramSet.find("decoder_type") != paramSet.end()) {
     std::string dec_type = paramSet.at("decoder_type");
-    if (StrDecoderTypeMap.find(dec_type) == StrDecoderTypeMap.end()) {
-      LOGE(SOURCE) << "[DataSource] [decoder_type] " << dec_type << " not supported";
+    if (dec_type != "cpu" && dec_type != "mlu") {
+      LOGE(SOURCE) << "[DataSource] [decoder_type] " << dec_type << " not supported.";
       ret = false;
     }
-    if (StrDecoderTypeMap[dec_type] != DecoderType::DECODER_CPU && device_id < 0) {
-      LOGE(SOURCE) << "[DataSource] [decoder_type] " << dec_type << " : device_id must be set";
+    if (dec_type == "mlu" && device_id < 0) {
+      LOGE(SOURCE) << "[DataSource] [decoder_type] MLU : device_id must be set";
       ret = false;
+    }
+    if (dec_type == "mlu" && paramSet.find("reuse_cndec_buf") != paramSet.end()) {
+      if (paramSet.at("reuse_cndec_buf") != "true" && paramSet.at("reuse_cndec_buf") != "false") {
+        LOGE(SOURCE) << "[DataSource] [reuse_cndec_buf] should be true or false";
+        ret = false;
+      }
     }
   }
   return ret;
 }
 
 int DataSource::Process(std::shared_ptr<CNFrameInfo> data) {
-  LOGW(SOURCE) << "[DataSource] Process should not be called";
+  LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->stream_id;
   return 0;
 }
 

@@ -4,13 +4,11 @@
 #include <memory>
 
 #include "cnstream_frame_va.hpp"
-#include "util/include/memop.hpp"
-#include "util/include/memop_factory.hpp"
 
 
 namespace cnstream {
 
-// 使用 CPU 进行图像格式转换
+/*
 namespace color_cvt {
 
 static
@@ -27,9 +25,6 @@ cv::Mat RGBToBGR(const CNDataFrame& frame) {
   return bgr(cv::Rect(0, 0, frame.width, frame.height)).clone();
 }
 
-/**
- * @brief 转换 NV12 或者 NV21 的 YUV420SP 图像到 BGR 格式
- */
 static
 cv::Mat YUV420SPToBGR(const CNDataFrame& frame, bool nv21) {
   const uint8_t* y_plane = reinterpret_cast<const uint8_t*>(frame.data[0]->GetCpuData());
@@ -54,6 +49,7 @@ cv::Mat YUV420SPToBGR(const CNDataFrame& frame, bool nv21) {
                               dst_bgr24, dst_stride, &libyuv::kYvuH709Constants, width, height);
   return bgr;
 }
+
 
 static inline
 cv::Mat NV12ToBGR(const CNDataFrame& frame) {
@@ -83,20 +79,9 @@ cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
   return cv::Mat();
 }
 }  // namespace color_cvt
+*/
 
-/**
- * @brief 转换数据到 BGR 格式
- * 在数据存在于 CPU 上，才可调用
- */
-cv::Mat CNDataFrame::ImageBGR() {
-  std::lock_guard<std::mutex> lk(mtx);
-  if (!mat_.empty()) {
-    return mat_;
-  }
-  mat_ = color_cvt::FrameToImageBGR(*this);
-  return mat_;
-}
-
+/*
 size_t CNDataFrame::GetPlaneBytes(int plane_idx) const {
   if (plane_idx < 0 || plane_idx >= GetPlanes()) return 0;
   switch (fmt) {
@@ -124,126 +109,15 @@ size_t CNDataFrame::GetBytes() const {
   }
   return bytes;
 }
+*/
 
-/**
- * @brief 每次调用查找已注册的 MemOp 创建器，根据当前 dev_type 和 dev_id 创建 MemOp
- * 调用处：CopyToSyncMem(decode_frame)
- */
-std::unique_ptr<MemOp> CNDataFrame::CreateMemOp() {
-  auto dev_type = this->ctx.dev_type;  // current dev and id
-  int dev_id = this->ctx.dev_id;
-  std::unique_ptr<MemOp> memop = MemOpFactory::Instance().CreateMemOp(dev_type, dev_id);
-  if (!memop) {
-    LOGF(FRAME) << "CreateMemOp: failed to create MemOp from " << static_cast<int>(dev_type) << " with dev_id " << dev_id;
-    return nullptr;
+cv::Mat CNDataFrame::ImageBGR() {
+  std::lock_guard<std::mutex> lk(mtx);
+  if (!bgr_mat.empty()) {
+    return bgr_mat;
   }
-  return memop;
+  // bgr_mat = color_cvt::FrameToImageBGR(*this);
+  return bgr_mat;
 }
-
-void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
-  if (this->ctx.dev_type == DevType::INVALID) {
-    LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
-    return;
-  }
-  std::unique_ptr<MemOp> memop = CreateMemOp();  // 局部变量，只在当前次解码使用
-  if (!memop) return;
-
-  // 1. 零拷贝 直接复用内存
-  if (this->deAllocator_ != nullptr && decode_frame->fmt == this->fmt) {
-    for (int i = 0; i < GetPlanes(); i++) {
-      const size_t plane_bytes = GetPlaneBytes(i);
-      this->data[i] = memop->CreateSyncedMemory(plane_bytes);
-      memop->SetData(this->data[i], decode_frame->plane[i]);
-    }
-    return;
-  }
-  // 2. 分配内存-格式转换-创建SyncedMemory
-  size_t bytes = GetBytes();
-  bytes = ROUND_UP(bytes, 64 * 1024);
-  
-  std::shared_ptr<void> dst_buffer = memop->Allocate(bytes);
-  void* dst_plane = dst_buffer.get();
-
-  // 格式转换：分平面将转换后的数据写入 dst_plane
-  if (decode_frame->fmt != this->fmt) {
-    int ret = memop->ConvertImageFormat(dst_plane, this->fmt, decode_frame);
-    if (ret != 0) {
-      LOGF(FRAME) << "CopyToSyncMem: Format conversion failed with error code: " << ret;
-      return;
-    }
-  }
-  // 分平面将地址封装到 this->data，但 data 并不管理其生命周期，而是交给 mem_manager 管理
-  for (int i = 0; i < GetPlanes(); ++i) {
-    const size_t plane_bytes = GetPlaneBytes(i);
-    this->data[i] = memop->CreateSyncedMemory(plane_bytes);
-    memop->SetData(this->data[i], dst_plane);
-    dst_plane = static_cast<uint8_t*>(dst_plane) + plane_bytes;
-  }
-  Buffer& buffer = mem_manager_.GetBuffer(ctx.dev_type, bytes, ctx.dev_id);
-  buffer.data = std::move(dst_buffer);
-  this->deAllocator_.reset();  // 非零拷贝场景，确保释放
-}
-
-// bool CNInferObject::AddAttribute(const std::string& key, const CNInferAttr& value) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (attributes_.find(key) != attributes_.end()) return false;
-
-//   attributes_.insert(std::make_pair(key, value));
-//   return true;
-// }
-
-// bool CNInferObject::AddAttribute(const std::pair<std::string, CNInferAttr>& attribute) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (attributes_.find(attribute.first) != attributes_.end()) return false;
-
-//   attributes_.insert(attribute);
-//   return true;
-// }
-
-// CNInferAttr CNInferObject::GetAttribute(const std::string& key) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (attributes_.find(key) != attributes_.end()) return attributes_[key];
-
-//   return CNInferAttr();
-// }
-
-// bool CNInferObject::AddExtraAttribute(const std::string& key, const std::string& value) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (extra_attributes_.find(key) != extra_attributes_.end()) return false;
-
-//   extra_attributes_.insert(std::make_pair(key, value));
-//   return true;
-// }
-
-// bool CNInferObject::AddExtraAttributes(const std::vector<std::pair<std::string, std::string>>& attributes) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   bool ret = true;
-//   for (auto& attribute : attributes) {
-//     ret &= AddExtraAttribute(attribute.first, attribute.second);
-//   }
-//   return ret;
-// }
-
-// std::string CNInferObject::GetExtraAttribute(const std::string& key) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (extra_attributes_.find(key) != extra_attributes_.end()) {
-//     return extra_attributes_[key];
-//   }
-//   return "";
-// }
-
-// bool CNInferObject::RemoveExtraAttribute(const std::string& key) {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   if (extra_attributes_.find(key) != extra_attributes_.end()) {
-//     extra_attributes_.erase(key);
-//   }
-//   return true;
-// }
-
-// StringPairs CNInferObject::GetExtraAttributes() {
-//   std::lock_guard<std::mutex> lk(attribute_mutex_);
-//   return StringPairs(extra_attributes_.begin(), extra_attributes_.end());
-// }
-
 
 }  // namespace cnstream

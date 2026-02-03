@@ -110,28 +110,14 @@ bool DataSource::Open(ModuleParamSet paramSet) {
     }
     param_.decoder_type_ = it->second;
   }
-  param_.device_id_ = GetDeviceId(paramSet);  // 缺省值 = -1
-
-  if (paramSet.find("input_buf_number") != paramSet.end()) {
-    std::string ibn_str = paramSet["input_buf_number"];
-    std::stringstream ss;
-    ss << paramSet["input_buf_number"];
-    ss >> param_.input_buf_number_;
-  }
-
-  if (paramSet.find("output_buf_number") != paramSet.end()) {
-    std::string obn_str = paramSet["output_buf_number"];
-    std::stringstream ss;
-    ss << paramSet["output_buf_number"];
-    ss >> param_.output_buf_number_;
-  }
-
-  if (paramSet.find("apply_stride_align_for_scaler") != paramSet.end()) {
-    param_.apply_stride_align_for_scaler_ = paramSet["apply_stride_align_for_scaler"] == "true";
-  }
+  param_.device_id_ = GetDeviceId(paramSet);
 
   if (paramSet.find("only_key_frame") != paramSet.end()) {
     param_.only_key_frame_ = (paramSet["only_key_frame"] == "true");
+  }
+
+  if (paramSet.find("file_path") != paramSet.end()) {
+    param_.file_path_ = paramSet["file_path"];
   }
 
   return true;

@@ -38,7 +38,7 @@ namespace cnstream {
  *
  * @note This class is thread safe. 
  */
-class ModuleProfiler {
+class ModuleProfiler: private NonCopyable {
 
  inline constexpr char kPROCESS_PROFILER_NAME[] = "PROCESS";
 

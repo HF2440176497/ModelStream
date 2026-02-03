@@ -61,12 +61,13 @@ struct DecodeFrame {
   }
   bool valid;
   int64_t pts;
-  //  the below parameters work when 'valid' set true.
   int32_t height;
   int32_t width; 
+  
+  DevType dev_type = DevType::INVALID;
+  int32_t device_id = -1;
+  
   CNDataFormat fmt;
-  DevType dev_type = DevType::INVALID;  // 表示该帧数据位置
-  int32_t device_id;
   int32_t planeNum;
   void *plane[MAX_PLANE_NUM];
   int stride[MAX_PLANE_NUM];
@@ -76,37 +77,6 @@ struct DecodeFrame {
   ~DecodeFrame() {}
 };
 
-struct ExtraDecoderInfo {
-  // for mlu decoders
-  int32_t device_id = 0;
-  int32_t input_buf_num = 2;  // for MLU200
-  int32_t output_buf_num = 4;
-  bool apply_stride_align_for_scaler = false;  // for MLU220
-  int32_t max_width = 0;   // for jpu
-  int32_t max_height = 0;  // for jpu
-  std::vector<uint8_t> extra_info;
-};
-
-class IDecodeResult {
- public:
-  virtual ~IDecodeResult() = default;
-  virtual void OnDecodeError(DecodeErrorCode error_code) {}
-  virtual void OnDecodeFrame(DecodeFrame *frame) = 0;
-  virtual void OnDecodeEos() = 0;
-};
-
-class Decoder {
- public:
-  explicit Decoder(const std::string& stream_id, IDecodeResult *cb) : stream_id_(stream_id), result_(cb) {}
-  virtual ~Decoder() = default;
-  virtual bool Create(VideoInfo *info, ExtraDecoderInfo *extra = nullptr) = 0;
-  virtual bool Process(VideoEsPacket *pkt)  = 0;
-  virtual void Destroy() = 0;
-
- protected:
-  std::string stream_id_ = "";
-  IDecodeResult *result_;
-};
 
 }  // namespace cnstream
 

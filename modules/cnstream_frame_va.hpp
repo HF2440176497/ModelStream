@@ -70,7 +70,7 @@ class CNDataFrame : public NonCopyable {
    * @return 返回创建的MemOp实例，如果不支持该设备类型则返回nullptr
    */
   std::unique_ptr<MemOp> CreateMemOp();
- public:
+
   /**
    * @brief Converts data to the BGR format.
    *
@@ -78,17 +78,19 @@ class CNDataFrame : public NonCopyable {
    *
    * @note This function is called after CNDataFrame::CopyToSyncMem() is invoked.
    */
-  cv::Mat ImageBGR();
+  cv::Mat GetImage();
   /**
    * @brief Checks whether there is BGR image stored.
    *
    * @return Returns true if has BGR image, otherwise returns false.
    */
-  bool HasBGRImage() {
+  bool HasImage() {
     std::lock_guard<std::mutex> lk(mtx);
-    if (bgr_mat.empty()) return false;
+    if (mat_.empty()) return false;
     return true;
   }
+
+public:
   MemoryBufferCollection mem_manager_;  // 内存分配集合
   std::unique_ptr<CNSyncedMemory> data[CN_MAX_PLANES];
   uint64_t frame_id = -1;                              /*!< The frame index that incremented from 0. */
@@ -117,9 +119,9 @@ using CNDataFramePtr = std::shared_ptr<CNDataFrame>;
 // using CNInferDataPtr = std::shared_ptr<CNInferData>;
 
 
-static constexpr char kCNDataFrameTag[] = "CNDataFrame"; /*!< value type in CNFrameInfo::Collection : CNDataFramePtr. */
-static constexpr char kCNInferObjsTag[] = "CNInferObjs"; /*!< value type in CNFrameInfo::Collection : CNInferObjsPtr. */
-static constexpr char kCNInferDataTag[] = "CNInferData"; /*!< value type in CNFrameInfo::Collection : CNInferDataPtr. */
+inline constexpr char kCNDataFrameTag[] = "CNDataFrame"; /*!< value type in CNFrameInfo::Collection : CNDataFramePtr. */
+inline constexpr char kCNInferObjsTag[] = "CNInferObjs"; /*!< value type in CNFrameInfo::Collection : CNInferObjsPtr. */
+inline constexpr char kCNInferDataTag[] = "CNInferData"; /*!< value type in CNFrameInfo::Collection : CNInferDataPtr. */
 
 
 }  // namespace cnstream

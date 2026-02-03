@@ -15,7 +15,7 @@
  *
  * @brief CudaDeviceGuard is a class for setting current thread's CUDA device handler.
  */
-class CudaDeviceGuard : public NonCopyable {
+class CudaDeviceGuard : private NonCopyable {
  public:
   /*!
    * @brief Sets the CUDA device handler with the given device ordinal.

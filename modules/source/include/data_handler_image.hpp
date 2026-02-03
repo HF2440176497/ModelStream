@@ -52,9 +52,8 @@ public:
 #endif
   std::atomic<bool> running_{false};
   int framerate_ = 5;
-  std::string image_path_ = "test_image.jpg";
-  
-  // ThreadSafeQueue<std::shared_ptr<ImageFrame>> queue_;
+  std::string image_path_;
+  cv::Mat image_;
   std::thread thread_;  // consumer thread
   DataSource *module_;
   std::string stream_id_;

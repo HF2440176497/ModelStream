@@ -88,7 +88,7 @@ cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
  * @brief 转换数据到 BGR 格式
  * 在数据存在于 CPU 上，才可调用
  */
-cv::Mat CNDataFrame::ImageBGR() {
+cv::Mat CNDataFrame::GetImage() {
   std::lock_guard<std::mutex> lk(mtx);
   if (!mat_.empty()) {
     return mat_;
@@ -145,6 +145,11 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
     return;
   }
+  if (CNDataFormat::CN_PIXEL_FORMAT_RGB24 != this->fmt) {
+    LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24, decode_frame fmt is " << static_cast<int>(decode_frame->fmt) << ", this fmt is " << static_cast<int>(this->fmt);
+    return;
+  }
+
   std::unique_ptr<MemOp> memop = CreateMemOp();  // 局部变量，只在当前次解码使用
   if (!memop) return;
 
@@ -180,7 +185,7 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     dst_plane = static_cast<uint8_t*>(dst_plane) + plane_bytes;
   }
   Buffer& buffer = mem_manager_.GetBuffer(ctx.dev_type, bytes, ctx.dev_id);
-  buffer.data = std::move(dst_buffer);
+  buffer.data = std::move(dst_buffer);  // buffer.data 会自动管理生命周期
   this->deAllocator_.reset();  // 非零拷贝场景，确保释放
 }
 

@@ -95,11 +95,12 @@ inline int CNGetPlanes(CNDataFormat fmt) {
  * @brief DataSourceParam is a structure for private usage.
  */
 struct DataSourceParam {
-  // int  device_id_ = -1;          /*! DataFrame 的 dev_id 直接来自 decode_frame  */
+  int  device_id_ = -1;                                 /*! DataFrame 的 dev_id 直接来自 decode_frame  */
   CNDataFormat output_type_ = CNDataFormat::CN_PIXEL_FORMAT_BGR24;  /*!< The output type */
-  size_t  interval_ = 1;                /*!< The interval of outputting one frame. It outputs one frame every n (interval_) frames. */
+  size_t  interval_ = 1;                                /*!< The interval of outputting one frame. It outputs one frame every n (interval_) frames. */
   DecoderType decoder_type_ = DecoderType::DECODER_CPU; /*!< The decoder type. */
-  bool only_key_frame_ = false;  /*!< Whether only to decode key frames. */
+  bool only_key_frame_ = false;                         /*!< Whether only to decode key frames. */
+  std::string file_path_ = "";                          /*!< The file path of the video or image file. */
 };
 }  // namespace cnstream
 

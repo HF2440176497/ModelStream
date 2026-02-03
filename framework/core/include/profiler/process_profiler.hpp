@@ -42,7 +42,7 @@ using RecordKey = std::pair<std::string, uint64_t>; // (stream_name, timestamp)
  *
  * @note This class is thread safe. 
  */
-class ProcessProfiler {
+class ProcessProfiler: private NonCopyable {
  public:
   /*!
    * @brief Constructs a ProcessProfiler object.

@@ -101,21 +101,7 @@ enum class CNCodecType {
  */
 class NonCopyable {
  protected:
-  /*!
-   * @brief Constructs an instance with empty value.
-   *
-   * @param None.
-   *
-   * @return  None.
-   */
   NonCopyable() = default;
-  /*!
-   * @brief Destructs an instance.
-   *
-   * @param None.
-   *
-   * @return  None.
-   */
   ~NonCopyable() = default;
 
  private:

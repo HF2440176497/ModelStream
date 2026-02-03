@@ -50,8 +50,9 @@ class IDataDeallocator {
 };
 
 
-class MemoryAllocator : public NonCopyable {
+class MemoryAllocator : private NonCopyable {
  public:
+  explicit MemoryAllocator() {};
   explicit MemoryAllocator(int device_id) : device_id_(device_id) {}
   virtual ~MemoryAllocator() = default;
   virtual void *alloc(size_t size, int timeout_ms = 0) = 0;
@@ -91,15 +92,15 @@ std::shared_ptr<void> cnMemAlloc(size_t size, std::shared_ptr<MemoryAllocator> a
 
 class CpuAllocator : public MemoryAllocator {
  public:
-  CpuAllocator() : MemoryAllocator(-1) {}
+  CpuAllocator() : MemoryAllocator() {}
   ~CpuAllocator() = default;
 
   void *alloc(size_t size, int timeout_ms = 0) override {
     size_t alloc_size = (size + 4095) & (~0xFFF);  // Align 4096
-    return static_cast<void *>(new (std::nothrow) unsigned char[alloc_size]);
+    return static_cast<void *>(new (std::nothrow) uint8_t[alloc_size]);
   }
   void free(void *p) override {
-    unsigned char *ptr = static_cast<unsigned char *>(p);
+    uint8_t *ptr = static_cast<uint8_t *>(p);
     delete[] ptr;
   }
 };

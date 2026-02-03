@@ -75,7 +75,7 @@ void MemOp::SetData(std::shared_ptr<CNSyncedMemory> mem, void* data) {
 
 /**
  * @brief 使用 CPU, 将解码帧转换为 dst_fmt 格式
- * @param dst 目标内存地址 由 memop->Allocate 分配
+ * @param dst 目标内存地址 由 memop->Allocate 分配, 在这其中不检查内存空间容量
  * @note 目前仅支持到 RGB BGR 的转换
  */
 int MemOp::ConvertImageFormat(void* dst, CNDataFormat dst_fmt,

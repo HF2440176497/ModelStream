@@ -57,6 +57,16 @@ void ImageHandler::Stop() {
 
 bool ImageHandlerImpl::Open() {
   param_ = module_->GetSourceParam();
+  image_path_ = param_.file_path_;
+  if (image_path_.empty() || access(image_path_.c_str(), F_OK) == -1) {
+    LOGE(SOURCE) << "ImageHandlerImpl: Image path not found: " << image_path_;
+    return false;
+  }
+  image_ = cv::imread(image_path_);
+  if (image_.empty()) {
+    LOGE(SOURCE) << "ImageHandlerImpl: Failed to load image: " << image_path_;
+    return;
+  }
   running_.store(true);
   thread_ = std::thread(&ImageHandlerImpl::Loop, this);
   return true;
@@ -80,29 +90,27 @@ void ImageHandlerImpl::Close() {
  * 调用处：ImageHandlerImpl::Open
  */
 void ImageHandlerImpl::Loop() {
-  FrController controller(framerate_);
-  if (framerate_ > 0) controller.Start();
-  
-  if (access(image_path_.c_str(), F_OK) == -1) {
-    LOGE(SOURCE) << "ImageHandlerImpl: Image path not found: " << image_path_;
+  if (image_.empty()) {
+    LOGE(SOURCE) << "ImageHandlerImpl: Failed to load image: " << image_path_;
     return;
   }
-  cv::Mat image = cv::imread(image_path_);
-  DecodeFrame frame(image.rows, image.cols, DecodeFrame::PixFmt::FMT_BGR);
+  FrController controller(framerate_);
+  if (framerate_ > 0) controller.Start();
+
+  DecodeFrame frame(image_.rows, image_.cols, DecodeFrame::PixFmt::FMT_BGR);
   frame.dev_type = DevType::CPU;
-  frame.device_id = -1;  // 默认设备ID
   frame.planeNum = 1;  // BGR格式使用1个平面
   
   // 分配内存并复制数据
-  size_t data_size = image.rows * image.cols * 3;  // BGR格式每个像素3字节
+  size_t data_size = image_.rows * image_.cols * 3;  // BGR格式每个像素3字节
   uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
   if (!buffer) {
     LOGE(SOURCE) << "Failed to allocate memory for image data";
     return;
   }
-  memcpy(buffer, image.data, data_size);
+  memcpy(buffer, image_.data, data_size);
   frame.plane[0] = buffer;
-  frame.stride[0] = image.cols * 3;  // BGR格式每个像素3字节
+  frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
   frame.buf_ref = std::make_unique<MatBufRef>(buffer);
 
   while (running_.load()) {

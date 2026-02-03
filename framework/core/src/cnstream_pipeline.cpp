@@ -201,7 +201,7 @@ CNModuleConfig Pipeline::GetModuleConfig(const std::string& module_name) const {
   return {};
 }
 
-bool Pipeline::ProvideData(const Module* module, std::shared_ptr<CNFrameInfo> data) {
+bool Pipeline::ProvideData(const Module* module, std::shared_ptr<FrameInfo> data) {
   // check running.
   if (!IsRunning()) {
     LOGE(CORE) << "[" << module->GetName() << "]" << " Provide data to pipeline [" << GetName() << "] failed, "
@@ -323,7 +323,7 @@ bool PassedByAllParentNodes(NodeContext* context, uint64_t data_mask) {
   return (data_mask & parent_masks) == parent_masks;
 }
 
-void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsEos()) return;
 #ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
@@ -335,7 +335,7 @@ void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<CNFram
 #endif
 }
 
-void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsEos()) return;
 #ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
@@ -346,7 +346,7 @@ void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<CNFrameI
   context->module->NotifyObserver(data);
 }
 
-void Pipeline::OnProcessFailed(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data, int ret) {
+void Pipeline::OnProcessFailed(NodeContext* context, const std::shared_ptr<FrameInfo>& data, int ret) {
   auto module_name = context->module->GetName();
   Event e;
   e.type = EventType::EVENT_ERROR;
@@ -357,7 +357,7 @@ void Pipeline::OnProcessFailed(NodeContext* context, const std::shared_ptr<CNFra
   event_bus_->PostEvent(e);
 }
 
-void Pipeline::OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnDataInvalid(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   auto module = context->module;
   LOGW(CORE) << "[" << GetName() << "]" << " got frame error from " << module->GetName() <<
     " stream_id: " << data->stream_id << ", pts: " << data->timestamp;
@@ -378,7 +378,7 @@ void Pipeline::OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrame
   // UpdateByStreamMsg(msg);
 }
 
-void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   auto module = context->module;
   module->NotifyObserver(data);
 
@@ -402,7 +402,7 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& d
 /**
  * 仅在 Pipeline::TransmitData 中调用
  */
-void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
     // OnEos(context, data);
@@ -416,7 +416,7 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrame
 
 #else
 
-void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   // 在 Pipeline::TransmitData 调用 OnPassThrough 之前，就已经判断了 EOS
   // if (data->IsEos()) {
@@ -429,7 +429,7 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrame
 /**
  * @note: 数据传输的核心函数，在 Module 处理完后
  */
-void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data) {
+void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsInvalid()) {
     OnDataInvalid(context, data);
     return;
@@ -492,7 +492,7 @@ void Pipeline::TaskLoop(NodeContext* context, uint32_t conveyor_idx) {
 
   // process loop
   while (IsRunning()) {
-    std::shared_ptr<CNFrameInfo> data = nullptr;
+    std::shared_ptr<FrameInfo> data = nullptr;
     while (connector->IsRunning() && data == nullptr) {
       data = connector->PopDataBufferFromConveyor(conveyor_idx);
     }

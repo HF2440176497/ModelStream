@@ -223,7 +223,7 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
   return ret;
 }
 
-int DataSource::Process(std::shared_ptr<CNFrameInfo> data) {
+int DataSource::Process(std::shared_ptr<FrameInfo> data) {
   LOGI(SOURCE) << "[DataSource] Process receive frame_id: " << data->stream_id;
   return 0;
 }

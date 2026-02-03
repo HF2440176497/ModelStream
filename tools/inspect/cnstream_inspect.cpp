@@ -7,7 +7,7 @@ public:
     explicit TestModuleOne(const std::string& name = "ModuleOne") : Module(name) {}
     bool Open(ModuleParamSet params) override {return true;}
     void Close() override {}
-    int Process(std::shared_ptr<CNFrameInfo> frame_info) override {return 0;}
+    int Process(std::shared_ptr<FrameInfo> frame_info) override {return 0;}
 };
 
 REGISTER_MODULE(TestModuleOne);

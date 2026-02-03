@@ -16,7 +16,7 @@ class TestModuleOne : public Module, public ModuleCreator<TestModuleOne> {
   explicit TestModuleOne(const std::string& name = "ModuleOne") : Module(name) {}
   bool Open(ModuleParamSet params) override {return true;}
   void Close() override {}
-  int Process(std::shared_ptr<CNFrameInfo> frame_info) override {return 0;}
+  int Process(std::shared_ptr<FrameInfo> frame_info) override {return 0;}
 };
 
 class TestModuleTwo : public Module, public ModuleCreator<TestModuleTwo> {
@@ -24,7 +24,7 @@ class TestModuleTwo : public Module, public ModuleCreator<TestModuleTwo> {
   explicit TestModuleTwo(const std::string& name = "ModuleTwo") : Module(name) {}
   bool Open(ModuleParamSet params) override {return true;}
   void Close() override {}
-  int Process(std::shared_ptr<CNFrameInfo> frame_info) override {return 0;}
+  int Process(std::shared_ptr<FrameInfo> frame_info) override {return 0;}
 };
 
 REGISTER_MODULE(TestModuleOne);

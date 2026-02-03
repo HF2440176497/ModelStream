@@ -10,7 +10,7 @@ namespace cnstream {
 
 /**
  * sync == true: 找到 steam_id 的情况下一直等到 second == true 才返回
- * s_stream_eos_map_ 仅在 CNFrameInfo 析构函数中设置 
+ * s_stream_eos_map_ 仅在 FrameInfo 析构函数中设置 
  * @return true: 查询到 second == true 移除成功
  */
 bool CheckStreamEosReached(const std::string &stream_id, bool sync) {

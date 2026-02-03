@@ -30,53 +30,44 @@
 namespace cnstream {
 
 
-std::shared_ptr<CNFrameInfo> CNFrameInfo::Create(const std::string& stream_id, bool eos,
-                                                 std::shared_ptr<CNFrameInfo> payload) {
+std::shared_ptr<FrameInfo> FrameInfo::Create(const std::string& stream_id, bool eos) {
   if (stream_id == "") {
-    LOGE(CORE) << "CNFrameInfo::Create() stream_id is empty string.";
+    LOGE(CORE) << "FrameInfo::Create() stream_id is empty string.";
     return nullptr;
   }
-  std::shared_ptr<CNFrameInfo> ptr(new (std::nothrow) CNFrameInfo());
+  std::shared_ptr<FrameInfo> ptr(new (std::nothrow) FrameInfo());
   if (!ptr) {
-    LOGE(CORE) << "CNFrameInfo::Create() new CNFrameInfo failed.";
+    LOGE(CORE) << "FrameInfo::Create() new FrameInfo failed.";
     return nullptr;
   }
   ptr->stream_id = stream_id;
-  ptr->payload = payload;
   if (eos) {
-	  ptr->flags |= static_cast<size_t>(cnstream::CNFrameFlag::CN_FRAME_FLAG_EOS);
-    if (!ptr->payload) {  // 不存在 payload 的情况下，查询字典中的 stream_id 需要准备好处理 EOS 
-	    std::lock_guard<std::mutex> guard(s_eos_lock_);
-      s_stream_eos_map_[stream_id] = false;
-    }
-    return ptr;
+	  ptr->flags |= static_cast<size_t>(DataFrameFlag::FRAME_FLAG_EOS);
+    std::lock_guard<std::mutex> guard(s_eos_lock_);
+    s_stream_eos_map_[stream_id] = false;
   }
   return ptr;
 }
 
-CNS_IGNORE_DEPRECATED_PUSH
-CNFrameInfo::~CNFrameInfo() {
+FrameInfo::~FrameInfo() {
   if (this->IsEos()) {
-    if (!this->payload) {  // 不存在 payload 的情况下
-      std::lock_guard<std::mutex> guard(s_eos_lock_);
-      s_stream_eos_map_[stream_id] = true;
-    }
-    return;
+    std::lock_guard<std::mutex> guard(s_eos_lock_);
+    s_stream_eos_map_[stream_id] = true;
   }
 }
-CNS_IGNORE_DEPRECATED_POP
 
-void CNFrameInfo::SetModulesMask(uint64_t mask) {
+
+void FrameInfo::SetModulesMask(uint64_t mask) {
   std::lock_guard<std::mutex> lk(mask_lock_);
   modules_mask_ = mask;
 }
 
-uint64_t CNFrameInfo::GetModulesMask() {
+uint64_t FrameInfo::GetModulesMask() {
   std::lock_guard<std::mutex> lk(mask_lock_);
   return modules_mask_;
 }
 
-uint64_t CNFrameInfo::MarkPassed(Module* module) {
+uint64_t FrameInfo::MarkPassed(Module* module) {
   std::lock_guard<std::mutex> lk(mask_lock_);
   modules_mask_ |= (uint64_t)1 << module->GetId();
   return modules_mask_;

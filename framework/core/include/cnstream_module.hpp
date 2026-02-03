@@ -70,7 +70,7 @@ class IModuleObserver {
    *
    * @return No return value.
    */
-  virtual void notify(std::shared_ptr<CNFrameInfo> data) = 0;
+  virtual void notify(std::shared_ptr<FrameInfo> data) = 0;
   /**
    * @brief Default destructor. A destructor to destruct module observer.
    *
@@ -146,7 +146,7 @@ class Module : private NonCopyable {
    * @retval >=0: The data is processed successfully.
    * @retval <0: Pipeline will post an event with the EVENT_ERROR event type and the return number.
    */
-  virtual int Process(std::shared_ptr<CNFrameInfo> data) = 0;
+  virtual int Process(std::shared_ptr<FrameInfo> data) = 0;
 
   /**
    * @brief Notifies flow-EOS arriving, the module should reset internal status if needed.
@@ -195,7 +195,7 @@ class Module : private NonCopyable {
    *
    * @return Returns true if the data has been transmitted successfully. Otherwise, returns false.
    *
-   * bool TransmitData(std::shared_ptr<CNFrameInfo> data);
+   * bool TransmitData(std::shared_ptr<FrameInfo> data);
    */
   
   /**
@@ -242,7 +242,7 @@ class Module : private NonCopyable {
 #endif
 
   friend class Pipeline;
-  friend class CNFrameInfo;
+  friend class FrameInfo;
   /**
    * @brief Sets a container to this module and identifies which pipeline the module is added to.
    *
@@ -270,7 +270,7 @@ class Module : private NonCopyable {
    * 
    * @retval <0: Pipeline posts an event with the EVENT_ERROR event type and return number.
    */
-  int DoProcess(std::shared_ptr<CNFrameInfo> data);
+  int DoProcess(std::shared_ptr<FrameInfo> data);
 
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;
@@ -288,13 +288,13 @@ class Module : private NonCopyable {
   /**
    * Pipeline::OnEos 和 Pipeline::OnProcessEnd 都调用此函数
    */
-  void NotifyObserver(std::shared_ptr<CNFrameInfo> data) {
+  void NotifyObserver(std::shared_ptr<FrameInfo> data) {
     RwLockReadGuard guard(observer_lock_);
     if (observer_) {
       observer_->notify(data);
     }
   }
-  int DoTransmitData(std::shared_ptr<CNFrameInfo> data);
+  int DoTransmitData(std::shared_ptr<FrameInfo> data);
 
   size_t GetId();
   size_t id_ = INVALID_MODULE_ID;

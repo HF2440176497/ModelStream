@@ -20,7 +20,7 @@ class InferencerVoid: public Module, public ModuleCreator<InferencerVoid> {
     void Close() override {
       LOGI(InferencerVoid) << "Close";
     }
-    int Process(std::shared_ptr<CNFrameInfo> frame) override {
+    int Process(std::shared_ptr<FrameInfo> frame) override {
       LOGI(InferencerVoid) << "Process frame " << frame->stream_id << "; with time: " << frame->timestamp;
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       return 0;

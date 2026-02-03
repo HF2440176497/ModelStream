@@ -75,8 +75,8 @@ class Connector : private NonCopyable {
   size_t GetConveyorSize(int conveyor_idx) const;
   uint64_t GetFailTime(int conveyor_idx) const;
 
-  CNFrameInfoPtr PopDataBufferFromConveyor(int conveyor_idx);
-  bool PushDataBufferToConveyor(int conveyor_idx, CNFrameInfoPtr data);
+  FrameInfoPtr PopDataBufferFromConveyor(int conveyor_idx);
+  bool PushDataBufferToConveyor(int conveyor_idx, FrameInfoPtr data);
 
   void Start();
   void Stop();

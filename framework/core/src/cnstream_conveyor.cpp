@@ -43,7 +43,7 @@ bool Conveyor::IsEmpty() {
 /**
  * 推送数据
  */
-bool Conveyor::PushDataBuffer(CNFrameInfoPtr data, bool block) {
+bool Conveyor::PushDataBuffer(FrameInfoPtr data, bool block) {
   std::unique_lock<std::mutex> lk(data_mutex_);
   
   // 阻塞模式等待队列有空间，非阻塞模式检查队列是否有空间
@@ -70,9 +70,9 @@ uint64_t Conveyor::GetFailTime() {
 /**
  * 最多等待超时时间 rel_time_，如果超时还没有数据，返回 nullptr
  */
-CNFrameInfoPtr Conveyor::PopDataBuffer() {
+FrameInfoPtr Conveyor::PopDataBuffer() {
   std::unique_lock<std::mutex> lk(data_mutex_);
-  CNFrameInfoPtr data = nullptr;
+  FrameInfoPtr data = nullptr;
   if (notempty_cond_.wait_for(lk, rel_time_, [&] { return !dataq_.empty(); })) {
     data = dataq_.front();
     dataq_.pop();
@@ -83,10 +83,10 @@ CNFrameInfoPtr Conveyor::PopDataBuffer() {
   return data;
 }
 
-std::vector<CNFrameInfoPtr> Conveyor::PopAllDataBuffer() {
+std::vector<FrameInfoPtr> Conveyor::PopAllDataBuffer() {
   std::unique_lock<std::mutex> lk(data_mutex_);
-  std::vector<CNFrameInfoPtr> vec_data;
-  CNFrameInfoPtr data = nullptr;
+  std::vector<FrameInfoPtr> vec_data;
+  FrameInfoPtr data = nullptr;
   while (!dataq_.empty()) {
     data = dataq_.front();
     dataq_.pop();

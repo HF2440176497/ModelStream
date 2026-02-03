@@ -33,7 +33,7 @@
 /**
  *  @file cnstream_frame.hpp
  *
- *  This file contains a declaration of the CNFrameInfo class.
+ *  This file contains a declaration of the FrameInfo class.
  */
 namespace cnstream {
 
@@ -44,78 +44,72 @@ class Module;
 class Pipeline;
 
 /**
- * @enum CNFrameFlag
+ * @enum FrameFlag
  *
- * @brief Enumeration variables describing the mask of CNDataFrame.
+ * @brief Enumeration variables describing the mask of DataFrame.
  */
-enum class CNFrameFlag {
-  CN_FRAME_FLAG_EOS = 1 << 0,     /*!< This enumeration indicates the end of data stream. */
-  CN_FRAME_FLAG_INVALID = 1 << 1, /*!< This enumeration indicates an invalid frame. */
-  CN_FRAME_FLAG_REMOVED = 1 << 2  /*!< This enumeration indicates that the stream has been removed. */
+enum class DataFrameFlag {
+  FRAME_FLAG_EOS = 1 << 0,     /*!< This enumeration indicates the end of data stream. */
+  FRAME_FLAG_INVALID = 1 << 1, /*!< This enumeration indicates an invalid frame. */
+  FRAME_FLAG_REMOVED = 1 << 2  /*!< This enumeration indicates that the stream has been removed. */
 };
 
 /**
- * @class CNFrameInfo
+ * @class FrameInfo
  *
- * @brief CNFrameInfo is a class holding the information of a frame.
+ * @brief FrameInfo is a class holding the information of a frame.
  *
  */
-class CNFrameInfo : private NonCopyable {
+class FrameInfo : private NonCopyable {
  public:
   /**
-   * @brief Creates a CNFrameInfo instance.
+   * @brief Creates a FrameInfo instance.
    *
    * @param[in] stream_id The data stream alias. Identifies which data stream the frame data comes from.
    * @param[in] eos  Whether this is the end of the stream. This parameter is set to false by default to
-   *                 create a CNFrameInfo instance. If you set this parameter to true,
-   *                 CNDataFrame::flags will be set to ``CN_FRAME_FLAG_EOS``. Then, the modules
+   *                 create a FrameInfo instance. If you set this parameter to true,
+   *                 DataFrame::flags will be set to ``CN_FRAME_FLAG_EOS``. Then, the modules
    *                 do not have permission to process this frame. This frame should be handed over to
    *                 the pipeline for processing.
    *
-   * @return Returns ``shared_ptr`` of ``CNFrameInfo`` if this function has run successfully. Otherwise, returns NULL.
+   * @return Returns ``shared_ptr`` of ``FrameInfo`` if this function has run successfully. Otherwise, returns NULL.
    */
-  static std::shared_ptr<CNFrameInfo> Create(const std::string& stream_id, bool eos = false,
-                                            std::shared_ptr<CNFrameInfo> payload = nullptr);
-
-CNS_IGNORE_DEPRECATED_PUSH
+  static std::shared_ptr<FrameInfo> Create(const std::string& stream_id, bool eos = false);
 
  private:
-  CNFrameInfo() = default;
+  FrameInfo() = default;
 
  public:
   /**
-   * @brief Destructs CNFrameInfo object.
+   * @brief Destructs FrameInfo object.
    *
    * @return No return value.
    */
-  ~CNFrameInfo();
-CNS_IGNORE_DEPRECATED_POP
+  ~FrameInfo();
 
   /**
    * @brief Checks whether DataFrame is end of stream (EOS) or not.
    *
    * @return Returns true if the frame is EOS. Returns false if the frame is not EOS.
    */
-  bool IsEos() { return (flags & static_cast<size_t>(cnstream::CNFrameFlag::CN_FRAME_FLAG_EOS)) ? true : false; }
+  bool IsEos() { return (flags & static_cast<size_t>(DataFrameFlag::FRAME_FLAG_EOS)) ? true : false; }
 
   /**
    * @brief Checks whether DataFrame is removed or not.
    *
-   * @return Returns true if the frame is EOS. Returns false if the frame is not EOS.
+   * @return Returns true if the frame is removed. Returns false if the frame is not removed.
    */
   bool IsRemoved() {
-    return (flags & static_cast<size_t>(cnstream::CNFrameFlag::CN_FRAME_FLAG_REMOVED)) ? true : false;
+    return (flags & static_cast<size_t>(DataFrameFlag::FRAME_FLAG_REMOVED)) ? true : false;
   }
 
   /**
    * @brief Checks if DataFrame is valid or not.
    *
-   *
-   *
    * @return Returns true if frame is invalid, otherwise returns false.
    */
   bool IsInvalid() {
-    return (flags & static_cast<size_t>(cnstream::CNFrameFlag::CN_FRAME_FLAG_INVALID)) ? true : false;
+    return (flags & static_cast<size_t>(DataFrameFlag::FRAME_FLAG_INVALID)) ? true : false;
   }
 
   /**
@@ -143,11 +137,9 @@ CNS_IGNORE_DEPRECATED_POP
 
   std::string stream_id;  /*!< The data stream aliases where this frame is located to. */
   int64_t timestamp = -1; /*!< The time stamp of this frame. */
-  size_t flags = 0;       /*!< The mask for this frame, ``CNFrameFlag``. */
+  size_t flags = 0;       /*!< The mask for this frame, ``DataFrameFlag``. */
 
-  Collection collection;                                    /*!< Stored structured data.  */
-  std::shared_ptr<cnstream::CNFrameInfo> payload = nullptr; /*!< CNFrameInfo instance of parent pipeline. */
-
+  Collection collection;
 
 #ifdef UNIT_TEST
  public:
@@ -168,13 +160,13 @@ CNS_IGNORE_DEPRECATED_POP
   /* Identifies which modules have processed this data */
   uint64_t modules_mask_ = 0;
 
-};  // end class CNFrameInfo
+};  // end class FrameInfo
 
 /*!
- * Defines an alias for the std::shared_ptr<CNFrameInfo>. CNFrameInfoPtr now denotes a shared pointer of frame
+ * Defines an alias for the std::shared_ptr<FrameInfo>. FrameInfoPtr now denotes a shared pointer of frame
  * information.
  */
-using CNFrameInfoPtr = std::shared_ptr<CNFrameInfo>;
+using FrameInfoPtr = std::shared_ptr<FrameInfo>;
 
 }  // namespace cnstream
 

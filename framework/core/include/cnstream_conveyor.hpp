@@ -51,9 +51,9 @@ class Conveyor : private NonCopyable {
   Conveyor(size_t max_size);
   ~Conveyor() = default;
   bool IsEmpty();
-  bool PushDataBuffer(CNFrameInfoPtr data, bool block = false);
-  CNFrameInfoPtr PopDataBuffer();
-  std::vector<CNFrameInfoPtr> PopAllDataBuffer();
+  bool PushDataBuffer(FrameInfoPtr data, bool block = false);
+  FrameInfoPtr PopDataBuffer();
+  std::vector<FrameInfoPtr> PopAllDataBuffer();
   uint32_t GetBufferSize();
   uint64_t GetFailTime();
 
@@ -62,7 +62,7 @@ class Conveyor : private NonCopyable {
 #else
  private:
 #endif
-  std::queue<CNFrameInfoPtr> dataq_;
+  std::queue<FrameInfoPtr> dataq_;
   size_t max_size_;
   uint64_t fail_time_ = 0;
   std::mutex data_mutex_;

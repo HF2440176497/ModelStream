@@ -95,7 +95,7 @@ enum class StreamMsgType {
  */
 struct StreamMsg {
   StreamMsgType type;      /*!< The type of a message. */
-  std::string stream_id;   /*!< Stream ID, set in CNFrameInfo::stream_id. */
+  std::string stream_id;   /*!< Stream ID, set in FrameInfo::stream_id. */
   std::string module_name; /*!< The module that posts this event. */
   int64_t pts = -1;        /*!< The PTS (Presentation Timestamp) of this frame. */
 };
@@ -263,7 +263,7 @@ class Pipeline : private NonCopyable {
    *
    * @see Module::Process.
    */
-  bool ProvideData(const Module* module, std::shared_ptr<CNFrameInfo> data);
+  bool ProvideData(const Module* module, std::shared_ptr<FrameInfo> data);
   /**
    * @brief Gets the event bus in the pipeline.
    *
@@ -333,7 +333,7 @@ class Pipeline : private NonCopyable {
    * @return No return value.
    *
    */
-  void RegisterFrameDoneCallBack(const std::function<void(std::shared_ptr<CNFrameInfo>)>& callback);
+  void RegisterFrameDoneCallBack(const std::function<void(std::shared_ptr<FrameInfo>)>& callback);
 
 #ifdef UNIT_TEST
  public:
@@ -347,14 +347,14 @@ class Pipeline : private NonCopyable {
 
   /* ------Internal methods------ */
   bool PassedByAllModules(uint64_t mask) const;
-  void OnProcessStart(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
-  void OnProcessEnd(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
-  void OnProcessFailed(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data, int ret);
-  void OnDataInvalid(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
-  void OnEos(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
-  void OnPassThrough(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
+  void OnProcessStart(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
+  void OnProcessEnd(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
+  void OnProcessFailed(NodeContext* context, const std::shared_ptr<FrameInfo>& data, int ret);
+  void OnDataInvalid(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
+  void OnEos(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
+  void OnPassThrough(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
 
-  void TransmitData(NodeContext* context, const std::shared_ptr<CNFrameInfo>& data);
+  void TransmitData(NodeContext* context, const std::shared_ptr<FrameInfo>& data);
   void TaskLoop(NodeContext* context, uint32_t conveyor_idx);
   EventHandleFlag DefaultBusWatch(const Event& event);
   void UpdateByStreamMsg(const StreamMsg& msg);
@@ -385,7 +385,7 @@ class Pipeline : private NonCopyable {
 
   // OnPassThrough 调用的回调函数
   // 可以进行相关的 统计、清理
-  std::function<void(std::shared_ptr<CNFrameInfo>)> frame_done_cb_ = NULL;
+  std::function<void(std::shared_ptr<FrameInfo>)> frame_done_cb_ = NULL;
 
   /**
    * StreamIdx helpers for SourceModule instances.
@@ -483,7 +483,7 @@ inline bool Pipeline::PassedByAllModules(uint64_t mask) const {
   return mask == all_modules_mask_;
 }
 
-inline void Pipeline::RegisterFrameDoneCallBack(const std::function<void(std::shared_ptr<CNFrameInfo>)>& callback) {
+inline void Pipeline::RegisterFrameDoneCallBack(const std::function<void(std::shared_ptr<FrameInfo>)>& callback) {
   frame_done_cb_ = callback;
 }
 

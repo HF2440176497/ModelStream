@@ -22,6 +22,7 @@
 #define MODULES_DATA_SOURCE_PARAM_HPP_
 
 namespace cnstream {
+
 /*!
  * @enum OutputType
  * @brief Enumeration variables describing the storage type of the output frame data of a module.
@@ -30,6 +31,7 @@ enum class OutputType {
   OUTPUT_CPU,  /*!< CPU is the used storage type. */
   OUTPUT_MLU   /*!< MLU is the used storage type. */
 };
+
 /*!
  * @enum DecoderType
  * @brief Enumeration variables describing the decoder type used in source module.
@@ -38,6 +40,7 @@ enum class DecoderType {
   DECODER_CPU,  /*!< CPU decoder is used. */
   DECODER_MLU   /*!< MLU decoder is used. */
 };
+
 /*!
  * @brief DataSourceParam is a structure for private usage.
  */

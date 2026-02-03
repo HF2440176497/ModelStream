@@ -19,8 +19,8 @@ class SourceRender {
   virtual bool CreateInterrupt() { return interrupt_.load(); }
 
   // 调用处：HandlerImpl::OnDecodeFrame
-  std::shared_ptr<CNFrameInfo> CreateFrameInfo(bool eos = false) {
-    std::shared_ptr<CNFrameInfo> data;
+  std::shared_ptr<FrameInfo> CreateFrameInfo(bool eos = false) {
+    std::shared_ptr<FrameInfo> data;
     if (handler_ == nullptr) {
       LOGF(SOURCE) << "CreateFrameInfo: handler_ is nullptr";
       return nullptr;
@@ -31,22 +31,22 @@ class SourceRender {
       if (CreateInterrupt()) break;
       std::this_thread::sleep_for(std::chrono::microseconds(5));
     }
-    auto dataframe = std::make_shared<CNDataFrame>();
+    auto dataframe = std::make_shared<DataFrame>();
     if (!dataframe) {
       return nullptr;
     }
-    // auto inferobjs = std::make_shared<CNInferObjs>();
+    // auto inferobjs = std::make_shared<InferObjs>();
     // if (!inferobjs) {
     //   return nullptr;
     // }
-    // auto inferdata =  std::make_shared<CNInferData>();
+    // auto inferdata =  std::make_shared<InferData>();
     // if (!inferdata) {
     //   return nullptr;
     // }
-    // 指针 保存到容器
-    data->collection.Add(kCNDataFrameTag, dataframe);
-    // data->collection.Add(kCNInferObjsTag, inferobjs);
-    // data->collection.Add(kCNInferDataTag, inferdata);
+    // 保存到容器
+    data->collection.Add(kDataFrameTag, dataframe);
+    // data->collection.Add(kInferObjsTag, inferobjs);
+    // data->collection.Add(kInferDataTag, inferdata);
     return data;
   }
 
@@ -55,7 +55,7 @@ class SourceRender {
     auto data = CreateFrameInfo(true);
     if (!data) {
       LOGE(SOURCE) << "[" << handler_->GetStreamId() << "]: "
-                   << "SendFlowEos: Create CNFrameInfo failed";
+                   << "SendFlowEos: Create DataFrame failed";
       return;
     }
     LOGI(SOURCE) << "[" << handler_->GetStreamId() << "]: " << "Send EOS frame info";
@@ -67,7 +67,7 @@ class SourceRender {
    * 不借助 Pipeline::TaskLoop 线程循环，直接向下游的 module 传输
    * 适用于直接发送 EOS 帧的情况
    */
-  bool SendFrameInfo(std::shared_ptr<CNFrameInfo> data) {
+  bool SendFrameInfo(std::shared_ptr<FrameInfo> data) {
     return handler_->SendData(data);
   }
 

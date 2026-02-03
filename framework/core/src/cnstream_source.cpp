@@ -250,7 +250,7 @@ int SourceModule::RemoveSources(bool force) {
  * 调用处：SourceHandler::SendData
  * @note 目前我们只用在 EOS 帧的情况下会用到
  */
-bool SourceModule::SendData(std::shared_ptr<CNFrameInfo> data) {
+bool SourceModule::SendData(std::shared_ptr<FrameInfo> data) {
   if (!data->IsEos() && IsStreamRemoved(data->stream_id)) {
     return false;
   }

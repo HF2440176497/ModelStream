@@ -77,11 +77,11 @@ bool Connector::IsConveyorFull(int conveyor_idx) const {
  * 这里不进行 stop 判断，在外调用者会判断
  * 这里对于 connector 的线程安全要求是宽松的，只要求 conveyor 内的队列是安全的
  */
-CNFrameInfoPtr Connector::PopDataBufferFromConveyor(int conveyor_idx) {
+FrameInfoPtr Connector::PopDataBufferFromConveyor(int conveyor_idx) {
   return GetConveyor(conveyor_idx)->PopDataBuffer();
 }
 
-bool Connector::PushDataBufferToConveyor(int conveyor_idx, CNFrameInfoPtr data) {
+bool Connector::PushDataBufferToConveyor(int conveyor_idx, FrameInfoPtr data) {
   return GetConveyor(conveyor_idx)->PushDataBuffer(data);
 }
 

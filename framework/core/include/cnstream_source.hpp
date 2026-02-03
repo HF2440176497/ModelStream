@@ -145,10 +145,10 @@ class SourceModule : public Module {
    *
    * @return Returns true if data is transmitted successfully, othersize returns false.
    */
-  bool SendData(std::shared_ptr<CNFrameInfo> data);
+  bool SendData(std::shared_ptr<FrameInfo> data);
 
  private:
-  int Process(std::shared_ptr<CNFrameInfo> data) override {
+  int Process(std::shared_ptr<FrameInfo> data) override {
     (void)data;
     LOGE(CORE) << "As a source module, Process() should not be invoked\n";
     return 0;
@@ -208,22 +208,11 @@ class SourceHandler : private NonCopyable {
    * @return No return value.
    */
   virtual void Stop() { }
-  /**
-   * @brief Gets the stream identification.
-   *
-   * @return Returns the name of stream.
-   */
+
   std::string GetStreamId() const { return stream_id_; }
-  /**
-   * @brief Creates the context of ``CNFameInfo`` .
-   *
-   * @param[in] eos The flag marking the frame is end of stream.
-   * @param[in] payload The payload of ``CNFameInfo``. It's useless now.
-   *
-   * @return Returns the context of ``CNFameInfo`` .
-   */
-  std::shared_ptr<CNFrameInfo> CreateFrameInfo(bool eos = false, std::shared_ptr<CNFrameInfo> payload = nullptr) {
-    std::shared_ptr<CNFrameInfo> data = CNFrameInfo::Create(stream_id_, eos, payload);
+
+  std::shared_ptr<FrameInfo> CreateFrameInfo(bool eos = false) {
+    std::shared_ptr<FrameInfo> data = FrameInfo::Create(stream_id_, eos);
     if (data) {
       data->SetStreamIndex(stream_index_);
     }
@@ -238,7 +227,7 @@ class SourceHandler : private NonCopyable {
    * 
    * @note 调用处 handler->SendData(data)
    */
-  bool SendData(std::shared_ptr<CNFrameInfo> data) {
+  bool SendData(std::shared_ptr<FrameInfo> data) {
     if (this->module_) {
       return this->module_->SendData(data);
     }

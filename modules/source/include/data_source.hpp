@@ -81,7 +81,7 @@ class DataSource : public SourceModule, public ModuleCreator<DataSource> {
   /**
    * override Module::Process
    */
-  int Process(std::shared_ptr<CNFrameInfo> data) override;
+  int Process(std::shared_ptr<FrameInfo> data) override;
 
   /*!
    * @brief Gets the parameters of the DataSource module.
@@ -105,41 +105,6 @@ REGISTER_MODULE(DataSource);  // 启动反射
 // 派生关系: Module SourceModule DataSource
 // SourceModule 并没有提供虚函数接口, DataSource 主要重写 Module 的相关 virtual func
 
-class ImageQueueHandlerImpl;
-
-/**
- * 图像队列接口
- */
-class ImageQueueHandler : public SourceHandler {
-
- public:
-  static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
-  ~ImageQueueHandler();
-
-  /**
-   * 通过 SourceModule::AddSource 调用
-   */
-  bool Open() override;  // pure virtual function
-  void Stop() override;
-  void Close() override;
-
- public:
-  void PushDatas(std::vector<uint64_t> timestamps, std::vector<cv::Mat> images);
-  bool SendDataQueue(const std::shared_ptr<CNFrameInfo>& data);
-
- public:
- // private:
-  explicit ImageQueueHandler(DataSource *module, const std::string &stream_id);
-
-#ifdef UNIT_TEST
- public:
-#else
- private:
-#endif
-  int frame_rate_ = 10;   // == 0 表示没有限制
-  int conveyor_idx_ = 0;  // 每个 handler 对应固定的 conveyor
-  std::unique_ptr<ImageQueueHandlerImpl> impl_;
-};
 
 }  // namespace cnstream
 

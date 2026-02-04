@@ -65,7 +65,7 @@ bool ImageHandlerImpl::Open() {
   image_ = cv::imread(image_path_);
   if (image_.empty()) {
     LOGE(SOURCE) << "ImageHandlerImpl: Failed to load image: " << image_path_;
-    return;
+    return false;
   }
   running_.store(true);
   thread_ = std::thread(&ImageHandlerImpl::Loop, this);
@@ -97,7 +97,8 @@ void ImageHandlerImpl::Loop() {
   FrController controller(framerate_);
   if (framerate_ > 0) controller.Start();
 
-  DecodeFrame frame(image_.rows, image_.cols, DecodeFrame::PixFmt::FMT_BGR);
+  // note: image_handler 直接手动指定 BGR24, 视频流解码时则需要 decoder 决定
+  DecodeFrame frame(image_.rows, image_.cols, DataFormat::PIXEL_FORMAT_BGR24);
   frame.dev_type = DevType::CPU;
   frame.planeNum = 1;  // BGR格式使用1个平面
   
@@ -105,7 +106,7 @@ void ImageHandlerImpl::Loop() {
   size_t data_size = image_.rows * image_.cols * 3;  // BGR格式每个像素3字节
   uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
   if (!buffer) {
-    LOGE(SOURCE) << "Failed to allocate memory for image data";
+    LOGE(SOURCE) << "ImageHandlerImpl: Failed to allocate memory for image data";
     return;
   }
   memcpy(buffer, image_.data, data_size);
@@ -121,7 +122,7 @@ void ImageHandlerImpl::Loop() {
       LOGE(SOURCE) << "ImageHandler: [" << stream_id_ << "]: module_ or handler_ is null";
       break;
     }
-    handler_->SendFrameInfo(data);
+    handler_->SendData(data);
   }
   OnEndFrame();
 }

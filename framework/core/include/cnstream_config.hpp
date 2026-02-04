@@ -101,7 +101,7 @@ struct CNConfigBase {
  * @code {.json}
  * {
  *   "profiler_config" : {
- *     "enable_profiling" : true,
+ *     "enable_profile" : true,
  *     "enable_tracing" : true
  *   }
  * }
@@ -110,18 +110,10 @@ struct CNConfigBase {
  * @note It will not take effect when the profiler configuration is in the subgraph configuration.
  **/
 struct ProfilerConfig : public CNConfigBase {
-  bool enable_profiling = false;           ///< Whether to enable profiling.
-  bool enable_tracing = false;             ///< Whether to enable tracing.
-  size_t trace_event_capacity = 100000;    ///< The maximum number of cached trace events.
-
-  /**
-   * @brief Parses members from JSON string.
-   *
-   * @param[in] jstr JSON configuration string.
-   *
-   * @return Returns true if the JSON string has been parsed successfully. Otherwise, returns false.
-   */
+  bool enable_profile = false;           ///< Whether to enable profiling.
   bool ParseByJSONStr(const std::string &jstr) override;
+ private:
+  std::string key_enable_profile = "enable_profile";  ///< The key of enable_profiling.
 };  // struct ProfilerConfig
 
 /**
@@ -149,21 +141,20 @@ struct ProfilerConfig : public CNConfigBase {
  */
 struct CNModuleConfig : public CNConfigBase {
   std::string name;  ///< The name of the module.
-  std::map<std::string, std::string>
-      parameters;   ///< The key-value pairs. The pipeline passes this value to the CNModuleConfig::name module.
-  int parallelism;  ///< Module parallelism. It is equal to module thread number or the data queue of input data.
-  int maxInputQueueSize;          ///< The maximum size of the input data queues.
-  std::string className;          ///< The class name of the module.
-  std::set<std::string> next;     ///< The name of the downstream modules/subgraphs.
+  std::map<std::string, std::string> parameters;         ///< The key-value pairs. The pipeline passes this value to the CNModuleConfig::name module.
+  int parallelism;        ///< Module parallelism. It is equal to module thread number or the data queue of input data.
+  int maxInputQueueSize;  ///< The maximum size of the input data queues.
+  std::string           className;  ///< The class name of the module.
+  std::set<std::string> next;       ///< The name of the downstream modules/subgraphs.
+  bool                  ParseByJSONStr(const std::string &jstr) override;
 
-  /**
-   * @brief Parses members except ``CNModuleConfig::name`` from the JSON file.
-   *
-   * @param[in] jstr JSON string of a configuration.
-   *
-   * @return Returns true if the JSON string has been parsed successfully. Otherwise, returns false.
-   */
-  bool ParseByJSONStr(const std::string &jstr) override;
+ private:
+  std::string key_name = "name";                                  ///< The key of name.
+  std::string key_parallelism = "parallelism";                    ///< The key of parallelism.
+  std::string key_max_input_queue_size = "max_input_queue_size";  ///< The key of max_input_queue_size.
+  std::string key_class_name = "class_name";                      ///< The key of class_name.
+  std::string key_next_modules = "next_modules";                  ///< The key of next_modules.
+  std::string key_custom_params = "custom_params";                ///< The key of custom_params.
 };
 
 /**
@@ -187,15 +178,10 @@ struct CNSubgraphConfig : public CNConfigBase {
   std::string name;              ///< The name of the subgraph.
   std::string config_path;       ///< The path of configuration file.
   std::set<std::string> next;    ///< The name of the downstream modules/subgraphs.
-
-  /**
-   * @brief Parses members except ``CNSubgraphConfig::name`` from the JSON file.
-   *
-   * @param[in] jstr JSON string of a configuration.
-   *
-   * @return Returns true if the JSON string has been parsed successfully. Otherwise, returns false.
-   */
   bool ParseByJSONStr(const std::string &jstr) override;
+ private:
+  std::string key_config_path = "config_path";      ///< The key of config_path.
+  std::string key_next_modules = "next_modules";    ///< The key of next_modules.
 };
 
 /**
@@ -209,7 +195,7 @@ struct CNSubgraphConfig : public CNConfigBase {
  * @code {.json}
  * {
  *   "profiler_config" : {
- *     "enable_profiling" : true,
+ *     "enable_profile" : true,
  *     "enable_tracing" : true
  *   },
  *   "module1": {

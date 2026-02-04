@@ -14,11 +14,6 @@ created from `args`.
 `Args`
 :   compatible types to create a `basic_json` object
 
-## Iterator invalidation
-
-For [`ordered_json`](../ordered_json.md), adding a value to an object can yield a reallocation, in which case all
-iterators (including the `end()` iterator) and all references to the elements are invalidated.
-
 ## Parameters
 
 `args` (in)

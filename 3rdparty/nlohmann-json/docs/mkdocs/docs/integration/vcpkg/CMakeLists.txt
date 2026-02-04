@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.15)
 project(json_example)
+cmake_minimum_required(VERSION 2.8.12)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 

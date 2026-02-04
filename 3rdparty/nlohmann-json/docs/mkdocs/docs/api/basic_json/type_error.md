@@ -9,36 +9,26 @@ does not match the expected semantics.
 
 Exceptions have ids 3xx (see [list of type errors](../../home/exceptions.md#type-errors)).
 
-```mermaid
-classDiagram
-  direction LR
-  
-    class std_exception ["std::exception"] {
-        <<interface>>
-    }
+```plantuml
+std::exception <|-- basic_json::exception
+basic_json::exception <|-- basic_json::parse_error
+basic_json::exception <|-- basic_json::invalid_iterator
+basic_json::exception <|-- basic_json::type_error
+basic_json::exception <|-- basic_json::out_of_range
+basic_json::exception <|-- basic_json::other_error
 
-    class json_exception ["basic_json::exception"] {
-        +const int id
-        +const char* what() const
-    }
-    
-    class json_parse_error ["basic_json::parse_error"] {
-        +const std::size_t byte
-    }
+interface std::exception {}
 
-    class json_invalid_iterator ["basic_json::invalid_iterator"]
-    class json_type_error ["basic_json::type_error"]
-    class json_out_of_range ["basic_json::out_of_range"]
-    class json_other_error ["basic_json::other_error"]
+class basic_json::exception {
+    + const int id
+    + const char* what() const
+}
 
-    std_exception <|-- json_exception
-    json_exception <|-- json_parse_error
-    json_exception <|-- json_invalid_iterator
-    json_exception <|-- json_type_error
-    json_exception <|-- json_out_of_range
-    json_exception <|-- json_other_error
+class basic_json::parse_error {
+    + const std::size_t byte
+}
 
-    style json_type_error fill:#CCCCFF
+class basic_json::type_error #FFFF00 {}
 ```
 
 ## Member functions

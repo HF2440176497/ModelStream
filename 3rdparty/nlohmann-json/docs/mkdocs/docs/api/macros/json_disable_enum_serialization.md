@@ -145,9 +145,7 @@ The default value is `0`.
 
 ## See also
 
-- [:simple-cmake: JSON_DisableEnumSerialization](../../integration/cmake.md#json_disableenumserialization) - CMake option to control
-  the macro
-- [`NLOHMANN_JSON_SERIALIZE_ENUM`](nlohmann_json_serialize_enum.md) - serialize/deserialize an enum
+- [`NLOHMANN_JSON_SERIALIZE_ENUM`](nlohmann_json_serialize_enum.md)
 
 ## Version history
 

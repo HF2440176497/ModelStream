@@ -121,10 +121,10 @@ class ModuleProfiler: private NonCopyable {
   void OnStreamEos(const std::string& stream_name);
 
  private:
-  ProfilerConfig config_;  /*!< The configuration of the profiler. */
-  std::mutex mutex_;  /*!< The mutex for thread safety. */
-  std::string module_name_;  /*!< The name of the module. */
-  std::map<std::string, ProcessProfiler> process_profilers_;  /*!< The map of process profilers. */
+  ProfilerConfig                         config_;            /*!< The configuration of the profiler. */
+  std::mutex                             mutex_;             /*!< The mutex for thread safety. */
+  std::string                            module_name_;       /*!< The name of the module. */
+  std::map<std::string, ProcessProfiler> process_profilers_; /*!< The map of process profilers. */
 };
 
 inline std::string ModuleProfiler::GetName() const {

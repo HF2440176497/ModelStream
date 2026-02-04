@@ -21,6 +21,9 @@
 #ifndef MODULES_DATA_SOURCE_PARAM_HPP_
 #define MODULES_DATA_SOURCE_PARAM_HPP_
 
+#include <string>
+#include <unordered_map>
+
 namespace cnstream {
 
 /*!
@@ -29,7 +32,8 @@ namespace cnstream {
  */
 enum class OutputType {
   OUTPUT_CPU,  /*!< CPU is the used storage type. */
-  OUTPUT_MLU   /*!< MLU is the used storage type. */
+  OUTPUT_CUDA,  /*!< CUDA is the used storage type. */
+  OUTPUT_NPU   /*!< NPU is the used storage type. */
 };
 
 /*!
@@ -38,16 +42,36 @@ enum class OutputType {
  */
 enum class DecoderType {
   DECODER_CPU,  /*!< CPU decoder is used. */
-  DECODER_MLU   /*!< MLU decoder is used. */
+  DECODER_CUDA,  /*!< Video decoder is used. */
+  DECODER_NPU   /*!< NPU decoder is used. */
 };
+
+inline const std::unordered_map<std::string, OutputType> param_output_map_ = {
+  {"cpu", OutputType::OUTPUT_CPU},
+  {"cuda", OutputType::OUTPUT_CUDA},
+  {"npu", OutputType::OUTPUT_NPU}
+};
+
+inline const std::unordered_map<std::string, DecoderType> param_decoder_map_ = {
+  {"cpu", DecoderType::DECODER_CPU},
+  {"cuda", DecoderType::DECODER_CUDA},
+  {"npu", DecoderType::DECODER_NPU}
+};
+
+inline constexpr std::string KEY_OUTPUT_TYPE = "output_type";
+inline constexpr std::string KEY_DEVICE_ID = "device_id";
+inline constexpr std::string KEY_INTERVAL = "interval";
+inline constexpr std::string KEY_DECODER_TYPE = "decoder_type";
+inline constexpr std::string KEY_ONLY_KEY_FRAME = "only_key_frame";
+inline constexpr std::string KEY_FILE_PATH = "file_path";
 
 /*!
  * @brief DataSourceParam is a structure for private usage.
  */
 struct DataSourceParam {
   int  device_id_ = -1;                                 /*! DataFrame 的 dev_id 直接来自 decode_frame  */
-  CNDataFormat output_type_ = CNDataFormat::CN_PIXEL_FORMAT_BGR24;  /*!< The output type */
   size_t  interval_ = 1;                                /*!< The interval of outputting one frame. It outputs one frame every n (interval_) frames. */
+  OutputType output_type_ = OutputType::OUTPUT_CPU;     /*!< The output type */
   DecoderType decoder_type_ = DecoderType::DECODER_CPU; /*!< The decoder type. */
   bool only_key_frame_ = false;                         /*!< Whether only to decode key frames. */
   std::string file_path_ = "";                          /*!< The file path of the video or image file. */

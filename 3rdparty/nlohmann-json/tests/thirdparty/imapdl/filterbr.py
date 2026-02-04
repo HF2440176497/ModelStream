@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # 2017, Georg Sauthoff <mail@gms.tf>, GPLv3
-# 2022, Alexander Stohr, ZF Friedrichshafen AG: benign handling of UTF-8 violations
 
 import sys
 
@@ -50,7 +49,7 @@ def cond_lines(lines):
           p = n
           continue
         if (p == 0 or not line[p-1].isalpha()) \
-                and (p+2 == len(line) or not line[p+2].isalpha()):
+            and (p+2 == len(line) or not line[p+2].isalpha()):
           do_yield = True
           state = 1
         p += 2
@@ -94,9 +93,7 @@ def filter_lcov_trace(lines):
     yield line
 
 def filter_lcov_trace_file(s_filename, d_file):
-  # encoding is anyways the python default: utf-8
-  # standard error is "strict"; python style escaping is "backslashreplace"; alternate benign handler is "surrogateescape"
-  with open(s_filename, encoding="utf-8", errors="backslashreplace") as f:
+  with open(s_filename) as f:
     for l in filter_lcov_trace(f):
       print(l, end='', file=d_file)
 
@@ -109,3 +106,4 @@ if __name__ == '__main__':
   #with open(sys.argv[1]) as f:
   #  for l in skip_comments(f):
   #    print(l)
+

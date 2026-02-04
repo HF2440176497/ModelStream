@@ -4,7 +4,7 @@
 bool empty() const noexcept;
 ```
 
-Return whether the pointer points to the root document.
+Return whether pointer points to the root document.
 
 ## Return value
 

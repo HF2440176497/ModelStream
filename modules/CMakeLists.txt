@@ -17,26 +17,29 @@ include_directories(${GLOG_INCLUDE_DIRS})
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 
 # ---[ framework
+include(${MODELSTREAM_ROOT_PATH}/cmake/have_cnstream_target.cmake)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 
-option(build_source "build module source" ON)
 
 if(build_tests)
   add_definitions(-DUNIT_TEST)
 endif()
 
+option(build_source "build module source" OFF)
+option(build_inference "build module inference" OFF)
+option(build_util "build module util" ON)
+option(build_va "build modulestream_va" OFF)
+
 # ---[ 3rdparty
 set(3RDPARTY_LIBS "")
 set(DEPENDENCIES "")
 
-include(${MODELSTREAM_ROOT_PATH}/cmake/have_cnstream_target.cmake)
 # ---[ framework
 have_framework_target(${MODELSTREAM_ROOT_PATH})
 list(APPEND 3RDPARTY_LIBS modelstream_core)
 if(HAVE_FRAMEWORK_TARGET)
   list(APPEND DEPENDENCIES modelstream_core)
 endif()
-
 
 # ---[ opencv
 find_package(OpenCV REQUIRED COMPONENTS 
@@ -53,32 +56,44 @@ endif()
 set(module_list "")
 if(build_source)
   list(APPEND module_list source)
-  # install(DIRECTORY source/include/ DESTINATION include)
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/util/include)
+if(build_inference)
+  list(APPEND module_list inference)
+endif()
 
 file(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB util_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
 list(APPEND srcs ${util_src})
 
-# 递归添加模块的源文件
-# 要求每个 module 目录都是 include src 目录结构
+# 递归添加模块的源文件: 要求每个 module 目录都是 include src 目录结构
 foreach(module ${module_list})
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${module}/include)
   file(GLOB_RECURSE module_src ${CMAKE_CURRENT_SOURCE_DIR}/${module}/*.cpp)
   list(APPEND srcs ${module_src})
 endforeach()
 
-# 项目根目录的 cmake 已经定义了 OUTPUT_DIRECTORY
 
-add_library(modelstream_va SHARED ${srcs})
-add_dependencies(modelstream_va ${DEPENDENCIES})
-set_target_properties(modelstream_va PROPERTIES LINK_FLAGS_RELEASE -s)
+if(build_util)
+  add_library(modules_util OBJECT ${util_src})
+  target_include_directories(modules_util PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/util
+  )    
+  add_custom_target(util DEPENDS modules_util)
+  message(STATUS "Util module enabled - targets: modules_util, util")
+endif()
 
-# install(TARGETS modelstream_va LIBRARY DESTINATION lib64)
-target_link_libraries(modelstream_va ${3RDPARTY_LIBS} rt dl pthread)
+if(build_va)
+  add_library(modelstream_va SHARED ${srcs})
+  target_include_directories(modelstream_va PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/util
+  )
+  add_dependencies(modelstream_va ${DEPENDENCIES})
+  target_link_libraries(modelstream_va ${3RDPARTY_LIBS} rt dl pthread)
+  set_target_properties(modelstream_va PROPERTIES LINK_FLAGS_RELEASE -s)
+  message(STATUS "modelstream_va enabled - targets: modelstream_va")
+endif()
 
 if(build_tests)
   add_subdirectory(unittest)

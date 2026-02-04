@@ -86,16 +86,42 @@ bool Pipeline::BuildPipeline(const CNGraphConfig& graph_config) {
   // generate parant mask for all nodes and route mask for head nodes.
   GenerateModulesMask();
 
-#ifndef CLOSE_PROFILER
-  // This call must after GenerateModulesMask called,
-  profiler_.reset(new PipelineProfiler(graph_->GetConfig().profiler_config, GetName(), modules,
-      GetSortedModuleNames()));
-#endif
+  // generate module profilers
+  GenerateModulesProfilers(modules);
 
-  // create connectors for all nodes beside head nodes.
-  // This call must after GenerateModulesMask called,
-  // then we can determine witch are the head nodes.
+  // create connectors for all nodes beside head nodes. This call must after GenerateModulesMask called,
   return CreateConnectors();
+}
+
+bool Pipeline::IsProfilingEnabled() const {
+  if (nullptr == graph_) {
+    LOGF(CORE) << "Pipeline::IsProfilingEnabled() failed, graph_ is null.";
+    return false;
+  }
+  if (graph_->GetConfig().profiler_config.enable_profile) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @brief 为每个 Module 创建一个 ModuleProfiler 都注册一个 kPROCESS_PROFILER_NAME
+ */
+void Pipeline::GenerateModulesProfilers(const std::vector<std::shared_ptr<Module>>& modules) {
+  for (const auto& module: modules) {
+    auto name = module->GetName();
+    module_profilers_.emplace(name, std::unique_ptr<ModuleProfiler>(new ModuleProfiler(graph_->GetConfig().profiler_config, name)));
+    module_profilers_[name]->RegisterProcess(kPROCESS_PROFILER_NAME);
+  }
+}
+
+// note: dereference unique_ptr
+ModuleProfiler* Pipeline::GetModuleProfiler(const std::string& module_name) const {
+  auto it = module_profilers_.find(module_name);
+  if (it != module_profilers_.end()) {
+    return it->second.get();
+  }
+  return nullptr;
 }
 
 /**
@@ -325,24 +351,25 @@ bool PassedByAllParentNodes(NodeContext* context, uint64_t data_mask) {
 
 void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsEos()) return;
-#ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
     auto record_key = std::make_pair(data->stream_id, data->timestamp);
     auto profiler = context->module->GetProfiler();
-    profiler->RecordProcessEnd(kINPUT_PROFILER_NAME, record_key);
-    profiler->RecordProcessStart(kPROCESS_PROFILER_NAME, record_key);
+    if (profiler) {
+      profiler->RecordProcessEnd(kINPUT_PROFILER_NAME, record_key);
+      profiler->RecordProcessStart(kPROCESS_PROFILER_NAME, record_key);
+    }
   }
-#endif
 }
 
 void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsEos()) return;
-#ifndef CLOSE_PROFILER
   if (IsProfilingEnabled()) {
-    context->module->GetProfiler()->RecordProcessEnd(
-      kPROCESS_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
+    auto profiler = context->module->GetProfiler();
+    if (profiler) {
+      profiler->RecordProcessEnd(
+        kPROCESS_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
+    }
   }
-#endif
   context->module->NotifyObserver(data);
 }
 
@@ -382,10 +409,8 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<FrameInfo>& dat
   auto module = context->module;
   module->NotifyObserver(data);
 
-#ifndef CLOSE_PROFILER
   if (IsProfilingEnabled())
     module->GetProfiler()->OnStreamEos(data->stream_id);
-#endif
 
   LOGI(CORE) << "[" << module->GetName() << "]" << " [" << data->stream_id << "] got eos.";
   // eos message
@@ -396,8 +421,6 @@ void Pipeline::OnEos(NodeContext* context, const std::shared_ptr<FrameInfo>& dat
   e.thread_id = std::this_thread::get_id();
   event_bus_->PostEvent(e);
 }
-
-#ifndef CLOSE_PROFILER
 
 /**
  * 仅在 Pipeline::TransmitData 中调用
@@ -413,18 +436,6 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameIn
     if (IsProfilingEnabled()) profiler_->RecordOutput(std::make_pair(data->stream_id, data->timestamp));
   }
 }
-
-#else
-
-void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
-  if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
-  // 在 Pipeline::TransmitData 调用 OnPassThrough 之前，就已经判断了 EOS
-  // if (data->IsEos()) {
-  //   OnEos(context, data);
-  // }
-}
-
-#endif
 
 /**
  * @note: 数据传输的核心函数，在 Module 处理完后
@@ -467,12 +478,10 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInf
     auto connector = next_module->GetConnector();
     // push data to conveyor only after data passed by all parent nodes.
 
-#ifndef CLOSE_PROFILER
     if (IsProfilingEnabled() && !data->IsEos()) {
       next_module->GetProfiler()->RecordProcessStart(
         kINPUT_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
     }
-#endif
 
     const int conveyor_idx = data->GetStreamIndex() % connector->GetConveyorCount();
     while (connector->IsRunning() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {

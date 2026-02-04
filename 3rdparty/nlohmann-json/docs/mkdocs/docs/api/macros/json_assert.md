@@ -9,7 +9,7 @@ This macro controls which code is executed for [runtime assertions](../../featur
 ## Parameters
 
 `x` (in)
-:   expression of a scalar type
+:   expression of scalar type
 
 ## Default definition
 
@@ -78,10 +78,6 @@ Therefore, assertions can be switched off by defining `NDEBUG`.
     ```
     assertion error in operator[]
     ```
-
-## See also
-
-- [Runtime Assertions](../../features/assertions.md) - overview documentation
 
 ## Version history
 

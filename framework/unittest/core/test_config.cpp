@@ -108,6 +108,5 @@ TEST(CoreConfig, CNGraphConfig) {
     EXPECT_TRUE(graph_config.ParseByJSONStr(json_content));
 
     // 检查 profiler_config 模块
-    EXPECT_FALSE(graph_config.profiler_config.enable_profiling);
-    EXPECT_FALSE(graph_config.profiler_config.enable_tracing);
+    EXPECT_FALSE(graph_config.profiler_config.enable_profile);
 }

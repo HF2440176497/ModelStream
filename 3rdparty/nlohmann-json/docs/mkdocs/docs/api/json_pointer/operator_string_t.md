@@ -42,10 +42,6 @@ operator string_t() const
     --8<-- "examples/json_pointer__operator_string_t.output"
     ```
 
-## See also
-
-- [string_t](../basic_json/string_t.md)- type for strings
-
 ## Version history
 
 - Since version 2.0.0.

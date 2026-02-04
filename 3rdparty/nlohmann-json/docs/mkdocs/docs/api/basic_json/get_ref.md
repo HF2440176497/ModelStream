@@ -40,7 +40,7 @@ Constant.
 
 !!! danger "Undefined behavior"
 
-    The reference becomes invalid if the underlying JSON object changes.
+    Writing data to the referee of the result yields an undefined state.
 
 ## Examples
 
@@ -57,10 +57,6 @@ Constant.
     ```json
     --8<-- "examples/get_ref.output"
     ```
-
-## See also
-
-- [get_ptr()](get_ptr.md) get a pointer value
 
 ## Version history
 

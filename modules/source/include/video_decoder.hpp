@@ -55,7 +55,7 @@ class Deallocator : public IDataDeallocator {
 };
 
 struct DecodeFrame {
-  DecodeFrame(int height, int width, PixFmt fmt) : height(height), width(width), fmt(fmt) {
+  DecodeFrame(int height, int width, DataFormat fmt = DataFormat::PIXEL_FORMAT_BGR24) : height(height), width(width), fmt(fmt) {
     valid = true;
     pts = 0;
   }
@@ -67,7 +67,7 @@ struct DecodeFrame {
   DevType dev_type = DevType::INVALID;
   int32_t device_id = -1;
   
-  CNDataFormat fmt;
+  DataFormat fmt;
   int32_t planeNum;
   void *plane[MAX_PLANE_NUM];
   int stride[MAX_PLANE_NUM];

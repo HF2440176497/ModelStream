@@ -1,9 +1,9 @@
 //     __ _____ _____ _____
 //  __|  |   __|     |   | |  JSON for Modern C++ (supporting code)
-// |  |  |__   |  |  | | | |  version 3.12.0
+// |  |  |__   |  |  | | | |  version 3.11.3
 // |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 //
-// SPDX-FileCopyrightText: 2013 - 2025 Niels Lohmann <https://nlohmann.me>
+// SPDX-FileCopyrightText: 2013-2023 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
 
 #include "doctest_compatibility.h"
@@ -14,6 +14,7 @@ using nlohmann::json;
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 #include <limits>
 #include <set>
 #include "make_test_data_available.hpp"
@@ -240,13 +241,13 @@ TEST_CASE("CBOR")
                     const std::vector<int64_t> numbers
                     {
                         -65537,
-                        -100000,
-                        -1000000,
-                        -10000000,
-                        -100000000,
-                        -1000000000,
-                        -4294967296,
-                    };
+                            -100000,
+                            -1000000,
+                            -10000000,
+                            -100000000,
+                            -1000000000,
+                            -4294967296,
+                        };
                     for (const auto i : numbers)
                     {
                         CAPTURE(i)
@@ -316,7 +317,7 @@ TEST_CASE("CBOR")
 
                         // check individual bytes
                         CHECK(result[0] == 0x39);
-                        const auto restored = static_cast<uint16_t>((static_cast<uint8_t>(result[1]) * 256) + static_cast<uint8_t>(result[2]));
+                        const auto restored = static_cast<uint16_t>(static_cast<uint8_t>(result[1]) * 256 + static_cast<uint8_t>(result[2]));
                         CHECK(restored == positive);
                         CHECK(-1 - restored == i);
 
@@ -504,7 +505,7 @@ TEST_CASE("CBOR")
 
                         // check individual bytes
                         CHECK(result[0] == 0x19);
-                        const auto restored = static_cast<uint16_t>((static_cast<uint8_t>(result[1]) * 256) + static_cast<uint8_t>(result[2]));
+                        const auto restored = static_cast<uint16_t>(static_cast<uint8_t>(result[1]) * 256 + static_cast<uint8_t>(result[2]));
                         CHECK(restored == i);
 
                         // roundtrip
@@ -743,7 +744,7 @@ TEST_CASE("CBOR")
 
                         // check individual bytes
                         CHECK(result[0] == 0x19);
-                        const auto restored = static_cast<uint16_t>((static_cast<uint8_t>(result[1]) * 256) + static_cast<uint8_t>(result[2]));
+                        const auto restored = static_cast<uint16_t>(static_cast<uint8_t>(result[1]) * 256 + static_cast<uint8_t>(result[2]));
                         CHECK(restored == i);
 
                         // roundtrip
@@ -989,7 +990,7 @@ TEST_CASE("CBOR")
                     {
                         0xfa, 0xff, 0x7f, 0xff, 0xff
                     };
-                    // the same with the lowest float
+                    // the same with lowest float
                     const auto result = json::to_cbor(j);
                     CHECK(result == expected);
                     // roundtrip
@@ -1631,7 +1632,7 @@ TEST_CASE("CBOR")
                 };
 
                 json j;
-                auto cbp = nlohmann::detail::json_sax_dom_callback_parser<json, nlohmann::detail::string_input_adapter_type>(j, callback, true);
+                auto cbp = nlohmann::detail::json_sax_dom_callback_parser<json>(j, callback, true);
                 CHECK(json::sax_parse(input, &cbp, json::input_format_t::cbor));
                 CHECK(j.at("foo").is_binary());
                 CHECK(binary_seen);
@@ -1880,7 +1881,7 @@ TEST_CASE("single CBOR roundtrip")
         {
             SECTION("std::ostringstream")
             {
-                std::basic_ostringstream<char> ss;
+                std::basic_ostringstream<std::uint8_t> ss;
                 json::to_cbor(j1, ss);
                 json j3 = json::from_cbor(ss.str());
                 CHECK(j1 == j3);

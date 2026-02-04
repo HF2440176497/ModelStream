@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.15)
 project(json_example)
+cmake_minimum_required(VERSION 2.8.12)
+add_definitions("-std=c++11")
 
-find_package(nlohmann_json REQUIRED)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
 add_executable(json_example example.cpp)
-target_link_libraries(json_example PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(json_example ${CONAN_LIBS})

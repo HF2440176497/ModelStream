@@ -4,43 +4,31 @@
 class parse_error : public exception;
 ```
 
-The library throws this exception when a parse error occurs. Parse errors can occur during the deserialization of
+This exception is thrown by the library when a parse error occurs. Parse errors can occur during the deserialization of
 JSON text, BSON, CBOR, MessagePack, UBJSON, as well as when using JSON Patch.
 
 Member `byte` holds the byte index of the last read character in the input file (see note below).
 
 Exceptions have ids 1xx (see [list of parse errors](../../home/exceptions.md#parse-errors)).
 
-```mermaid
-classDiagram
-  direction LR
-  
-    class std_exception ["std::exception"] {
-        <<interface>>
-    }
+```plantuml
+std::exception <|-- basic_json::exception
+basic_json::exception <|-- basic_json::parse_error
+basic_json::exception <|-- basic_json::invalid_iterator
+basic_json::exception <|-- basic_json::type_error
+basic_json::exception <|-- basic_json::out_of_range
+basic_json::exception <|-- basic_json::other_error
 
-    class json_exception ["basic_json::exception"] {
-        +const int id
-        +const char* what() const
-    }
-    
-    class json_parse_error ["basic_json::parse_error"] {
-        +const std::size_t byte
-    }
+interface std::exception {}
 
-    class json_invalid_iterator ["basic_json::invalid_iterator"]
-    class json_type_error ["basic_json::type_error"]
-    class json_out_of_range ["basic_json::out_of_range"]
-    class json_other_error ["basic_json::other_error"]
+class basic_json::exception {
+    + const int id
+    + const char* what() const
+}
 
-    std_exception <|-- json_exception
-    json_exception <|-- json_parse_error
-    json_exception <|-- json_invalid_iterator
-    json_exception <|-- json_type_error
-    json_exception <|-- json_out_of_range
-    json_exception <|-- json_other_error
-
-    style json_parse_error fill:#CCCCFF
+class basic_json::parse_error #FFFF00 {
+    + const std::size_t byte
+}
 ```
 
 ## Member functions

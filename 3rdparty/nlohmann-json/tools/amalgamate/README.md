@@ -1,3 +1,4 @@
+
 # amalgamate.py - Amalgamate C source and header files
 
 Origin: https://bitbucket.org/erikedlund/amalgamate

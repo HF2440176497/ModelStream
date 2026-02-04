@@ -216,14 +216,12 @@ class Module : private NonCopyable {
 
   std::shared_ptr<Connector> GetConnector() const { return connector_; }
 
-#ifndef CLOSE_PROFILER
   /**
    * @brief Gets module profiler.
    *
    * @return Returns a pointer to the module's profiler.
    */
   ModuleProfiler* GetProfiler();
-#endif
 
   // 改进后的 Pipeline 不需要此函数
   // bool HasTransmit() const { return hasTransmit_.load(); }

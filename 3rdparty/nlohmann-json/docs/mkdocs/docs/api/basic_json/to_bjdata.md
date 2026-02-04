@@ -4,16 +4,13 @@
 // (1)
 static std::vector<std::uint8_t> to_bjdata(const basic_json& j,
                                            const bool use_size = false,
-                                           const bool use_type = false,
-                                           const bjdata_version_t version = bjdata_version_t::draft2);
+                                           const bool use_type = false);
 
 // (2)
 static void to_bjdata(const basic_json& j, detail::output_adapter<std::uint8_t> o,
-                      const bool use_size = false, const bool use_type = false,
-                      const bjdata_version_t version = bjdata_version_t::draft2);
+                      const bool use_size = false, const bool use_type = false);
 static void to_bjdata(const basic_json& j, detail::output_adapter<char> o,
-                      const bool use_size = false, const bool use_type = false,
-                      const bjdata_version_t version = bjdata_version_t::draft2);
+                      const bool use_size = false, const bool use_type = false);
 ```
 
 Serializes a given JSON value `j` to a byte vector using the BJData (Binary JData) serialization format. BJData aims to
@@ -22,7 +19,7 @@ be more compact than JSON itself, yet more efficient to parse.
 1. Returns a byte vector containing the BJData serialization.
 2. Writes the BJData serialization to an output adapter.
 
-The exact mapping and its limitations are described on a [dedicated page](../../features/binary_formats/bjdata.md).
+The exact mapping and its limitations is described on a [dedicated page](../../features/binary_formats/bjdata.md).
 
 ## Parameters
 
@@ -38,10 +35,6 @@ The exact mapping and its limitations are described on a [dedicated page](../../
 `use_type` (in)
 :   whether to add type annotations to container types (must be combined with `#!cpp use_size = true`); optional,
 `#!cpp false` by default.
-
-`version` (in)
-:   which version of BJData to use (see note on "Binary values" on [BJData](../../features/binary_formats/bjdata.md));
-optional, `#!cpp bjdata_version_t::draft2` by default.
 
 ## Return value
 
@@ -75,4 +68,3 @@ Linear in the size of the JSON value `j`.
 ## Version history
 
 - Added in version 3.11.0.
-- BJData version parameter (for draft3 binary encoding) added in version 3.12.0.

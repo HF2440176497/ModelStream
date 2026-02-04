@@ -2,6 +2,7 @@
 #include "base.hpp"
 
 #include "cnstream_logging.hpp"
+#include "data_handler_image.hpp"
 #include "data_source.hpp"
 #include "cnstream_pipeline.hpp"
 #include "cnstream_module.hpp"
@@ -29,7 +30,7 @@ class InferencerVoid: public Module, public ModuleCreator<InferencerVoid> {
     void Close() override {
       LOGI(InferencerVoid) << "Close";
     }
-    int Process(std::shared_ptr<FrameInfo> frame) override {
+    int Process(std::shared_ptr<CNFrameInfo> frame) override {
       LOGI(InferencerVoid) << "Process frame " << frame->stream_id << "; with time: " << frame->timestamp;
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       return 0;
@@ -73,13 +74,13 @@ class SourceModuleTest : public testing::Test {
       EXPECT_TRUE(pipeline_->BuildPipeline(graph_config_));
     }
 
-    virtual void TearDown() {
+    virtual void TearDown() {  // 当前用例结束
       LOGI(SourceModuleTest) << "TearDown";
     }
 
   protected:
     const std::string stream_id_ = "channel-1";
-    std::thread push_data_thread;
+    std::shared_ptr<ImageHandler> image_handler_ = nullptr;
     std::shared_ptr<DataSource> module_ = nullptr;
     std::shared_ptr<Pipeline> pipeline_ = nullptr;
     cnstream::CNGraphConfig graph_config_;
@@ -137,20 +138,37 @@ TEST_F(SourceModuleTest, Loop) {
   DataSource *source = dynamic_cast<DataSource*>(module_in_pipeline);
   EXPECT_NE(source, nullptr);
 
+  std::shared_ptr<SourceHandler> source_handler_ptr = ImageHandler::Create(source, stream_id_);
+  image_handler_ = std::dynamic_pointer_cast<ImageHandler>(source_handler_ptr);
+  EXPECT_NE(image_handler_, nullptr);
 
+  // 开启 Pipeline
+  EXPECT_TRUE(pipeline_->Start());
+  EXPECT_FALSE(IsStreamRemoved(stream_id_));  // 此处应该没有被移除
 
+  EXPECT_EQ(source->AddSource(image_handler_), 0);
+  EXPECT_TRUE(image_handler_->impl_->running_);
 
+  LOGI(SourceModuleTest) << "Handler stream idx: " << image_handler_->GetStreamIndex();
+  EXPECT_NE(image_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex
+  
+  // 手动发送 EOS 此时 sourcemodule 是不能移除 handler 的
+  EXPECT_TRUE(pipeline_->IsRunning());
+  
+  image_handler_->impl_->SendFlowEos();
+  PrintStreamEos();  // 创建 eos 帧之后应当看到 eos_map 注册了 false
+  EXPECT_FALSE(StreamEosMapValue(stream_id_));
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 等待 EOS 消息被处理
 
-  // 同步等待
   LOGI(SourceModuleTest) << "Wait for EOS message to be processed";
   LOGI(SourceModuleTest) << "CheckStreamEosReached(stream_id_) = " << std::boolalpha << CheckStreamEosReached(stream_id_, true);
   LOGI(SourceModuleTest) << "Wait for EOS message complete";
 }
 
-
-// TODO: 我们如果启动多个线程，操作 Handler 发送数据
-
-
+/**
+ * Sasha: 2026-01-02
+ * 修改之后的 ImageHandler 循环生成 DecodeFrame，然后通过 SourceModule 自己向 Pipeline 发送
+ */
 
 
 }  // namespace cnstream

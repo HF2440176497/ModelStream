@@ -1,9 +1,10 @@
 //     __ _____ _____ _____
 //  __|  |   __|     |   | |  JSON for Modern C++ (supporting code)
-// |  |  |__   |  |  | | | |  version 3.12.0
+// |  |  |__   |  |  | | | |  version 3.11.3
 // |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 //
-// SPDX-FileCopyrightText: 2013 - 2025 Niels Lohmann <https://nlohmann.me>
+// Copyright (c) 2013-2022 Niels Lohmann <http://nlohmann.me>.
+// SPDX-FileCopyrightText: 2013-2023 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
 
 #include "doctest_compatibility.h"
@@ -54,7 +55,7 @@ TEST_CASE("element access 1")
                 SECTION("null")
                 {
                     json j_nonarray(json::value_t::null);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with null", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with null", json::type_error&);
@@ -63,7 +64,7 @@ TEST_CASE("element access 1")
                 SECTION("boolean")
                 {
                     json j_nonarray(json::value_t::boolean);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with boolean", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with boolean", json::type_error&);
@@ -72,7 +73,7 @@ TEST_CASE("element access 1")
                 SECTION("string")
                 {
                     json j_nonarray(json::value_t::string);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with string", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with string", json::type_error&);
@@ -81,7 +82,7 @@ TEST_CASE("element access 1")
                 SECTION("object")
                 {
                     json j_nonarray(json::value_t::object);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with object", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with object", json::type_error&);
@@ -90,7 +91,7 @@ TEST_CASE("element access 1")
                 SECTION("number (integer)")
                 {
                     json j_nonarray(json::value_t::number_integer);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
@@ -99,7 +100,7 @@ TEST_CASE("element access 1")
                 SECTION("number (unsigned)")
                 {
                     json j_nonarray(json::value_t::number_unsigned);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
@@ -108,7 +109,7 @@ TEST_CASE("element access 1")
                 SECTION("number (floating-point)")
                 {
                     json j_nonarray(json::value_t::number_float);
-                    const json j_nonarray_const(j_nonarray);  // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
 
                     CHECK_THROWS_WITH_AS(j_nonarray.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const.at(0), "[json.exception.type_error.304] cannot use at() with number", json::type_error&);
@@ -154,7 +155,7 @@ TEST_CASE("element access 1")
                     SECTION("standard tests")
                     {
                         json j_nonarray(json::value_t::null);
-                        const json j_nonarray_const(j_nonarray);  // NOLINT(performance-unnecessary-copy-initialization)
+                        const json j_nonarray_const(j_nonarray);
                         CHECK_NOTHROW(j_nonarray[0]);
                         CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with null", json::type_error&);
                     }
@@ -170,7 +171,7 @@ TEST_CASE("element access 1")
                 SECTION("boolean")
                 {
                     json j_nonarray(json::value_t::boolean);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with boolean", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with boolean", json::type_error&);
                 }
@@ -178,7 +179,7 @@ TEST_CASE("element access 1")
                 SECTION("string")
                 {
                     json j_nonarray(json::value_t::string);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with string", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with string", json::type_error&);
                 }
@@ -186,7 +187,7 @@ TEST_CASE("element access 1")
                 SECTION("object")
                 {
                     json j_nonarray(json::value_t::object);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with object", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with object", json::type_error&);
                 }
@@ -194,7 +195,7 @@ TEST_CASE("element access 1")
                 SECTION("number (integer)")
                 {
                     json j_nonarray(json::value_t::number_integer);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                 }
@@ -202,7 +203,7 @@ TEST_CASE("element access 1")
                 SECTION("number (unsigned)")
                 {
                     json j_nonarray(json::value_t::number_unsigned);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                 }
@@ -210,7 +211,7 @@ TEST_CASE("element access 1")
                 SECTION("number (floating-point)")
                 {
                     json j_nonarray(json::value_t::number_float);
-                    const json j_nonarray_const(j_nonarray); // NOLINT(performance-unnecessary-copy-initialization)
+                    const json j_nonarray_const(j_nonarray);
                     CHECK_THROWS_WITH_AS(j_nonarray[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                     CHECK_THROWS_WITH_AS(j_nonarray_const[0], "[json.exception.type_error.305] cannot use operator[] with a numeric argument with number", json::type_error&);
                 }

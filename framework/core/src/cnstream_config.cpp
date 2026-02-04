@@ -78,33 +78,15 @@ bool ProfilerConfig::ParseByJSONStr(const std::string& jstr) {
   }
 
   for (rapidjson::Document::ConstMemberIterator iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter) {
-    if ("enable_profiling" == iter->name) {
+    if (key_enable_profile == iter->name) {
       if (iter->value.IsBool()) {
-        this->enable_profiling = iter->value.GetBool();
+        this->enable_profile = iter->value.GetBool();
       } else {
-        LOGE(CORE) << "enable_profiling must be boolean type.";
+        LOGE(CORE) << "enable_profile must be boolean type.";
         return false;
       }
-    } else if ("enable_tracing" == iter->name) {
-      if (iter->value.IsBool()) {
-        this->enable_tracing = iter->value.GetBool();
-      } else {
-        LOGE(CORE) << "enable_tracing must be boolean type.";
-        return false;
-      }
-    } else if ("trace_event_capacity" == iter->name) {
-      if (iter->value.IsUint64()) {
-        this->trace_event_capacity = iter->value.GetUint64();
-      } else {
-        LOGE(CORE) << "trace_event_capacity must be uint64 type.";
-        return false;
-      }
-    } else {
-      LOGE(CORE) << "Unknown parameter named [" << iter->name.GetString() << "] for profiler_config.";
-      return false;
     }
   }
-
   return true;
 }
 
@@ -123,46 +105,46 @@ bool CNModuleConfig::ParseByJSONStr(const std::string& jstr) {
   const auto end = doc.MemberEnd();
 
   // className
-  if (end == doc.FindMember("class_name")) {
+  if (end == doc.FindMember(key_class_name)) {
     LOGE(CORE) << "Module has to have a class_name.";
     return false;
   } else {
-    if (!doc["class_name"].IsString()) {
+    if (!doc[key_class_name].IsString()) {
       LOGE(CORE) << "class_name must be string type.";
       return false;
     }
-    this->className = doc["class_name"].GetString();
+    this->className = doc[key_class_name].GetString();
   }
 
   // parallelism
-  if (end != doc.FindMember("parallelism")) {
-    if (!doc["parallelism"].IsUint()) {
+  if (end != doc.FindMember(key_parallelism)) {
+    if (!doc[key_parallelism].IsUint()) {
       LOGE(CORE) << "parallelism must be uint type.";
       return false;
     }
-    this->parallelism = doc["parallelism"].GetUint();
+    this->parallelism = doc[key_parallelism].GetUint();
   } else {
     this->parallelism = 1;
   }
 
   // maxInputQueueSize
-  if (end != doc.FindMember("max_input_queue_size")) {
-    if (!doc["max_input_queue_size"].IsUint()) {
+  if (end != doc.FindMember(key_max_input_queue_size)) {
+    if (!doc[key_max_input_queue_size].IsUint()) {
       LOGE(CORE) << "max_input_queue_size must be uint type.";
       return false;
     }
-    this->maxInputQueueSize = doc["max_input_queue_size"].GetUint();
+    this->maxInputQueueSize = doc[key_max_input_queue_size].GetUint();
   } else {
     this->maxInputQueueSize = 20;
   }
 
   // next
-  if (end != doc.FindMember("next_modules")) {
-    if (!doc["next_modules"].IsArray()) {
+  if (end != doc.FindMember(key_next_modules)) {
+    if (!doc[key_next_modules].IsArray()) {
       LOGE(CORE) << "next_modules must be array type.";
       return false;
     }
-    auto values = doc["next_modules"].GetArray();
+    auto values = doc[key_next_modules].GetArray();
     for (auto iter = values.begin(); iter != values.end(); ++iter) {
       if (!iter->IsString()) {
         LOGE(CORE) << "next_modules must be an array of strings.";
@@ -175,8 +157,8 @@ bool CNModuleConfig::ParseByJSONStr(const std::string& jstr) {
   }
 
   // custom parameters
-  if (end != doc.FindMember("custom_params")) {
-    rapidjson::Value& custom_params = doc["custom_params"];
+  if (end != doc.FindMember(key_custom_params)) {
+    rapidjson::Value& custom_params = doc[key_custom_params];
     if (!custom_params.IsObject()) {
       LOGE(CORE) << "custom_params must be an object.";
       return false;
@@ -219,24 +201,24 @@ bool CNSubgraphConfig::ParseByJSONStr(const std::string& jstr) {
   const auto end = doc.MemberEnd();
 
   // config_path
-  if (end == doc.FindMember("config_path")) {
+  if (end == doc.FindMember(key_config_path)) {
     LOGE(CORE) << "Subgraph has to have a config_path.";
     return false;
   } else {
-    if (!doc["config_path"].IsString()) {
+    if (!doc[key_config_path].IsString()) {
       LOGE(CORE) << "config_path must be string type.";
       return false;
     }
-    this->config_path = config_root_dir + doc["config_path"].GetString();
+    this->config_path = config_root_dir + doc[key_config_path].GetString();
   }
 
   // next
-  if (end != doc.FindMember("next_modules")) {
-    if (!doc["next_modules"].IsArray()) {
+  if (end != doc.FindMember(key_next_modules)) {
+    if (!doc[key_next_modules].IsArray()) {
       LOGE(CORE) << "next_modules must be array type.";
       return false;
     }
-    auto values = doc["next_modules"].GetArray();
+    auto values = doc[key_next_modules].GetArray();
     for (auto iter = values.begin(); iter != values.end(); ++iter) {
       if (!iter->IsString()) {
         LOGE(CORE) << "next_modules must be an array of strings.";

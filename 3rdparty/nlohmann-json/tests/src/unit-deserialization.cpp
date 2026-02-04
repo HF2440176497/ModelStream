@@ -1,9 +1,10 @@
 //     __ _____ _____ _____
 //  __|  |   __|     |   | |  JSON for Modern C++ (supporting code)
-// |  |  |__   |  |  | | | |  version 3.12.0
+// |  |  |__   |  |  | | | |  version 3.11.3
 // |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 //
-// SPDX-FileCopyrightText: 2013 - 2025 Niels Lohmann <https://nlohmann.me>
+// Copyright (c) 2013-2022 Niels Lohmann <http://nlohmann.me>.
+// SPDX-FileCopyrightText: 2013-2023 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
 
 #include "doctest_compatibility.h"
@@ -76,7 +77,7 @@ struct SaxEventLogger : public nlohmann::json_sax<json>
 
     bool start_object(std::size_t elements) override
     {
-        if (elements == (std::numeric_limits<std::size_t>::max)())
+        if (elements == static_cast<std::size_t>(-1))
         {
             events.emplace_back("start_object()");
         }
@@ -101,7 +102,7 @@ struct SaxEventLogger : public nlohmann::json_sax<json>
 
     bool start_array(std::size_t elements) override
     {
-        if (elements == (std::numeric_limits<std::size_t>::max)())
+        if (elements == static_cast<std::size_t>(-1))
         {
             events.emplace_back("start_array()");
         }
@@ -124,14 +125,14 @@ struct SaxEventLogger : public nlohmann::json_sax<json>
         return false;
     }
 
-    std::vector<std::string> events {}; // NOLINT(readability-redundant-member-init)
+    std::vector<std::string> events {};
 };
 
 struct SaxEventLoggerExitAfterStartObject : public SaxEventLogger
 {
     bool start_object(std::size_t elements) override
     {
-        if (elements == (std::numeric_limits<std::size_t>::max)())
+        if (elements == static_cast<std::size_t>(-1))
         {
             events.emplace_back("start_object()");
         }
@@ -156,7 +157,7 @@ struct SaxEventLoggerExitAfterStartArray : public SaxEventLogger
 {
     bool start_array(std::size_t elements) override
     {
-        if (elements == (std::numeric_limits<std::size_t>::max)())
+        if (elements == static_cast<std::size_t>(-1))
         {
             events.emplace_back("start_array()");
         }
@@ -359,10 +360,6 @@ TEST_CASE("deserialization")
                 "start_object()", "key(one)", "number_unsigned(1)",
                 "end_object()", "parse_error(29)"
             }));
-
-            const char* string = nullptr;
-            CHECK_THROWS_WITH_AS(_ = json::parse(string), "[json.exception.parse_error.101] parse error: attempting to parse an empty input; check that your input string or stream contains the expected JSON", json::parse_error&);
-            CHECK_THROWS_WITH_AS(_ = json::parse(nullptr), "[json.exception.parse_error.101] parse error: attempting to parse an empty input; check that your input string or stream contains the expected JSON", json::parse_error&);
         }
 
         SECTION("operator<<")
@@ -586,7 +583,7 @@ TEST_CASE("deserialization")
                 auto first = str.begin();
                 auto last = str.end();
                 json j;
-                json_sax_dom_parser<json, nlohmann::detail::string_input_adapter_type> sax(j, true);
+                json_sax_dom_parser<json> sax(j, true);
 
                 CHECK(json::sax_parse(proxy(first), proxy(last), &sax,
                                       input_format_t::json, false));
@@ -1134,15 +1131,13 @@ TEST_CASE("deserialization")
     }
 }
 
-// select the types to test - char8_t is only available in C++20
-#define TYPE_LIST(...) __VA_ARGS__
-#ifdef JSON_HAS_CPP_20
-    #define ASCII_TYPES TYPE_LIST(char, wchar_t, char16_t, char32_t, char8_t)
-#else
-    #define ASCII_TYPES TYPE_LIST(char, wchar_t, char16_t, char32_t)
-#endif
-
-TEST_CASE_TEMPLATE("deserialization of different character types (ASCII)", T, ASCII_TYPES) // NOLINT(readability-math-missing-parentheses)
+TEST_CASE_TEMPLATE("deserialization of different character types (ASCII)", T,
+                   char, unsigned char, signed char,
+                   wchar_t,
+                   char16_t, char32_t,
+                   std::uint8_t, std::int8_t,
+                   std::int16_t, std::uint16_t,
+                   std::int32_t, std::uint32_t)
 {
     std::vector<T> const v = {'t', 'r', 'u', 'e'};
     CHECK(json::parse(v) == json(true));
@@ -1154,7 +1149,8 @@ TEST_CASE_TEMPLATE("deserialization of different character types (ASCII)", T, AS
     CHECK(l.events == std::vector<std::string>({"boolean(true)"}));
 }
 
-TEST_CASE_TEMPLATE("deserialization of different character types (UTF-8)", T, char, unsigned char, std::uint8_t) // NOLINT(readability-math-missing-parentheses)
+TEST_CASE_TEMPLATE("deserialization of different character types (UTF-8)", T,
+                   char, unsigned char, std::uint8_t)
 {
     // a star emoji
     std::vector<T> const v = {'"', static_cast<T>(0xe2u), static_cast<T>(0xadu), static_cast<T>(0x90u), static_cast<T>(0xefu), static_cast<T>(0xb8u), static_cast<T>(0x8fu), '"'};
@@ -1166,7 +1162,8 @@ TEST_CASE_TEMPLATE("deserialization of different character types (UTF-8)", T, ch
     CHECK(l.events.size() == 1);
 }
 
-TEST_CASE_TEMPLATE("deserialization of different character types (UTF-16)", T, char16_t) // NOLINT(readability-math-missing-parentheses)
+TEST_CASE_TEMPLATE("deserialization of different character types (UTF-16)", T,
+                   char16_t, std::uint16_t)
 {
     // a star emoji
     std::vector<T> const v = {static_cast<T>('"'), static_cast<T>(0x2b50), static_cast<T>(0xfe0f), static_cast<T>('"')};
@@ -1178,7 +1175,8 @@ TEST_CASE_TEMPLATE("deserialization of different character types (UTF-16)", T, c
     CHECK(l.events.size() == 1);
 }
 
-TEST_CASE_TEMPLATE("deserialization of different character types (UTF-32)", T, char32_t) // NOLINT(readability-math-missing-parentheses)
+TEST_CASE_TEMPLATE("deserialization of different character types (UTF-32)", T,
+                   char32_t, std::uint32_t)
 {
     // a star emoji
     std::vector<T> const v = {static_cast<T>('"'), static_cast<T>(0x2b50), static_cast<T>(0xfe0f), static_cast<T>('"')};

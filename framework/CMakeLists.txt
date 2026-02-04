@@ -18,18 +18,37 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 
 # ---[ source: framework
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
+
+if(build_tests)
+  add_definitions(-DUNIT_TEST)
+endif()
+
+# ============================================================
+#  分模块编译选项
+# ============================================================
+option(build_profiler "Build framework profiler module" ON)
+option(build_core "Build framework core module" OFF)
+
+
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src core_srcs)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/private private_srcs)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/profiler profiler_srcs)
 
 
-add_library(modelstream_core SHARED ${core_srcs} ${private_srcs})
-target_link_libraries(modelstream_core dl pthread ${GFLAGS_LIBRARIES})
-set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
+if(build_profiler)
+  add_library(framework_profiler OBJECT ${profiler_srcs})
+  target_include_directories(framework_profiler PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/core/include
+  )    
+  add_custom_target(profiler DEPENDS framework_profiler)
+  message(STATUS "Profiler module enabled - targets: framework_profiler, profiler")
+endif()
 
-
-# install
-
-
+if(build_core)
+  add_library(modelstream_core SHARED ${core_srcs} ${private_srcs} ${profiler_srcs})
+  target_link_libraries(modelstream_core rt dl pthread ${GFLAGS_LIBRARIES})
+  # set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
+endif()
 
 # unitest
 if(build_tests)

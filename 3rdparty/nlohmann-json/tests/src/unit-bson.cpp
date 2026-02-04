@@ -1,9 +1,9 @@
 //     __ _____ _____ _____
 //  __|  |   __|     |   | |  JSON for Modern C++ (supporting code)
-// |  |  |__   |  |  | | | |  version 3.12.0
+// |  |  |__   |  |  | | | |  version 3.11.3
 // |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 //
-// SPDX-FileCopyrightText: 2013 - 2025 Niels Lohmann <https://nlohmann.me>
+// SPDX-FileCopyrightText: 2013-2023 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
 
 #include "doctest_compatibility.h"
@@ -331,6 +331,7 @@ TEST_CASE("BSON")
 
         SECTION("non-empty object with unsigned integer (64-bit) member")
         {
+            // directly encoding uint64 is not supported in bson (only for timestamp values)
             json const j =
             {
                 { "entry", std::uint64_t{0x1234567804030201} }
@@ -530,6 +531,7 @@ TEST_CASE("BSON")
 
         SECTION("Some more complex document")
         {
+            // directly encoding uint64 is not supported in bson (only for timestamp values)
             json const j =
             {
                 {"double", 42.5},
@@ -619,7 +621,7 @@ TEST_CASE("BSON input/output_adapters")
     {
         SECTION("std::ostringstream")
         {
-            std::basic_ostringstream<char> ss;
+            std::basic_ostringstream<std::uint8_t> ss;
             json::to_bson(json_representation, ss);
             json j3 = json::from_bson(ss.str());
             CHECK(json_representation == j3);
@@ -1162,7 +1164,10 @@ TEST_CASE("BSON numerical data")
                 std::vector<std::uint64_t> const numbers
                 {
                     static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()) + 1ULL,
-                    0xffffffffffffffff,
+                    10000000000000000000ULL,
+                    18000000000000000000ULL,
+                    (std::numeric_limits<std::uint64_t>::max)() - 1ULL,
+                    (std::numeric_limits<std::uint64_t>::max)(),
                 };
 
                 for (const auto i : numbers)
@@ -1179,7 +1184,7 @@ TEST_CASE("BSON numerical data")
                     std::vector<std::uint8_t> const expected_bson =
                     {
                         0x14u, 0x00u, 0x00u, 0x00u, // size (little endian)
-                        0x11u, /// entry: uint64
+                        0x12u, /// entry: int64
                         'e', 'n', 't', 'r', 'y', '\x00',
                         static_cast<std::uint8_t>((iu >> (8u * 0u)) & 0xffu),
                         static_cast<std::uint8_t>((iu >> (8u * 1u)) & 0xffu),
@@ -1192,15 +1197,12 @@ TEST_CASE("BSON numerical data")
                         0x00u // end marker
                     };
 
-                    const auto bson = json::to_bson(j);
-                    CHECK(bson == expected_bson);
-
-                    auto j_roundtrip = json::from_bson(bson);
-
-                    CHECK(j.at("entry").is_number_unsigned());
-                    CHECK(j_roundtrip.at("entry").is_number_unsigned());
-                    CHECK(j_roundtrip == j);
-                    CHECK(json::from_bson(bson, true, false) == j);
+                    CHECK_THROWS_AS(json::to_bson(j), json::out_of_range&);
+#if JSON_DIAGNOSTICS
+                    CHECK_THROWS_WITH_STD_STR(json::to_bson(j), "[json.exception.out_of_range.407] (/entry) integer number " + std::to_string(i) + " cannot be represented by BSON as it does not fit int64");
+#else
+                    CHECK_THROWS_WITH_STD_STR(json::to_bson(j), "[json.exception.out_of_range.407] integer number " + std::to_string(i) + " cannot be represented by BSON as it does not fit int64");
+#endif
                 }
             }
 

@@ -19,7 +19,6 @@ option(build_modules "build modules" ON)
 option(build_modules_contrib "build extra modules" OFF)
 option(build_samples "build sample programs" OFF)
 option(build_tests "build unit tests" ON)
-option(build_test_coverage  "Test code coverage" OFF)
 option(build_tools "build tools" ON)
 option(build_python_api "build python api" OFF)
 
@@ -36,8 +35,6 @@ if(build_tests)
   add_definitions(-DUNIT_TEST)
 endif()
 
-# 关闭 Profiler 模块的编译
-add_definitions(-DCLOSE_PROFILER)
 
 if(build_tests)
   # ---[ gtest
@@ -45,24 +42,8 @@ if(build_tests)
 
   # get_target_property(GTEST_LOCATION gtest LOCATION)
   # message(STATUS "GTest library location: ${GTEST_LOCATION}")
-  
-  # get_target_property(GTEST_TYPE gtest TYPE)
-  # message(STATUS "GTest target type: ${GTEST_TYPE}")
 
   set(build_gtest_already ON)  # used by subdirectories
-endif()
-
-
-# To use sanitizers, the version of GCC is required to be no less than 4.9
-option(SANITIZE_MEMORY "Enable MemorySanitizer for sanitized targets." OFF)
-option(SANITIZE_ADDRESS "Enable AddressSanitizer for sanitized targets." OFF)
-option(SANITIZE_THREAD "Enable ThreadSanitizer for sanitized targets." OFF)
-option(SANITIZE_UNDEFINED "Enable UndefinedBehaviorSanitizer for sanitized targets." OFF)
-
-# ---[ Build Flags
-if(USE_libstdcpp)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-  message("-- Warning: forcing libstdc++ (controlled by USE_libstdcpp option in cmake)")
 endif()
 
 add_subdirectory(framework)

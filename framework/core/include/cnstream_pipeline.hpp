@@ -234,20 +234,8 @@ class Pipeline : private NonCopyable {
    */
   CNModuleConfig GetModuleConfig(const std::string& module_name) const;
 
-#ifndef CLOSE_PROFILER
-  /**
-   * @brief Checks if profiling is enabled.
-   *
-   * @return Returns true if profiling is enabled.
-   **/
   bool IsProfilingEnabled() const;
-  /**
-   * @brief Checks if tracing is enabled.
-   *
-   * @return Returns true if tracing is enabled.
-   **/
-  bool IsTracingEnabled() const;
-#endif
+  ModuleProfiler* GetModuleProfiler(const std::string& module_name) const;
 
   /**
    * @brief Provides data for the pipeline that is used in source module or the module transmitted by itself.
@@ -289,22 +277,6 @@ class Pipeline : private NonCopyable {
    */
   StreamMsgObserver* GetStreamMsgObserver() const;
 
-#ifndef CLOSE_PROFILER
-  /**
-   * @brief Gets this pipeline's profiler.
-   *
-   * @return Returns profiler.
-   */
-  PipelineProfiler* GetProfiler() const;
-  /**
-   * @brief Gets this pipeline's tracer.
-   *
-   * @return Returns tracer.
-   */
-  PipelineTracer* GetTracer() const;
-
-#endif  // CLOSE_PROFILER
-
   /**
    * @brief Checks if module is root node of pipeline or not.
    * The module name can be specified by two ways, see Pipeline::GetModule for detail.
@@ -343,6 +315,7 @@ class Pipeline : private NonCopyable {
   /** called by BuildPipeline **/
   bool CreateModules(std::vector<std::shared_ptr<Module>>* modules);
   void GenerateModulesMask();
+  void GenerateModulesProfilers(const std::vector<std::shared_ptr<Module>>& modules);
   bool CreateConnectors();
 
   /* ------Internal methods------ */
@@ -363,6 +336,7 @@ class Pipeline : private NonCopyable {
 
   std::unique_ptr<CNGraph<NodeContext>> graph_;
   std::vector<std::string> sorted_module_names_;
+  std::map<std::string, std::unique_ptr<ModuleProfiler>> module_profilers_;
 
   std::string name_;  // pipeline_name
   std::atomic<bool> running_{false};
@@ -379,13 +353,7 @@ class Pipeline : private NonCopyable {
 
   uint64_t all_modules_mask_ = 0;
 
-#ifndef CLOSE_PROFILER
-  std::unique_ptr<PipelineProfiler> profiler_;
-#endif
-
-  // OnPassThrough 调用的回调函数
-  // 可以进行相关的 统计、清理
-  std::function<void(std::shared_ptr<FrameInfo>)> frame_done_cb_ = NULL;
+  std::function<void(std::shared_ptr<FrameInfo>)> frame_done_cb_ = NULL;  // OnPassThrough callback
 
   /**
    * StreamIdx helpers for SourceModule instances.
@@ -458,26 +426,6 @@ inline void Pipeline::SetStreamMsgObserver(StreamMsgObserver* observer) {
 inline StreamMsgObserver* Pipeline::GetStreamMsgObserver() const {
   return smsg_observer_;
 }
-
-#ifndef CLOSE_PROFILER
-
-inline bool Pipeline::IsProfilingEnabled() const {
-  return profiler_ ? profiler_->GetConfig().enable_profiling : false;
-}
-
-inline bool Pipeline::IsTracingEnabled() const {
-  return profiler_ ? profiler_->GetConfig().enable_tracing : false;
-}
-
-inline PipelineProfiler* Pipeline::GetProfiler() const {
-  return IsProfilingEnabled() ? profiler_.get() : nullptr;
-}
-
-inline PipelineTracer* Pipeline::GetTracer() const {
-  return IsTracingEnabled() ? profiler_->GetTracer() : nullptr;
-}
-
-#endif  // CLOSE_PROFILER
 
 inline bool Pipeline::PassedByAllModules(uint64_t mask) const {
   return mask == all_modules_mask_;

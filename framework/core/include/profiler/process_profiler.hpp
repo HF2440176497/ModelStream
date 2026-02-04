@@ -109,16 +109,16 @@ class ProcessProfiler: private NonCopyable {
 
  private:
   ProfilerConfig config_;
-  std::mutex mutex_;
-  std::string process_name_;
-  
-  uint64_t completed_ = 0;          /*!< The number of completed frames. */
-  uint64_t dropped_ = 0;            /*!< The number of dropped frames. */
-  double total_latency_ = 0.0;      /*!< Total latency (ms). */
-  double max_latency_ = 0.0;        /*!< Maximum latency (ms). */
-  double min_latency_ = std::numeric_limits<double>::max(); /*!< Minimum latency (ms). */
-  Time start_time_ = std::chrono::steady_clock::now(); /*!< Start time. */
-  std::map<RecordKey, Time> start_times_;  /*!< Records the start time of each key. */
+  std::mutex     mutex_;
+  std::string    process_name_;
+
+  uint64_t                  completed_ = 0;                                    /*!< The number of completed frames. */
+  uint64_t                  dropped_ = 0;                                      /*!< The number of dropped frames. */
+  double                    total_latency_ = 0.0;                              /*!< Total latency (ms). */
+  double                    max_latency_ = 0.0;                                /*!< Maximum latency (ms). */
+  double                    min_latency_ = std::numeric_limits<double>::max(); /*!< Minimum latency (ms). */
+  Time                      start_time_ = std::chrono::steady_clock::now();    /*!< Start time. */
+  std::map<RecordKey, Time> start_times_; /*!< Records the start time of each key. */
 };
 
 inline std::string ProcessProfiler::GetName() const {

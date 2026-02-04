@@ -116,15 +116,12 @@ int Module::DoProcess(std::shared_ptr<FrameInfo> data) {
   return DoTransmitData(data);  // DoTransmitData 借助 Pipeline 实现传输
 }
 
-
-#ifndef CLOSE_PROFILER
 ModuleProfiler* Module::GetProfiler() {
   RwLockReadGuard guard(container_lock_);
-  if (container_ && container_->GetProfiler())
-    return container_->GetProfiler()->GetModuleProfiler(GetName());
+  if (container_ && container_->IsProfilingEnabled())
+    return container_->GetModuleProfiler(GetName());
   return nullptr;
 }
-#endif
 
 ModuleFactory* ModuleFactory::factory_ = nullptr;
 

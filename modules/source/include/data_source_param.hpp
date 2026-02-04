@@ -45,15 +45,12 @@ enum class DecoderType {
  * @brief DataSourceParam is a structure for private usage.
  */
 struct DataSourceParam {
-  OutputType output_type_ = OutputType::OUTPUT_CPU;  /*!< The output type. The data is output to CPU or MLU. */
-  size_t interval_ = 1;  /*!< The interval of outputting one frame. It outputs one frame every n (interval_) frames. */
-  DecoderType decoder_type_ = DecoderType::DECODER_CPU;  /*!< The decoder type. */
-  bool reuse_cndec_buf = false;  /*!< Whether to enable the mechanism to reuse MLU codec's buffers by next modules. */
-  int device_id_ = -1;              /*!< The device ordinal. -1 is for CPU and >=0 is for MLU. */
-  uint32_t input_buf_number_ = 2;   /*!< Input buffer's number used by MLU codec. */
-  uint32_t output_buf_number_ = 3;  /*!< Output buffer's number used by MLU codec. */
-  bool apply_stride_align_for_scaler_ = false;  /*!< Whether to set outputs meet the Scaler alignment requirement. */
-  bool only_key_frame_ = false;                   /*!< Whether only to decode key frames. */
+  int  device_id_ = -1;                                 /*! DataFrame 的 dev_id 直接来自 decode_frame  */
+  CNDataFormat output_type_ = CNDataFormat::CN_PIXEL_FORMAT_BGR24;  /*!< The output type */
+  size_t  interval_ = 1;                                /*!< The interval of outputting one frame. It outputs one frame every n (interval_) frames. */
+  DecoderType decoder_type_ = DecoderType::DECODER_CPU; /*!< The decoder type. */
+  bool only_key_frame_ = false;                         /*!< Whether only to decode key frames. */
+  std::string file_path_ = "";                          /*!< The file path of the video or image file. */
 };
 }  // namespace cnstream
 

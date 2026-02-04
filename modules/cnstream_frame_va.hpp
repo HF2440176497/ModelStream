@@ -118,7 +118,25 @@ class DataFrame : public NonCopyable {
    */
   size_t GetBytes() const;
 
- public:
+  /**
+   * @brief 复制数据到同步内存
+   */
+  void CopyToSyncMem(DecodeFrame* decode_frame);
+
+  /**
+   * @brief 创建MemOp
+   * @return 返回创建的MemOp实例，如果不支持该设备类型则返回nullptr
+   */
+  std::unique_ptr<MemOp> CreateMemOp();
+
+  /**
+   * @brief Converts data to the BGR format.
+   *
+   * @return Returns data with OpenCV mat type.
+   *
+   * @note This function is called after CNDataFrame::CopyToSyncMem() is invoked.
+   */
+  cv::Mat GetImage();
   /**
    * @brief Checks whether there is BGR image stored.
    *
@@ -130,9 +148,9 @@ class DataFrame : public NonCopyable {
     return true;
   }
 
-  std::shared_ptr<void> cpu_data = nullptr;            /*!< A shared pointer to the CPU data. */
-  std::shared_ptr<void> mlu_data = nullptr;            /*!< A shared pointer to the MLU data. */
-  
+public:
+  MemoryBufferCollection mem_manager_;  // 内存分配集合
+  std::unique_ptr<CNSyncedMemory> data[CN_MAX_PLANES];
   uint64_t frame_id = -1;                              /*!< The frame index that incremented from 0. */
 
   DataFormat fmt;                                         /*!< The format of the frame. */
@@ -157,9 +175,9 @@ using DataFramePtr = std::shared_ptr<DataFrame>;
 // using InferDataPtr = std::shared_ptr<InferData>;
 
 
-inline constexpr char kDataFrameTag[] = "DataFrame"; /*!< value type in FrameInfo::Collection : DataFramePtr. */
-inline constexpr char kInferObjsTag[] = "InferObjs"; /*!< value type in FrameInfo::Collection : InferObjsPtr. */
-inline constexpr char kInferDataTag[] = "InferData"; /*!< value type in FrameInfo::Collection : InferDataPtr. */
+inline constexpr char kCNDataFrameTag[] = "CNDataFrame"; /*!< value type in CNFrameInfo::Collection : CNDataFramePtr. */
+inline constexpr char kCNInferObjsTag[] = "CNInferObjs"; /*!< value type in CNFrameInfo::Collection : CNInferObjsPtr. */
+inline constexpr char kCNInferDataTag[] = "CNInferData"; /*!< value type in CNFrameInfo::Collection : CNInferDataPtr. */
 
 
 }  // namespace cnstream

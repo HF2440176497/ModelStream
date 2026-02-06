@@ -5,12 +5,20 @@ if(NOT DEFINED MODELSTREAM_ROOT_PATH)
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
-# 检查
-if(NOT build_gtest_already)
-  add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest)
-  set(build_gtest_already ON)
+include(${MODELSTREAM_ROOT_PATH}/cmake/FindGtest.cmake)
+if(GTEST_FOUND)
+  message(STATUS "Using installed GTest for modules unittest")
+  include_directories(${GTEST_INCLUDE_DIRS})
+else()
+  if(NOT build_gtest_already)
+    add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest)
+    set(build_gtest_already ON)
+  endif()
+  include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
 endif()
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
+
+
+
 
 # 必须包含框架头文件
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
@@ -49,4 +57,10 @@ have_modules_target(${MODELSTREAM_ROOT_PATH})
 
 add_executable(modelstream_modules_test ${test_srcs})
 add_dependencies(modelstream_modules_test modelstream_va)
-target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread ${CUDA_LIBRARIES})
+
+
+if(GTEST_FOUND)
+  target_link_libraries(modelstream_modules_test modelstream_va  glog ${GTEST_LIBRARIES} rt dl pthread ${CUDA_LIBRARIES})
+else()
+  target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread ${CUDA_LIBRARIES})
+endif()

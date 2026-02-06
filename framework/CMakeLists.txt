@@ -7,11 +7,21 @@ endif()
 
 # ---[ gflags
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
-include_directories(${GFLAGS_INCLUDE_DIRS})
+if(GFLAGS_FOUND)
+  message(STATUS "Using installed GFlags for framework")
+  include_directories(${GFLAGS_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GFlags not found! Please ensure GFlags is installed and set GFLAGS_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
 # ---[ glog
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
-include_directories(${GLOG_INCLUDE_DIRS})
+if(GLOG_FOUND)
+  message(STATUS "Using installed GLog for framework")
+  include_directories(${GLOG_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GLog not found! Please ensure GLog is installed and set GLOG_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
 # ---[ rapidjson
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
@@ -34,20 +44,20 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src core_srcs)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/private private_srcs)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/profiler profiler_srcs)
 
-
+# note: 前面已设置 include_directories，这里不需要 target_include_directories
 if(build_profiler)
   add_library(framework_profiler OBJECT ${profiler_srcs})
-  target_include_directories(framework_profiler PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/core/include
-  )    
+  target_link_libraries(framework_profiler rt dl pthread ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
   add_custom_target(profiler DEPENDS framework_profiler)
   message(STATUS "Profiler module enabled - targets: framework_profiler, profiler")
 endif()
 
 if(build_core)
   add_library(modelstream_core SHARED ${core_srcs} ${private_srcs} ${profiler_srcs})
-  target_link_libraries(modelstream_core rt dl pthread ${GFLAGS_LIBRARIES})
+  target_link_libraries(modelstream_core rt dl pthread ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
   # set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
+  add_custom_target(core DEPENDS modelstream_core)
+  message(STATUS "Core module enabled - targets: modelstream_core, core")
 endif()
 
 # unitest

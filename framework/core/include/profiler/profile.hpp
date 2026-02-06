@@ -35,7 +35,7 @@ struct ModuleProfile {
   ModuleProfile& operator=(const ModuleProfile& it) = default;
 };
 
-std::string ProcessProfileToString(const ProcessProfile& profile, const std::string& indent = "  ");
+std::string ProcessProfileToString(const ProcessProfile& profile, const std::string& indent);
 std::string ModuleProfileToString(const ModuleProfile& profile);
 
 std::ostream& operator<<(std::ostream& os, const ProcessProfile& profile);

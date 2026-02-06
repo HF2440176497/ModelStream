@@ -7,17 +7,27 @@ endif()
 
 # ---[ gflags
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
-include_directories(${GFLAGS_INCLUDE_DIRS})
+if(GFLAGS_FOUND)
+  message(STATUS "Using installed GFlags for modules unittest")
+  include_directories(${GFLAGS_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GFlags not found! Please ensure GFlags is installed and set GFLAGS_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
 # ---[ glog
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
-include_directories(${GLOG_INCLUDE_DIRS})
+if(GLOG_FOUND)
+  message(STATUS "Using installed GLog for modules unittest")
+  include_directories(${GLOG_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GLog not found! Please ensure GLog is installed and set GLOG_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
 # ---[ rapidjson
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
 
 # ---[ framework
-include(${MODELSTREAM_ROOT_PATH}/cmake/have_cnstream_target.cmake)
+include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 
 
@@ -42,15 +52,12 @@ if(HAVE_FRAMEWORK_TARGET)
 endif()
 
 # ---[ opencv
-find_package(OpenCV REQUIRED COMPONENTS 
-    core imgproc highgui features2d imgcodecs videoio)
+include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
 if(OpenCV_FOUND)
-  # 使用手动指定的方式添加
   list(APPEND 3RDPARTY_LIBS ${OpenCV_LIBS})
   include_directories(${OpenCV_INCLUDE_DIRS})
-  message(STATUS "OpenCV version: ${OpenCV_VERSION}; Include dirs: ${OpenCV_INCLUDE_DIRS}; Libraries: ${OpenCV_LIBS}")
 else()
-  message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed and set in CMAKE_PREFIX_PATH")
+  message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed and set OpenCV_ROOT_DIR or CMAKE_PREFIX_PATH")
 endif()
 
 set(module_list "")

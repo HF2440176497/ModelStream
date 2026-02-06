@@ -59,28 +59,49 @@ include(FindPackageHandleStandardArgs)
 
 set(GLOG_ROOT_DIR "" CACHE PATH "Folder contains Google glog")
 
-if(WIN32)
+if(GLOG_ROOT_DIR)
     find_path(GLOG_INCLUDE_DIR glog/logging.h
-        PATHS ${GLOG_ROOT_DIR}/src/windows)
+        PATHS ${GLOG_ROOT_DIR}
+        PATH_SUFFIXES include)
 else()
-    find_path(GLOG_INCLUDE_DIR glog/logging.h
-        PATHS ${GLOG_ROOT_DIR})
+    find_path(GLOG_INCLUDE_DIR glog/logging.h)
 endif()
 
-if(MSVC)
-    find_library(GLOG_LIBRARY_RELEASE libglog_static
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES Release)
+if(WIN32)
+    if(GLOG_ROOT_DIR)
+        find_library(GLOG_LIBRARY_RELEASE
+            NAMES glog glog_static libglog libglog_static
+            PATHS ${GLOG_ROOT_DIR}
+            PATH_SUFFIXES lib Release)
 
-    find_library(GLOG_LIBRARY_DEBUG libglog_static
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES Debug)
+        find_library(GLOG_LIBRARY_DEBUG
+            NAMES glogd glog_debug glog libglog libglog_static
+            PATHS ${GLOG_ROOT_DIR}
+            PATH_SUFFIXES lib Debug)
+    else()
+        find_library(GLOG_LIBRARY_RELEASE
+            NAMES glog glog_static libglog libglog_static)
 
-    set(GLOG_LIBRARY optimized ${GLOG_LIBRARY_RELEASE} debug ${GLOG_LIBRARY_DEBUG})
+        find_library(GLOG_LIBRARY_DEBUG
+            NAMES glogd glog_debug glog libglog libglog_static)
+    endif()
+
+    if(GLOG_LIBRARY_RELEASE AND GLOG_LIBRARY_DEBUG)
+        set(GLOG_LIBRARY optimized ${GLOG_LIBRARY_RELEASE} debug ${GLOG_LIBRARY_DEBUG})
+    elseif(GLOG_LIBRARY_DEBUG)
+        set(GLOG_LIBRARY ${GLOG_LIBRARY_DEBUG})
+    elseif(GLOG_LIBRARY_RELEASE)
+        set(GLOG_LIBRARY ${GLOG_LIBRARY_RELEASE})
+    endif()
 else()
-    find_library(GLOG_LIBRARY glog
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES lib lib64)
+    if(GLOG_ROOT_DIR)
+        find_library(GLOG_LIBRARY
+            NAMES glog
+            PATHS ${GLOG_ROOT_DIR}
+            PATH_SUFFIXES lib lib64)
+    else()
+        find_library(GLOG_LIBRARY glog)
+    endif()
 endif()
 
 find_package_handle_standard_args(Glog DEFAULT_MSG GLOG_INCLUDE_DIR GLOG_LIBRARY)

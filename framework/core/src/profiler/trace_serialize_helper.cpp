@@ -26,14 +26,14 @@
 namespace cnstream {
 
 bool TraceSerializeHelper::DeserializeFromJSONStr(const std::string& jsonstr, TraceSerializeHelper* pout) {
-  rapidjson::Document doc;
-  if (doc.Parse<rapidjson::kParseCommentsFlag>(jsonstr.c_str()).HasParseError()) {
-    LOGE(PROFILER) << "Parse trace data failed. Error code [" << std::to_string(doc.GetParseError()) << "]"
-                   << " Offset [" << std::to_string(doc.GetErrorOffset()) << "]";
+  try {
+    nlohmann::json doc = nlohmann::json::parse(jsonstr);
+    if (!doc.is_array()) return false;
+    pout->doc_ = std::move(doc);
+  } catch (const nlohmann::json::parse_error& e) {
+    LOGE(PROFILER) << "Parse trace data failed. Error: " << e.what();
     return false;
   }
-  if (!doc.IsArray()) return false;
-  pout->doc_ = std::move(doc);
   return true;
 }
 
@@ -52,7 +52,7 @@ bool TraceSerializeHelper::DeserializeFromJSONFile(const std::string& filename, 
 }
 
 TraceSerializeHelper::TraceSerializeHelper() {
-  doc_.SetArray();
+  doc_ = nlohmann::json::array();
 }
 
 TraceSerializeHelper::TraceSerializeHelper(const TraceSerializeHelper& t) {
@@ -64,7 +64,7 @@ TraceSerializeHelper::TraceSerializeHelper(TraceSerializeHelper&& t) {
 }
 
 TraceSerializeHelper& TraceSerializeHelper::operator=(const TraceSerializeHelper& t) {
-  doc_.CopyFrom(t.doc_, doc_.GetAllocator());
+  doc_ = t.doc_;
   return *this;
 }
 
@@ -77,65 +77,40 @@ TraceSerializeHelper& TraceSerializeHelper::operator=(TraceSerializeHelper&& t) 
  * 调用处：TraceSerializeHelper::Serialize
  */
 static
-rapidjson::Value GenerateProcessProfileValue(rapidjson::Document::AllocatorType* pallocator,
-    const ProcessProfile& profile, const std::string& module_name) {
-  rapidjson::Value value;
-  value.SetObject();
-  rapidjson::Value t;
-  
-  // Module name
-  t.SetString(module_name.c_str(), module_name.size(), *pallocator);
-  value.AddMember("module_name", t, *pallocator);
-  
-  // Process name
-  t.SetString(profile.process_name.c_str(), profile.process_name.size(), *pallocator);
-  value.AddMember("process_name", t, *pallocator);
-  
-  // Performance statistics
-  value.AddMember("counter", profile.counter, *pallocator);
-  value.AddMember("completed", profile.completed, *pallocator);
-  value.AddMember("dropped", profile.dropped, *pallocator);
-  value.AddMember("avg_latency", profile.avg_latency, *pallocator);
-  value.AddMember("max_latency", profile.max_latency, *pallocator);
-  value.AddMember("min_latency", profile.min_latency, *pallocator);
-  value.AddMember("fps", profile.fps, *pallocator);
-  
+nlohmann::json GenerateProcessProfileValue(const ProcessProfile& profile, const std::string& module_name) {
+  nlohmann::json value;
+  value["module_name"] = module_name;
+  value["process_name"] = profile.process_name;
+  value["counter"] = profile.counter;
+  value["completed"] = profile.completed;
+  value["dropped"] = profile.dropped;
+  value["avg_latency"] = profile.avg_latency;
+  value["max_latency"] = profile.max_latency;
+  value["min_latency"] = profile.min_latency;
+  value["fps"] = profile.fps;
   return value;
 }
 
 void TraceSerializeHelper::Serialize(const ModuleProfile& module_profile) {
-  auto& allocator = doc_.GetAllocator();
-  // Serialize module information
-  rapidjson::Value module_info;
-  module_info.SetObject();
-  rapidjson::Value t;
-  t.SetString(module_profile.module_name.c_str(), module_profile.module_name.size(), *pallocator);
-  module_info.AddMember("module_name", t, allocator);
+  nlohmann::json module_info;
+  module_info["module_name"] = module_profile.module_name;
   
-  // Serialize process profiles
-  rapidjson::Value processes;
-  processes.SetArray();
+  nlohmann::json processes = nlohmann::json::array();
   for (const auto& process_profile : module_profile.process_profiles) {
-    processes.PushBack(GenerateProcessProfileValue(&allocator, process_profile, module_profile.module_name), allocator);
+    processes.push_back(GenerateProcessProfileValue(process_profile, module_profile.module_name));
   }
-  module_info.AddMember("process_profiles", processes, allocator);
-  doc_.PushBack(module_info, allocator);
+  module_info["process_profiles"] = processes;
+  doc_.push_back(module_info);
 }
 
 void TraceSerializeHelper::Merge(const TraceSerializeHelper& t) {
-  const auto& event_array = t.doc_.GetArray();
-  for (auto value_iter = event_array.Begin(); value_iter != event_array.End(); ++value_iter) {
-    rapidjson::Value value;
-    value.CopyFrom(*value_iter, doc_.GetAllocator());
-    doc_.PushBack(value, doc_.GetAllocator());
+  for (const auto& value : t.doc_) {
+    doc_.push_back(value);
   }
 }
 
 std::string TraceSerializeHelper::ToJsonStr() const {
-  rapidjson::StringBuffer buffer;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-  doc_.Accept(writer);
-  return buffer.GetString();
+  return doc_.dump();
 }
 
 void TraceSerializeHelper::Reset() {

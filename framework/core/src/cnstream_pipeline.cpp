@@ -275,7 +275,6 @@ bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
    */
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
     const CNModuleConfig& config = node_iter->GetConfig();
-    // use GetFullName with a graph name prefix to create modules to prevent nodes with the same name in subgraphs.
     Module* module = ModuleFactory::Instance()->Create(config.className, node_iter->GetFullName());
     if (!module) {
       LOGE(CORE) << "Create module failed, module name : [" << config.name
@@ -429,11 +428,6 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameIn
   if (frame_done_cb_) frame_done_cb_(data);  // To notify the frame is processed by all modules
   if (data->IsEos()) {
     // OnEos(context, data);
-    if (IsProfilingEnabled()) {
-      profiler_->OnStreamEos(data->stream_id);
-    }
-  } else {
-    if (IsProfilingEnabled()) profiler_->RecordOutput(std::make_pair(data->stream_id, data->timestamp));
   }
 }
 

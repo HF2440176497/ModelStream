@@ -21,13 +21,10 @@
 #ifndef CNSTREAM_FRAMEWORK_CORE_INCLUDE_PROFILER_TRACE_SERIALIZE_HELPER_HPP_
 #define CNSTREAM_FRAMEWORK_CORE_INCLUDE_PROFILER_TRACE_SERIALIZE_HELPER_HPP_
 
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
-
 #include <fstream>
 #include <string>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 #include "cnstream_common.hpp"
 #include "cnstream_logging.hpp"
@@ -153,7 +150,7 @@ class TraceSerializeHelper {
   void Reset();
 
  private:
-  rapidjson::Document doc_;
+  nlohmann::json doc_;
 };
 
 /**

@@ -23,7 +23,7 @@ set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
 option(build_modules "build modules" OFF)
 option(build_modules_contrib "build extra modules" OFF)
 option(build_samples "build sample programs" OFF)
-option(build_tests "build unit tests" OFF)
+option(build_tests "build unit tests" ON)
 option(build_tools "build tools" OFF)
 option(build_python_api "build python api" OFF)
 

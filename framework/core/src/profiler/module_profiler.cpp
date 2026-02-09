@@ -14,14 +14,14 @@ void ModuleProfiler::RegisterProcess(const std::string& process_name) {
     LOGE(CORE) << "Process " << process_name << " has been registered.";
     return;
   }
-  process_profilers_.emplace(process_name, ProcessProfiler(config_, process_name));
+  process_profilers_.emplace(process_name, std::make_unique<ProcessProfiler>(config_, process_name));
 }
 
 void ModuleProfiler::RecordProcessStart(const std::string& process_name, const RecordKey& key) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = process_profilers_.find(process_name);
   if (it != process_profilers_.end()) {
-    it->second.RecordStart(key);
+    it->second->RecordStart(key);
   }
 }
 
@@ -29,7 +29,7 @@ void ModuleProfiler::RecordProcessEnd(const std::string& process_name, const Rec
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = process_profilers_.find(process_name);
   if (it != process_profilers_.end()) {
-    it->second.RecordEnd(key);
+    it->second->RecordEnd(key);
   }
 }
 
@@ -37,7 +37,7 @@ void ModuleProfiler::RecordProcessDropped(const std::string& process_name, const
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = process_profilers_.find(process_name);
   if (it != process_profilers_.end()) {
-    it->second.RecordDropped(key);
+    it->second->RecordDropped(key);
   }
 }
 
@@ -52,7 +52,7 @@ ModuleProfile ModuleProfiler::GetProfile() {
   uint64_t total_dropped = 0;
   
   for (auto& it : process_profilers_) {
-    ProcessProfile process_profile = it.second.GetProfile();
+    ProcessProfile process_profile = it.second->GetProfile();
     profile.process_profiles.emplace_back(process_profile);
     total_completed += process_profile.completed;
     total_dropped += process_profile.dropped;
@@ -66,7 +66,7 @@ ModuleProfile ModuleProfiler::GetProfile() {
 void ModuleProfiler::OnStreamEos(const std::string& stream_name) {
   std::lock_guard<std::mutex> lock(mutex_);
   for (auto& it : process_profilers_) {
-    it.second.OnStreamEos(stream_name);
+    it.second->OnStreamEos(stream_name);
   }
 }
 

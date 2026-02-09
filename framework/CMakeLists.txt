@@ -23,8 +23,8 @@ else()
   message(FATAL_ERROR "GLog not found! Please ensure GLog is installed and set GLOG_ROOT_DIR or CMAKE_PREFIX_PATH")
 endif()
 
-# ---[ rapidjson
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
+# ---[ nlohmann/json
+include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
 # ---[ source: framework
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
@@ -37,7 +37,7 @@ endif()
 #  分模块编译选项
 # ============================================================
 option(build_profiler "Build framework profiler module" ON)
-option(build_core "Build framework core module" OFF)
+option(build_core "Build framework core module" ON)
 
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src core_srcs)

@@ -26,6 +26,7 @@
 #include <mutex>
 #include <chrono>
 
+#include "cnstream_logging.hpp"
 #include "cnstream_config.hpp"
 #include "profiler/profile.hpp"
 

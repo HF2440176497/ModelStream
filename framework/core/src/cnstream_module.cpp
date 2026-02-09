@@ -27,9 +27,6 @@
 #include "cnstream_module.hpp"
 #include "cnstream_pipeline.hpp"
 
-// #include "profiler/pipeline_profiler.hpp"
-
-
 namespace cnstream {
 
 Module::~Module() {

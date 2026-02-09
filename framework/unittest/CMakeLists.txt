@@ -33,6 +33,7 @@ if(TARGET modelstream_core AND (TARGET gtest OR GTEST_FOUND))
           gflags
           glog
           ${GTEST_LIBRARIES}
+          gflags
       )
     else()
       target_link_libraries(modelstream_core_test 
@@ -40,6 +41,7 @@ if(TARGET modelstream_core AND (TARGET gtest OR GTEST_FOUND))
           gflags
           glog
           gtest
+          gflags
       )
     endif()
 else()

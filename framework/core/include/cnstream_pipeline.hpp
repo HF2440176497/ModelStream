@@ -215,9 +215,7 @@ class Pipeline : private NonCopyable {
    * @param[in] module_name The module name specified in the module configuration.
    * If you specify a module name written in the module configuration, the first module with the same name as
    * the specified module name in the order of DFS will be returned.
-   * When there are modules with the same name as other graphs in the subgraph, you can also find the
-   * module by adding the graph name prefix divided by slash. eg. pipeline_name/subgraph1/module1.
-   *
+   * 
    * @return Returns the module pointer if the module has been added to
    *         the current pipeline. Otherwise, returns nullptr.
    */

@@ -107,7 +107,6 @@ struct CNConfigBase {
  * }
  * @endcode
  *
- * @note It will not take effect when the profiler configuration is in the subgraph configuration.
  **/
 struct ProfilerConfig : public CNConfigBase {
   bool enable_profile = false;           ///< Whether to enable profiling.
@@ -128,8 +127,7 @@ struct ProfilerConfig : public CNConfigBase {
  *     "parallelism": 3,
  *     "max_input_queue_size": 20,
  *     "class_name": "cnstream::Inferencer",
- *     "next_modules": ["module_name/subgraph:subgraph_name",
- *                      "module_name/subgraph:subgraph_name", ...],
+ *     "next_modules": ["module_name", ...],
  *     "custom_params" : {
  *       "param_name" : "param_value",
  *       "param_name" : "param_value",
@@ -145,7 +143,7 @@ struct CNModuleConfig : public CNConfigBase {
   int parallelism;        ///< Module parallelism. It is equal to module thread number or the data queue of input data.
   int maxInputQueueSize;  ///< The maximum size of the input data queues.
   std::string           className;  ///< The class name of the module.
-  std::set<std::string> next;       ///< The name of the downstream modules/subgraphs.
+  std::set<std::string> next;       ///< The name of the downstream modules.
   bool                  ParseByJSONStr(const std::string &jstr) override;
 
  private:
@@ -157,32 +155,6 @@ struct CNModuleConfig : public CNConfigBase {
   std::string key_custom_params = "custom_params";                ///< The key of custom_params.
 };
 
-/**
- * @struct CNSubgraphConfig
- *
- * @brief CNSubgraphConfig is a structure for subgraph configuration.
- *
- * The subgraph configuration can be a JSON file.
- *
- * @code {.json}
- * {
- *   "subgraphs:name" : {
- *     "config_path" : "/your/path/to/config_file.json",
- *     "next_modules": ["module_name/subgraph:subgraph_name",
- *                      "module_name/subgraph:subgraph_name", ...]
- *   }
- * }
- * @endcode
- */
-struct CNSubgraphConfig : public CNConfigBase {
-  std::string name;              ///< The name of the subgraph.
-  std::string config_path;       ///< The path of configuration file.
-  std::set<std::string> next;    ///< The name of the downstream modules/subgraphs.
-  bool ParseByJSONStr(const std::string &jstr) override;
- private:
-  std::string key_config_path = "config_path";      ///< The key of config_path.
-  std::string key_next_modules = "next_modules";    ///< The key of next_modules.
-};
 
 /**
  * @struct CNGraphConfig
@@ -202,15 +174,12 @@ struct CNSubgraphConfig : public CNConfigBase {
  *     "parallelism": 3,
  *     "max_input_queue_size": 20,
  *     "class_name": "cnstream::DataSource",
- *     "next_modules": ["subgraph:subgraph1"],
+ *     "next_modules": ["module2"],
  *     "custom_params" : {
  *       "param_name" : "param_value",
  *       "param_name" : "param_value",
  *       ...
  *     }
- *   },
- *   "subgraph:subgraph1" : {
- *     "config_path" : "/your/path/to/subgraph_config_file.json"
  *   }
  * }
  * @endcode
@@ -219,8 +188,6 @@ struct CNGraphConfig : public CNConfigBase {
   std::string name = "";                            ///< Graph name.
   ProfilerConfig profiler_config;                   ///< Configuration of profiler.
   std::vector<CNModuleConfig> module_configs;       ///< Configurations of modules.
-  std::vector<CNSubgraphConfig> subgraph_configs;   ///< Configurations of subgraphs.
-
   /**
    * @brief Parses members except ``CNGraphConfig::name`` from the JSON file.
    *
@@ -277,7 +244,7 @@ class ParamRegister {
    * @return Returns true if the parameter has been registered. Otherwise, returns false.
    */
   bool IsRegisted(const std::string &key) const {
-    if (strcmp(key.c_str(), CNS_JSON_DIR_PARAM_NAME) == 0) {
+    if (key == CNS_JSON_DIR_PARAM_NAME) {
       return true;
     }
     for (auto &it : module_params_) {

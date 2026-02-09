@@ -238,15 +238,10 @@ class CNGraph {
     explicit DFSIterator(const CNGraph* graph);
     /**
      * called by operator++, returns true when next step is a new node or end node.
-     * returns false for the following cases:
-     * case 1: step into an empty subgraph.
-     * case 2: step into an end of subgraph.
      **/
     bool DAGStep();
     const CNGraph* graph_ = nullptr;
     DAGAlgorithm::DFSIterator dag_iter_;
-    std::shared_ptr<DFSIterator> subgraph_iter_;  // 在迭代过程中，控制生命周期
-    std::shared_ptr<const CNGraph> subgraph_;
   };  // class DFSIterator
   /**
    * @class CNNode
@@ -262,7 +257,7 @@ class CNGraph {
     std::string GetName() const;
     /**
      * @brief Gets the full name of node with a graph name prefix divided by slashs.
-     * eg. root_graph_name/subgraph1/node_name.
+     * eg. root_graph_name/node_name.
      */
     std::string GetFullName() const;
     /**
@@ -339,11 +334,7 @@ class CNGraph {
   /**
    * @brief Initializes the current graph by the graph configuration set at construction time.
    *
-   * @return Returns true for success. Returns false in the following cases:
-   * -case1: When there are rings in the graph.
-   * -case2: When circular nested subgraph configurations exist.
-   * -case3: When nodes with the same name exist.
-   * -case4: When failed to parse subgraph configuration file.
+   * @return Returns true for success.
    */
   bool Init();
   /**
@@ -395,9 +386,7 @@ class CNGraph {
    * @param[in] name The name specified in the node configuration.
    * If you specify a node name in the module configuration, the first node with the same name as
    * the specified node name in the order of DFS will be returned.
-   * When there are nodes with the same name as other graphs in the subgraph, you can also find the
-   * node by adding the graph name prefix which divided by slashs. eg. root_graph_name/subgraph1/node1.
-   *
+   * 
    * @return Returns the node if the module named ``name`` has been added to
    *         the current graph. Otherwise, returns nullptr.
    */
@@ -414,17 +403,11 @@ class CNGraph {
 
  private:
   DFSIterator DFSBeginFrom(const CNNode* node) const;
-  // node_name with subgraph prefix
   DFSIterator DFSBeginFrom(std::string&& node_name) const;
   std::string GetLogPrefix() const;
   using ModuleNode = std::pair<int, std::shared_ptr<CNNode>>;  // first: vertex id
-  using SubgraphNode = std::tuple<int, CNSubgraphConfig, std::shared_ptr<CNGraph>>;  // first: vertex id
   bool AddVertex(const CNModuleConfig& config);
-  bool AddVertex(const CNSubgraphConfig& config);
-  void AddEdge(const ModuleNode& modulea, const SubgraphNode& subgraphb);
   void AddEdge(const ModuleNode& modulea, const ModuleNode& moduleb);
-  void AddEdge(const SubgraphNode& subgrapha, const ModuleNode& moduleb);
-  void AddEdge(const SubgraphNode& subgrapha, const SubgraphNode& subgraphb);
   bool InitEdges();
   void FindHeadsAndTails();
 
@@ -434,7 +417,6 @@ class CNGraph {
   private:
 #endif
   std::map<std::string, ModuleNode> module_node_map_;
-  std::map<std::string, SubgraphNode> subgraph_node_map_;
   std::vector<std::string> vertex_map_to_node_name_;
   std::vector<std::shared_ptr<CNNode>> heads_, tails_;
   CNGraphConfig config_;
@@ -499,21 +481,8 @@ CNGraph<T>::DFSIterator::DFSIterator(const CNGraph<T>* graph) : graph_(graph),
 template<typename T>
 bool CNGraph<T>::DFSIterator::DAGStep() {
   ++dag_iter_;  // DFS 迭代
-  subgraph_ = nullptr;
-  subgraph_iter_ = nullptr;
   if (graph_->dag_algorithm_.DFSEnd() == dag_iter_) return true;
   auto node_name = graph_->vertex_map_to_node_name_[*dag_iter_];
-  if (IsSubgraphItem(node_name)) {
-    subgraph_ = std::const_pointer_cast<const CNGraph<T>>(
-        std::get<2>(graph_->subgraph_node_map_.find(node_name)->second));
-    subgraph_iter_ = std::make_shared<DFSIterator>(subgraph_->DFSBegin());
-    if (subgraph_->Empty()) {
-      // empty subgraph, pass it.
-      subgraph_ = nullptr;
-      subgraph_iter_ = nullptr;
-      return false;
-    }
-  }
   return true;
 }
 
@@ -522,25 +491,15 @@ typename CNGraph<T>::DFSIterator&
 CNGraph<T>::DFSIterator::operator++() {
   while (true) {
     if (graph_->dag_algorithm_.DFSEnd() == dag_iter_)  break;
-    if (subgraph_) {
-      // current node is a subgraph
-      ++*subgraph_iter_;
-      if (subgraph_->DFSEnd() != *subgraph_iter_ || DAGStep()) break;  // 当前子图迭代完成后
-                                                                       // 才会调用 DAGStep 准备进一步迭代子图
-    } else {  // 切换到 DAG 层级
       // current node is a module
-      // DAGStep() return False 说明图算法这次迭代无效；内部会判断是否是子图，会设置成员
-      if (DAGStep()) break;
-    }
+    if (DAGStep()) break;
   }
   return *this;
 }
 
 template<typename T> inline
 bool CNGraph<T>::DFSIterator::operator==(const CNGraph<T>::DFSIterator& other) const {
-  return graph_ == other.graph_ && dag_iter_ == other.dag_iter_ &&
-         (subgraph_.get() == other.subgraph_.get() ? true :
-         (subgraph_.get() ? *subgraph_iter_ == *(other.subgraph_iter_) : true));
+  return graph_ == other.graph_ && dag_iter_ == other.dag_iter_;
 }
 
 template<typename T> inline
@@ -555,13 +514,9 @@ template<typename T> inline
 std::shared_ptr<typename CNGraph<T>::CNNode>
 CNGraph<T>::DFSIterator::operator*() const {
   if (graph_->DFSEnd() == *this) return nullptr;
-  if (subgraph_) {
-    return **subgraph_iter_;
-  } else {
-    auto vertex = *dag_iter_;
-    return std::const_pointer_cast<typename CNGraph<T>::CNNode>(
-      graph_->module_node_map_.find(graph_->vertex_map_to_node_name_[vertex])->second.second);
-  }
+  auto vertex = *dag_iter_;
+  return std::const_pointer_cast<typename CNGraph<T>::CNNode>(
+    graph_->module_node_map_.find(graph_->vertex_map_to_node_name_[vertex])->second.second);
   return nullptr;
 }
 
@@ -611,17 +566,13 @@ const CNGraph<T>* CNGraph<T>::CNNode::GetRootGraph() const {
 
 namespace __help_functions__ {
 
-inline std::string NameIgnoreSubgraphPrefix(const std::string& name) {
-  return name.substr(strlen(kSubgraphConfigPrefix), std::string::npos);
-}
-
 /**
  * @brief 检查节点名称是否合法
  * @details 应当不包含 '/' 或 ':'
  */
 inline bool IsNodeNameValid(const std::string& name) {
   std::string t;
-  IsSubgraphItem(name) ? t = NameIgnoreSubgraphPrefix(name) : t = name;
+  t = name;
   return t.find('/') == std::string::npos && t.find(':') == std::string::npos;
 }
 
@@ -641,7 +592,6 @@ inline std::string GetRealPath(const std::string& path) {
 template<typename T> inline
 void CNGraph<T>::Clear() {
   module_node_map_.clear();
-  subgraph_node_map_.clear();
   vertex_map_to_node_name_.clear();
   heads_.clear();
   tails_.clear();
@@ -663,36 +613,10 @@ bool CNGraph<T>::Init(CNGraphConfig&& config) {
 template<typename T>
 bool CNGraph<T>::Init() {
   Clear();
-  // subgraph analysis loop detect
-  static thread_local std::set<std::string> subgraph_paths;
-  if (nullptr == parent_graph_) {
-    // root graph, init subgraph_paths
-    subgraph_paths.clear();
-  }
-
-  dag_algorithm_.Reserve(config_.module_configs.size() + config_.subgraph_configs.size());
+  dag_algorithm_.Reserve(config_.module_configs.size());
   // insert vertices
-  for (const auto& module_config : config_.module_configs)
+  for (const auto& module_config : config_.module_configs) {
     if (!AddVertex(module_config)) return false;
-  for (const auto& subgraph_config : config_.subgraph_configs) {
-    if (!IsSubgraphItem(subgraph_config.name)) {
-      // check subgraph name prefix, when subgraph_config.name is not parsed by CNGraphConfig::Parsexxxxx,
-      // maybe will set an wrong name by user.
-      LOGE(CORE) << "Subgraph's name must set with an prefix [" + std::string(kSubgraphConfigPrefix)
-          + "], wrong name : " << subgraph_config.name;
-      return false;
-    }
-    if (parent_graph_) {
-      // Current graph is a subgraph of other graphs
-      auto real_path = __help_functions__::GetRealPath(subgraph_config.config_path);
-      if (real_path.empty()) return false;
-      if (!subgraph_paths.insert(real_path).second) {
-        LOGE(CORE) << GetLogPrefix() + "A graph analysis loop was detected "
-            "when parsing the subgraph named [" + subgraph_config.name + "].";
-        return false;
-      }
-    }
-    if (!AddVertex(subgraph_config)) return false;
   }
 
   if (!InitEdges()) return false;
@@ -749,7 +673,6 @@ CNGraph<T>::GetTails() const {
 template<typename T> inline
 std::shared_ptr<typename CNGraph<T>::CNNode>
 CNGraph<T>::GetNodeByName(const std::string& name) const {
-  // split subgraph names
   std::vector<std::string> v;
   std::string t = "";
   for (const char& c : name) {
@@ -767,24 +690,11 @@ CNGraph<T>::GetNodeByName(const std::string& name) const {
     for (DFSIterator it = DFSBegin(); it != DFSEnd(); ++it) {
       if (it->GetName() == v[0]) return *it;
     }
-  } else {
+  } else if (v.size() == 2) {
     // has graph prefix
     if (v[0] != GetName()) {
       LOGE(CORE) << "Node named [" + name + "] is not belongs to graph named [" + GetName() + "].";
       return nullptr;
-    }
-    if (v.size() > 2) {
-      // node in subgraph
-      for (size_t i = 1; i < v.size() - 1; ++i) {
-        auto subgraph_iter = graph->subgraph_node_map_.find(kSubgraphConfigPrefix + v[i]);
-        if (graph->subgraph_node_map_.end() == subgraph_iter) {
-          LOGE(CORE) << "Can not find node named [" << name
-              << "]. Interrupt when looking for subgraph named ["
-              << v[i] << "].";
-          return nullptr;
-        }
-        graph = std::get<2>(subgraph_iter->second).get();
-      }
     }
     auto node_iter = graph->module_node_map_.find(v.back());
     if (graph->module_node_map_.end() == node_iter) {
@@ -792,6 +702,9 @@ CNGraph<T>::GetNodeByName(const std::string& name) const {
       return nullptr;
     }
     return node_iter->second.second;
+  } else if (v.size() > 2) {
+    LOGE(CORE) << "Node named [" + name + "] not support subgraph.";
+    return nullptr;
   }
   return nullptr;
 }
@@ -802,17 +715,6 @@ typename CNGraph<T>::DFSIterator CNGraph<T>::DFSBegin() const {
   iter.dag_iter_ = dag_algorithm_.DFSBegin();
   while (DFSEnd() != iter) {
     auto node_name = vertex_map_to_node_name_[*iter.dag_iter_];  // 取出 vertex_stack_ 栈顶元素
-    if (IsSubgraphItem(node_name)) {
-      auto subgraph = std::get<2>(subgraph_node_map_.find(node_name)->second);
-      if (subgraph->Empty()) {
-        // empty graph, continue
-        ++iter;
-        continue;
-      } else {
-        iter.subgraph_ = std::const_pointer_cast<const CNGraph<T>>(std::move(subgraph));
-        iter.subgraph_iter_ = std::make_shared<DFSIterator>(iter.subgraph_->DFSBegin());
-      }
-    }
     break;
   }
   return iter;
@@ -831,18 +733,8 @@ std::vector<std::string> CNGraph<T>::TopoSort() const {
   auto sorted_idx = dag_algorithm_.TopoSort().first;  // std::vector<int>
   results.reserve(sorted_idx.size());
   for (auto idx : sorted_idx) {
-    std::string node_name = vertex_map_to_node_name_[idx];
-    if (IsSubgraphItem(node_name)) {
-        auto subgraph = std::get<2>(subgraph_node_map_.find(node_name)->second);
-        if (!subgraph->Empty()) {
-          auto sub_results = subgraph->TopoSort();
-          for (auto & sub_result : sub_results) {
-            results.emplace_back(sub_result);
-          }
-        }
-    } else {
-      results.emplace_back(GetFullName() + "/" + node_name);
-    }
+    std::string node_name = vertex_map_to_node_name_[idx]; 
+    results.emplace_back(GetFullName() + "/" + node_name);  
   }
   return results;
 }
@@ -862,17 +754,7 @@ typename CNGraph<T>::DFSIterator CNGraph<T>::DFSBeginFrom(std::string&& node_ful
   node_full_name = node_full_name.substr(GetName().size() + 1, std::string::npos);
   DFSIterator iter(this);
   size_t slash_pos = node_full_name.find("/");
-  if (std::string::npos == slash_pos) {
-    // no subgraph prefix, node is blong to current graph.
-    iter.dag_iter_ = dag_algorithm_.DFSBeginFrom(module_node_map_.find(node_full_name)->second.first);
-  } else {
-    // with subgraph prefix, step to subgraph.
-    auto subgraph_node = subgraph_node_map_.find(kSubgraphConfigPrefix + node_full_name.substr(0, slash_pos))->second;
-    iter.dag_iter_ = dag_algorithm_.DFSBeginFrom(std::get<0>(subgraph_node));
-    iter.subgraph_ = std::const_pointer_cast<const CNGraph>(std::get<2>(subgraph_node));
-    iter.subgraph_iter_ = std::make_shared<DFSIterator>(
-        iter.subgraph_->DFSBeginFrom(std::move(node_full_name)));
-  }
+  iter.dag_iter_ = dag_algorithm_.DFSBeginFrom(module_node_map_.find(node_full_name)->second.first);
   return iter;
 }
 
@@ -882,13 +764,13 @@ std::string CNGraph<T>::GetLogPrefix() const {
 }
 
 /**
- * 在 Init 中调用，
+ * 在 Init 中调用
  */
 template<typename T>
 bool CNGraph<T>::AddVertex(const CNModuleConfig& config) {
   if (!__help_functions__::IsNodeNameValid(config.name)) {
     LOGE(CORE) << GetLogPrefix() + "Module[" + config.name + "] name invalid. "
-        "The name of modules or subgraphs can not contain slashes or risks";
+        "The name of modules can not contain slashes or risks";
     return false;
   }
   auto node = std::shared_ptr<CNNode>(new CNNode(this));
@@ -904,69 +786,11 @@ bool CNGraph<T>::AddVertex(const CNModuleConfig& config) {
   return true;
 }
 
-template<typename T>
-bool CNGraph<T>::AddVertex(const CNSubgraphConfig& config) {
-  if (!__help_functions__::IsNodeNameValid(config.name)) {
-    LOGE(CORE) << GetLogPrefix() + "Subgraph[" + config.name + "] name invalid. "
-        "The name of modules or subgraphs can not contain slashes or risks";
-    return false;
-  }
-  CNGraphConfig graph_config;
-  if (!graph_config.ParseByJSONFile(config.config_path)) {
-    LOGE(CORE) << GetLogPrefix() << "Parse subgraph config file failed. subgraph name: " << config.name;
-    return false;
-  }
-  graph_config.name = __help_functions__::NameIgnoreSubgraphPrefix(config.name);
-  auto subgraph = std::make_shared<CNGraph<T>>(graph_config);
-  subgraph->parent_graph_ = this;
-  if (!subgraph->Init()) {
-    LOGE(CORE) << GetLogPrefix() + "Init subgraph[" + config.name + "] failed.";
-    return false;
-  }
-
-  int vertex_id = dag_algorithm_.AddVertex();
-  vertex_map_to_node_name_.push_back(config.name);
-
-  if (!subgraph_node_map_.insert(std::make_pair(config.name,
-      std::make_tuple(vertex_id, config, subgraph))).second) {
-    LOGE(CORE) << GetLogPrefix() + "Subgraph[" + config.name + "] name duplicated.";
-    return false;
-  }
-  return true;
-}
-
-template<typename T> inline
-void CNGraph<T>::AddEdge(const ModuleNode& modulea,
-    const SubgraphNode& subgraphb) {
-  modulea.second->next_.insert(std::get<2>(subgraphb)->GetHeads().begin(),
-      std::get<2>(subgraphb)->GetHeads().end());
-  dag_algorithm_.AddEdge(modulea.first, std::get<0>(subgraphb));
-}
-
 template<typename T> inline
 void CNGraph<T>::AddEdge(const ModuleNode& modulea,
     const ModuleNode& moduleb) {
   modulea.second->next_.insert(moduleb.second);
   dag_algorithm_.AddEdge(modulea.first, moduleb.first);
-}
-
-template<typename T>
-void CNGraph<T>::AddEdge(const SubgraphNode& subgrapha,
-    const ModuleNode& moduleb) {
-  for (const auto& tail : std::get<2>(subgrapha)->GetTails()) {
-    tail->next_.insert(moduleb.second);
-  }
-  dag_algorithm_.AddEdge(std::get<0>(subgrapha), moduleb.first);
-}
-
-template<typename T>
-void CNGraph<T>::AddEdge(const SubgraphNode& subgrapha,
-    const SubgraphNode& subgraphb) {
-  for (const auto& tail : std::get<2>(subgrapha)->GetTails()) {
-    tail->next_.insert(std::get<2>(subgraphb)->GetHeads().begin(),
-      std::get<2>(subgraphb)->GetHeads().end());
-  }
-  dag_algorithm_.AddEdge(std::get<0>(subgrapha), std::get<0>(subgraphb));
 }
 
 /**
@@ -980,57 +804,17 @@ bool CNGraph<T>::InitEdges() {
     auto cur_node = node_pair.second;
     const std::set<std::string>& next = cur_node.second->config_.next;
     for (const auto& next_node_name : next) {
-      if (IsSubgraphItem(next_node_name)) {
-        // module->subgraph
-        auto subgraph_iter = subgraph_node_map_.find(next_node_name);
-        if (subgraph_iter != subgraph_node_map_.end()) {
-          AddEdge(cur_node, subgraph_iter->second);
-        } else {
-          LOGE(CORE) << GetLogPrefix() + "Unable to find a downstream node named "
-              "[" + next_node_name + "] for module [" + node_pair.first +"].";
-          return false;
-        }
+      // module->module
+      auto next_module_iter = module_node_map_.find(next_node_name);
+      if (next_module_iter != module_node_map_.end()) {
+        AddEdge(cur_node, next_module_iter->second);
       } else {
-        // module->module
-        auto next_module_iter = module_node_map_.find(next_node_name);
-        if (next_module_iter != module_node_map_.end()) {
-          AddEdge(cur_node, next_module_iter->second);
-        } else {
-          LOGE(CORE) << GetLogPrefix() + "Unable to find a downstream node named "
-              "[" + next_node_name + "] for module [" + node_pair.first +"].";
-          return false;
-        }
+        LOGE(CORE) << GetLogPrefix() + "Unable to find a downstream node named "
+            "[" + next_node_name + "] for module [" + node_pair.first +"].";
+        return false;
       }
     }  // for next nodes
   }  // for module_node_map_
-  // edges head is a subgraph
-  for (const auto& node_pair : subgraph_node_map_) {
-    auto cur_node = node_pair.second;
-    const std::set<std::string>& next = std::get<1>(cur_node).next;
-    for (const auto& next_node_name : next) {
-      if (IsSubgraphItem(next_node_name)) {
-        // module->subgraph
-        auto subgraph_iter = subgraph_node_map_.find(next_node_name);
-        if (subgraph_iter != subgraph_node_map_.end()) {
-          AddEdge(cur_node, subgraph_iter->second);
-        } else {
-          LOGE(CORE) << GetLogPrefix() + "Unable to find a downstream node named "
-              "[" + next_node_name + "] for module [" + node_pair.first +"].";
-          return false;
-        }
-      } else {
-        // module->module
-        auto next_module_iter = module_node_map_.find(next_node_name);
-        if (next_module_iter != module_node_map_.end()) {
-          AddEdge(cur_node, next_module_iter->second);
-        } else {
-          LOGE(CORE) << GetLogPrefix() + "Unable to find a downstream node named "
-              "[" + next_node_name + "] for module [" + node_pair.first +"].";
-          return false;
-        }
-      }
-    }  // for next nodes
-  }  // for subgraph_node_map_
   return true;
 }
 
@@ -1039,23 +823,13 @@ void CNGraph<T>::FindHeadsAndTails() {
   auto head_vertices = dag_algorithm_.GetHeads();
   for (auto vertex : head_vertices) {
     auto node_name = vertex_map_to_node_name_[vertex];
-    if (IsSubgraphItem(node_name)) {
-      auto subgraph_heads = std::get<2>(subgraph_node_map_.find(node_name)->second)->GetHeads();
-      heads_.insert(heads_.end(), subgraph_heads.begin(), subgraph_heads.end());
-    } else {
-      heads_.push_back(module_node_map_.find(node_name)->second.second);
-    }
+    heads_.push_back(module_node_map_.find(node_name)->second.second);
   }
 
   auto tail_vertices = dag_algorithm_.GetTails();
   for (auto vertex : tail_vertices) {
     auto node_name = vertex_map_to_node_name_[vertex];
-    if (IsSubgraphItem(node_name)) {
-      auto subgraph_tails = std::get<2>(subgraph_node_map_.find(node_name)->second)->GetTails();
-      tails_.insert(tails_.end(), subgraph_tails.begin(), subgraph_tails.end());
-    } else {
-      tails_.push_back(module_node_map_.find(node_name)->second.second);
-    }
+    tails_.push_back(module_node_map_.find(node_name)->second.second);
   }
 }
 

@@ -25,7 +25,6 @@
 #define LOGD(tag) VLOG(1) << "[CNStream " << (#tag) << " DEBUG] "
 #define LOGT(tag) VLOG(2) << "[CNStream " << (#tag) << " TRACE] "
 
-// 条件日志
 #define LOGF_IF(tag, condition) LOG_IF(FATAL, condition) << "[CNStream " << (#tag) << " FATAL] "
 #define LOGE_IF(tag, condition) LOG_IF(ERROR, condition) << "[CNStream " << (#tag) << " ERROR] "
 #define LOGW_IF(tag, condition) LOG_IF(WARNING, condition) << "[CNStream " << (#tag) << " WARN] "

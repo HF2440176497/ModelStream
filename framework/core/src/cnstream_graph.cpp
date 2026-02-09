@@ -18,20 +18,15 @@
  * THE SOFTWARE.
  *************************************************************************/
 
-#include "cnstream_graph.hpp"
-
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
-
 #include <fstream>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "cnstream_logging.hpp"
+#include "cnstream_graph.hpp"
 
 namespace cnstream {
 

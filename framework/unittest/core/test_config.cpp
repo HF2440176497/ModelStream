@@ -11,14 +11,12 @@ static std::string test_pipeline_json = "pipeline.json";
 TEST(JSON, ReadFile) {
     std::string json_str = readFile(test_pipeline_json.c_str());
     EXPECT_FALSE(json_str.empty()) << "Read json file failed";
-    rapidjson::Document doc;
-    doc.Parse(json_str.c_str());
-    EXPECT_FALSE(doc.HasParseError()) << "Parse json file failed";
+    nlohmann::json doc = nlohmann::json::parse(json_str);
 
-    EXPECT_TRUE(doc.HasMember("profiler_config")) << "Json file has no profiler_config field";
-    EXPECT_TRUE(doc.HasMember("decoder")) << "Json file has no decoder field";
-    EXPECT_TRUE(doc.HasMember("sort_h")) << "Json file has no sort field";
-    EXPECT_TRUE(doc.HasMember("osd")) << "Json file has no osd field";
+    EXPECT_TRUE(doc.contains("profiler_config")) << "Json file has no profiler_config field";
+    EXPECT_TRUE(doc.contains("decoder")) << "Json file has no decoder field";
+    EXPECT_TRUE(doc.contains("sort_h")) << "Json file has no sort field";
+    EXPECT_TRUE(doc.contains("osd")) << "Json file has no osd field";
 }
 
 /**
@@ -28,19 +26,14 @@ TEST(JSON, ReadFile) {
 TEST(JSON, ReadFile2Str) {
     std::string json_str = readFile(test_pipeline_json.c_str());
     EXPECT_FALSE(json_str.empty()) << "Read json file failed";
-    rapidjson::Document doc;
-    doc.Parse(json_str.c_str());
-    EXPECT_FALSE(doc.HasParseError()) << "Parse json file failed";
+    nlohmann::json doc = nlohmann::json::parse(json_str);
 
     std::string infer_name = "InferencerYolo";
-    EXPECT_TRUE(doc.HasMember(infer_name.c_str())) << "Json file has no Inferencer field";
-    const rapidjson::Value& inferencer = doc[infer_name.c_str()];
-    EXPECT_TRUE(inferencer.IsObject()) << "Inferencer field is not object";
+    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inferencer field";
+    const nlohmann::json& inferencer = doc[infer_name];
+    EXPECT_TRUE(inferencer.is_object()) << "Inferencer field is not object";
     
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer writer(buffer);
-    inferencer.Accept(writer);
-    std::string inferencer_str(buffer.GetString());
+    std::string inferencer_str = inferencer.dump();
     EXPECT_TRUE(!inferencer_str.empty()) << "Inferencer field is empty";
     LOGI(COREUNITEST) << "Inferencer field: " << inferencer_str << std::endl;
 }
@@ -66,19 +59,14 @@ TEST(CoreConfig, ParseByJSONFile) {
 TEST(CoreConfig, ModuleConfig) {
     std::string json_str = readFile(test_pipeline_json.c_str());
     EXPECT_FALSE(json_str.empty()) << "Read json file failed";
-    rapidjson::Document doc;
-    doc.Parse(json_str.c_str());
-    EXPECT_FALSE(doc.HasParseError()) << "Parse json file failed";
+    nlohmann::json doc = nlohmann::json::parse(json_str);
 
     std::string infer_name = "InferencerYolo";
-    EXPECT_TRUE(doc.HasMember(infer_name.c_str())) << "Json file has no Inferencer field";
-    const rapidjson::Value& inferencer = doc[infer_name.c_str()];
-    EXPECT_TRUE(inferencer.IsObject()) << "Inferencer field is not object";
+    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inferencer field";
+    const nlohmann::json& inferencer = doc[infer_name];
+    EXPECT_TRUE(inferencer.is_object()) << "Inferencer field is not object";
     
-    rapidjson::StringBuffer buffer;
-    rapidjson::Writer writer(buffer);
-    inferencer.Accept(writer);
-    std::string inferencer_str(buffer.GetString());
+    std::string inferencer_str = inferencer.dump();
 
     // CMoudleConfig
     cnstream::CNModuleConfig inferencer_config;

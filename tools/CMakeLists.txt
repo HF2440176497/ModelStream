@@ -13,8 +13,8 @@ include_directories(${GFLAGS_INCLUDE_DIRS})
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
 include_directories(${GLOG_INCLUDE_DIRS})
 
-# ---[ rapidjson
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
+# ---[ nlohmann_json
+include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann_json/include)
 
 # ---[ source: framework
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)

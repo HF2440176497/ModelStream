@@ -48,7 +48,8 @@
 #include "util/cnstream_rwlock.hpp"
 
 #include "private/cnstream_module_pri.hpp"
-// #include "profiler/module_profiler.hpp"
+
+#include "profiler/module_profiler.hpp"
 
 namespace cnstream {
 
@@ -270,6 +271,8 @@ class Module : private NonCopyable {
    */
   int DoProcess(std::shared_ptr<FrameInfo> data);
 
+  int DoTransmitData(std::shared_ptr<FrameInfo> data);
+
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;
   std::string name_;                      ///< The name of the module.
@@ -292,7 +295,6 @@ class Module : private NonCopyable {
       observer_->notify(data);
     }
   }
-  int DoTransmitData(std::shared_ptr<FrameInfo> data);
 
   size_t GetId();
   size_t id_ = INVALID_MODULE_ID;

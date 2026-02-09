@@ -23,8 +23,8 @@ else()
   message(FATAL_ERROR "GLog not found! Please ensure GLog is installed and set GLOG_ROOT_DIR or CMAKE_PREFIX_PATH")
 endif()
 
-# ---[ rapidjson
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/rapidjson/include)
+# ---[ nlohmann/json
+include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
 # ---[ framework
 include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)

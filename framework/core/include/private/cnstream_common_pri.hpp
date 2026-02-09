@@ -120,18 +120,6 @@ inline std::mutex s_remove_lock_;
 // static std::map<std::string, bool> s_stream_removed_map_;
 inline std::set<std::string> s_stream_removed_set_;
 
-/**
- *
- * @brief Judges if the configuration item name represents a subgraph.
- *
- * @param[in] item_name The item name.
- *
- * @return Returns true if the ``item_name`` represents a subgraph. Otherwise, returns false.
- **/
-inline bool IsSubgraphItem(const std::string &item_name) {
-  return item_name.size() > strlen(kSubgraphConfigPrefix) &&
-         kSubgraphConfigPrefix == item_name.substr(0, strlen(kSubgraphConfigPrefix));
-}
 
 /**
  * @brief Checks one stream whether reaches EOS.

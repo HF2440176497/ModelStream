@@ -24,6 +24,7 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <memory>
 
 #include "cnstream_config.hpp"
 #include "profiler/profile.hpp"
@@ -39,8 +40,6 @@ namespace cnstream {
  * @note This class is thread safe. 
  */
 class ModuleProfiler: private NonCopyable {
-
- inline constexpr char kPROCESS_PROFILER_NAME[] = "PROCESS";
 
  public:
   /*!
@@ -124,8 +123,11 @@ class ModuleProfiler: private NonCopyable {
   ProfilerConfig                         config_;            /*!< The configuration of the profiler. */
   std::mutex                             mutex_;             /*!< The mutex for thread safety. */
   std::string                            module_name_;       /*!< The name of the module. */
-  std::map<std::string, ProcessProfiler> process_profilers_; /*!< The map of process profilers. */
+  std::map<std::string, std::unique_ptr<ProcessProfiler>> process_profilers_; /*!< The map of process profilers. */
 };
+
+inline constexpr char kINPUT_PROFILER_NAME[] = "INPUT";
+inline constexpr char kPROCESS_PROFILER_NAME[] = "PROCESS";
 
 inline std::string ModuleProfiler::GetName() const {
   return module_name_;

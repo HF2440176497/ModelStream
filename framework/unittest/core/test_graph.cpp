@@ -46,7 +46,7 @@ TEST(CoreDAGAlgorithm, DFSEnd) {
 
 
 TEST(CoreCNGraph, InitNormalSimpleGraph) {
-  // no subgraph, no ring
+  // no ring
   /**
    * two source
    *       0   7
@@ -145,7 +145,14 @@ TEST_F(ConfigFileLoad, BaseInitGraph) {
   std::vector<std::string> expected_heads {"decoder"};
   std::vector<std::string> expected_nodes {"decoder", "InferencerYolo", "InferencerClass", "sort_h", "osd"};
 
-  EXPECT_EQ(graph->subgraph_node_map_.size(), 0);
+  // Init 过程会依赖 module_configs 因此我们首先检查
+  // 应当和 pipeline.json 的配置对应
+  EXPECT_EQ(graph_config_.module_configs.size(), expected_nodes.size());
+  for (int i = 0; i < expected_nodes.size(); ++i) {
+    std::cout << "[" << i << "] = " << graph_config_.module_configs[i].name << " ";
+  }
+  std::cout << std::endl;
+
   EXPECT_EQ(graph->vertex_map_to_node_name_.size(), expected_nodes.size());
   for (int i = 0; i < expected_nodes.size(); ++i) {
     EXPECT_EQ(graph->vertex_map_to_node_name_[i], expected_nodes[i]);

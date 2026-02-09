@@ -193,6 +193,7 @@ TEST(TraceSerializeHelperTest, Serialization) {
 
 // 验证格式化打印
 TEST(ProcessProfilerTest, PrintString) {
+  ModuleProfile module_profile;
   module_profile.module_name = "test_module";
   
   ProcessProfile process_profile1;

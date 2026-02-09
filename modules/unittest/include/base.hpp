@@ -22,10 +22,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 #include <glog/logging.h>
-#include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/writer.h>
+#include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 
 #define PATH_MAX_LENGTH 1024

@@ -40,9 +40,10 @@
 #include <mutex>
 #include <memory>
 #include <map>
+#include <unordered_map>
 
 #include "cnstream_common.hpp"
-#include "cnstream_logging.hpp"
+#include "data_source_param.hpp"  // DevContext, DataFormat
 
 namespace cnstream {
 

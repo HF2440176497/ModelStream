@@ -1,8 +1,11 @@
 
 #include "memop_factory.hpp"
-#include "util/cnstream_logging.hpp"
 
 namespace cnstream {
+
+MemOpFactory::MemOpFactory() {}
+
+MemOpFactory::~MemOpFactory() {}
 
 MemOpFactory& MemOpFactory::Instance() {
   static MemOpFactory instance;
@@ -16,7 +19,7 @@ bool MemOpFactory::RegisterMemOpCreator(DevType dev_type,
   return inserted;
 }
 
-std::unique_ptr<MemOp> MemOpFactory::CreateMemOp(DevType dev_type, int dev_id) {
+std::unique_ptr<MemOp> MemOpFactory::CreateMemOp(DevType dev_type, int dev_id = -1) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = creators_.find(dev_type);
   if (it != creators_.end()) {

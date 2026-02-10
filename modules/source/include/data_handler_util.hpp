@@ -6,8 +6,7 @@
 #include <thread>
 #include <chrono>
 
-#include "data_source.hpp"
-
+#include "cnstream_source.hpp"  // SourceHandler
 
 namespace cnstream {
 
@@ -26,13 +25,13 @@ class SourceRender {
       return nullptr;
     }
     while (true) {
-      data = handler_->CreateFrameInfo(eos);  // 回去调用
+      data = handler_->CreateFrameInfo(eos);
       if (data != nullptr) break;
       if (CreateInterrupt()) break;
       std::this_thread::sleep_for(std::chrono::microseconds(5));
     }
-    auto dataframe = std::make_shared<DataFrame>();
-    if (!dataframe) {
+    auto frame = std::make_shared<DataFrame>();
+    if (!frame) {
       return nullptr;
     }
     // auto inferobjs = std::make_shared<InferObjs>();
@@ -43,8 +42,7 @@ class SourceRender {
     // if (!inferdata) {
     //   return nullptr;
     // }
-    // 保存到容器
-    data->collection.Add(kDataFrameTag, dataframe);
+    data->collection.Add(kDataFrameTag, frame);  // Add DataFrame to FrameInfo
     // data->collection.Add(kInferObjsTag, inferobjs);
     // data->collection.Add(kInferDataTag, inferdata);
     return data;

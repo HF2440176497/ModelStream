@@ -23,8 +23,8 @@
 #include <atomic>
 #include <memory>
 #include <new>
+
 #include "cnstream_common.hpp"
-#include "cnstream_logging.hpp"
 
 
 /**
@@ -33,21 +33,6 @@
  *  Allocator 是利用 RAII 机制实现的内存分配器，确保在对象生命周期结束时自动释放内存。
  */
 namespace cnstream {
-
-/**
- * @class IDataDeallocator
- *
- * @brief IDataDeallocator is an abstract class of deallocator for the CNDecoder buffer.
- */
-class IDataDeallocator {
- public:
-  /*!
-   * @brief Destructs the base object.
-   *
-   * @return No return value.
-   */
-  virtual ~IDataDeallocator() {}
-};
 
 
 class MemoryAllocator : private NonCopyable {

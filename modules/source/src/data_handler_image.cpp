@@ -1,11 +1,6 @@
 
-#include "private/cnstream_constants_pri.hpp"  // framework
-
-#include "data_source.hpp"
+#include "cnstream_source.hpp"  // DataSource
 #include "data_handler_image.hpp"
-#include "data_handler_util.hpp"
-#include "memop.hpp"
-#include "memop_factory.hpp"
 
 namespace cnstream {
 

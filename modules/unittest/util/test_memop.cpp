@@ -12,7 +12,7 @@
  * @param height 图像高度
  * @return 返回一个指向测试用 DecodeFrame 的指针
  */
-DecodeFrame* CreateTestDecodeFrame(CNDataFormat fmt, int width, int height) {
+DecodeFrame* CreateTestDecodeFrame(DataFormat fmt, int width, int height) {
   DecodeFrame* frame = new DecodeFrame(height, width, fmt);
   frame->fmt = fmt;
   frame->width = width;
@@ -20,14 +20,14 @@ DecodeFrame* CreateTestDecodeFrame(CNDataFormat fmt, int width, int height) {
   frame->device_id = -1;
   
   size_t frame_size = 0;
-  if (fmt == CNDataFormat::CN_PIXEL_FORMAT_BGR24 || 
-      fmt == CNDataFormat::CN_PIXEL_FORMAT_RGB24) {
+  if (fmt == DataFormat::PIXEL_FORMAT_BGR24 || 
+      fmt == DataFormat::PIXEL_FORMAT_RGB24) {
     frame->planeNum = 1;
     frame_size = width * height * 3;
     frame->plane[0] = malloc(frame_size);
     memset(frame->plane[0], 128, frame_size);
-  } else if (fmt == CNDataFormat::CN_PIXEL_FORMAT_YUV420_NV12 ||
-             fmt == CNDataFormat::CN_PIXEL_FORMAT_YUV420_NV21) {
+  } else if (fmt == DataFormat::PIXEL_FORMAT_YUV420_NV12 ||
+             fmt == DataFormat::PIXEL_FORMAT_YUV420_NV21) {
     frame->planeNum = 2;
     frame_size = width * height * 3 / 2;
     frame->plane[0] = malloc(width * height);  // Y plane
@@ -113,7 +113,7 @@ TEST(MemOp, ConvertImageFormat_BGR24_RGB24) {
   ASSERT_TRUE(memop != nullptr);
   
   int width = 1280, height = 1280;
-  DecodeFrame* src_frame = CreateTestDecodeFrame(CNDataFormat::CN_PIXEL_FORMAT_BGR24, width, height);
+  DecodeFrame* src_frame = CreateTestDecodeFrame(DataFormat::PIXEL_FORMAT_BGR24, width, height);
   uint8_t* bgr_data = static_cast<uint8_t*>(src_frame->plane[0]);
   for (int i = 0; i < width * height; ++i) {
     bgr_data[i * 3] = 255;     // B
@@ -124,7 +124,7 @@ TEST(MemOp, ConvertImageFormat_BGR24_RGB24) {
   size_t dst_size = width * height * 3;
   auto dst_mem = memop->Allocate(dst_size);
   void* dst_ptr = dst_mem.get();
-  int ret = memop->ConvertImageFormat(dst_ptr, CNDataFormat::CN_PIXEL_FORMAT_RGB24, src_frame);
+  int ret = memop->ConvertImageFormat(dst_ptr, DataFormat::PIXEL_FORMAT_RGB24, src_frame);
   EXPECT_EQ(ret, 0);
   
   // 验证转换结果

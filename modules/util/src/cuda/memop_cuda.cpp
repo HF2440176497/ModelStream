@@ -1,10 +1,28 @@
 // cuda_memop.cpp
 
+#include "memop_factory.hpp"
+
 #include "cuda/memop_cuda.hpp"
 #include "cuda/cuda_check.hpp"
 #include "cuda/cnstream_sysncmem_cuda.hpp"
 
 namespace cnstream {
+
+static bool RegisterCudaMemOp() {
+  auto& factory = MemOpFactory::Instance();
+  bool result = true;
+  result &= factory.RegisterMemOpCreator(DevType::CUDA,
+    [](int dev_id) {
+      return std::make_unique<CudaMemOp>(dev_id);
+    });
+  return result;
+}
+
+static bool cuda_memops_registered = RegisterCudaMemOp();
+
+CudaMemOp::CudaMemOp() {}
+
+CudaMemOp::~CudaMemOp() {}
 
 std::shared_ptr<CNSyncedMemory> CudaMemOp::CreateSyncedMemory(size_t size) {
   return std::make_shared<CNSyncedMemoryCuda>(size, device_id_);
@@ -33,7 +51,7 @@ void CudaMemOp::SetData(std::shared_ptr<CNSyncedMemory> mem, void* data) {
 /**
  * @brief 使用 CUDA, 将解码帧转换为 dst_fmt 格式
  */
-int CudaMemOp::ConvertImageFormat(void* dst, CNDataFormat dst_fmt, const DecodeFrame* src_frame) {
+int CudaMemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame) {
 
 
   return 0;

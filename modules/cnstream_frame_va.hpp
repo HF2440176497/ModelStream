@@ -19,62 +19,6 @@
 
 namespace cnstream {
 
-inline constexpr uint32_t CN_MAX_PLANES = 6;
-
-/**
- * @enum DataFormat
- *
- * @brief Enumeration variables describling the pixel format of the data in DataFrame.
- */
-enum class DataFormat {
-  INVALID = -1,                 /*!< This frame is invalid. */
-  PIXEL_FORMAT_YUV420_NV21 = 0, /*!< This frame is in the YUV420SP(NV21) format. */
-  PIXEL_FORMAT_YUV420_NV12,     /*!< This frame is in the YUV420sp(NV12) format. */
-  PIXEL_FORMAT_BGR24,           /*!< This frame is in the BGR24 format. */
-  PIXEL_FORMAT_RGB24,           /*!< This frame is in the RGB24 format. */
-  PIXEL_FORMAT_ARGB32,          /*!< This frame is in the ARGB32 format. */
-  PIXEL_FORMAT_ABGR32,          /*!< This frame is in the ABGR32 format. */
-  PIXEL_FORMAT_RGBA32,          /*!< This frame is in the RGBA32 format. */
-  PIXEL_FORMAT_BGRA32           /*!< This frame is in the BGRA32 format. */
-};
-
-enum class DevType {
-  INVALID = -1,                /*!< Invalid device type. */
-  CPU = 0,                     /*!< The data is allocated by CPU. */
-  CUDA = 1,                    /*!< The data is allocated by CUDA. */
-};
-
-/**
- * @struct DevContext
- *
- * @brief DevContext is a structure holding the information that DataFrame data is allocated by CPU or MLU.
- */
-struct DevContext {
-  DevType dev_type = DevType::INVALID; 
-  int dev_id = 0;
-};
-
-
-/**
- * @brief Gets image plane number by a specified image format.
- * 表示数量，范围为自然数
- * @retval 0: Unsupported image format.
- * @retval >0: Image plane number.
- */
-inline int FormatPlanes(DataFormat fmt) {
-  switch (fmt) {
-    case DataFormat::PIXEL_FORMAT_BGR24:
-    case DataFormat::PIXEL_FORMAT_RGB24:
-      return 1;
-    case DataFormat::PIXEL_FORMAT_YUV420_NV12:
-    case DataFormat::PIXEL_FORMAT_YUV420_NV21:
-      return 2;
-    default:
-      return 0;
-  }
-  return 0;
-}
-
 
 /**
  * @class DataFrame

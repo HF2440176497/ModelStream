@@ -1,8 +1,8 @@
 
 
 if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
-        CACHE INTERNAL "Top-level directory of this project")
+  set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
+      CACHE INTERNAL "Top-level directory of this project")
 endif()
 
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGtest.cmake)
@@ -18,16 +18,10 @@ else()
 endif()
 
 
-
-
 # 必须包含框架头文件
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/private)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/util)
-
-# 包含CUDA头文件
-find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
 
 # unittest 头文件
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -40,27 +34,31 @@ list(APPEND test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 file(GLOB test_util_srcs ${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp)
 list(APPEND test_srcs ${test_util_srcs})
 
+# 平台特定的单元测试文件
 if(NVIDIA_PLATFORM)
-  file(GLOB test_util_cuda_srcs ${CMAKE_CURRENT_SOURCE_DIR}/cuda/*.cpp)
+  file(GLOB test_util_cuda_srcs ${CMAKE_CURRENT_SOURCE_DIR}/util/cuda/*.cpp)
   list(APPEND test_srcs ${test_util_cuda_srcs})
+  message(STATUS "Unittest: NVIDIA platform test sources added")
 endif()
 
-
-if(build_source)
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../source/include)
-  file(GLOB_RECURSE test_source_srcs ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
-  list(APPEND test_srcs ${test_source_srcs})
-endif()
-
-# 检查 modelstream_va 
 have_modules_target(${MODELSTREAM_ROOT_PATH})
+
+foreach(module ${module_list})
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../${module}/include)
+  file(GLOB_RECURSE test_${module}_srcs ${CMAKE_CURRENT_SOURCE_DIR}/${module}/*.cpp)
+  list(APPEND test_srcs ${test_${module}_srcs})
+endforeach()
 
 add_executable(modelstream_modules_test ${test_srcs})
 add_dependencies(modelstream_modules_test modelstream_va)
 
+set(test_link_libs "modelstream_va glog rt dl pthread")
+if(NVIDIA_PLATFORM)
+  list(APPEND test_link_libs ${CUDA_LIBRARIES})
+endif()
 
 if(GTEST_FOUND)
-  target_link_libraries(modelstream_modules_test modelstream_va  glog ${GTEST_LIBRARIES} rt dl pthread ${CUDA_LIBRARIES})
+  target_link_libraries(modelstream_modules_test ${test_link_libs} ${GTEST_LIBRARIES} gflags)
 else()
-  target_link_libraries(modelstream_modules_test modelstream_va gflags glog gtest rt dl pthread ${CUDA_LIBRARIES})
+  target_link_libraries(modelstream_modules_test ${test_link_libs} gtest gflags)
 endif()

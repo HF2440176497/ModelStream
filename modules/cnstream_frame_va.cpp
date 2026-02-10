@@ -64,13 +64,13 @@ cv::Mat NV21ToBGR(const CNDataFrame& frame) {
 static inline
 cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
   switch (frame.fmt) {
-    case CNDataFormat::CN_PIXEL_FORMAT_BGR24:
+    case DataFormat::PIXEL_FORMAT_BGR24:
       return BGRToBGR(frame);
-    case CNDataFormat::CN_PIXEL_FORMAT_RGB24:
+    case DataFormat::PIXEL_FORMAT_RGB24:
       return RGBToBGR(frame);
-    case CNDataFormat::CN_PIXEL_FORMAT_YUV420_NV12:
+    case DataFormat::PIXEL_FORMAT_YUV420_NV12:
       return NV12ToBGR(frame);
-    case CNDataFormat::CN_PIXEL_FORMAT_YUV420_NV21:
+    case DataFormat::PIXEL_FORMAT_YUV420_NV21:
       return NV21ToBGR(frame);
     default:
       LOGF(FRAME) << "Unsupported pixel format. fmt[" << static_cast<int>(frame.fmt) << "]";
@@ -140,7 +140,7 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
     return;
   }
-  if (CNDataFormat::CN_PIXEL_FORMAT_RGB24 != this->fmt) {
+  if (DataFormat::PIXEL_FORMAT_RGB24 != this->fmt) {
     LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24, decode_frame fmt is " << static_cast<int>(decode_frame->fmt) << ", this fmt is " << static_cast<int>(this->fmt);
     return;
   }

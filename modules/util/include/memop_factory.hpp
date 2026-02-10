@@ -7,6 +7,7 @@
 #include <mutex>
 
 #include "memop.hpp"
+#include "data_source_param.hpp"
 
 namespace cnstream {
 
@@ -37,30 +38,15 @@ public:
   /**
    * @brief 根据设备类型创建MemOp实例
    * @param dev_type 设备类型
-   * @param dev_id 设备ID
+   * @param dev_id 设备ID，默认值为-1
    * @return 返回创建的MemOp实例，如果不支持该设备类型则返回nullptr
    */
-  std::unique_ptr<MemOp> CreateMemOp(DevType dev_type, int dev_id = -1);
+  std::unique_ptr<MemOp> CreateMemOp(DevType dev_type, int dev_id);
 
 private:
-  /**
-   * @brief 私有构造函数，防止外部创建实例
-   */
-  MemOpFactory() = default;
-
-  /**
-   * @brief 析构函数
-   */
-  ~MemOpFactory() = default;
-
-  /**
-   * @brief 禁止拷贝构造函数
-   */
+  MemOpFactory();
+  ~MemOpFactory();
   MemOpFactory(const MemOpFactory&) = delete;
-
-  /**
-   * @brief 禁止赋值操作符
-   */
   MemOpFactory& operator=(const MemOpFactory&) = delete;
 
 #ifdef UNIT_TEST
@@ -81,7 +67,7 @@ private:
     }
   };
 
-  std::unordered_map<DevType, std::function<std::unique_ptr<MemOp>(int dev_id)>, DevTypeHash> creators_;
+  std::unordered_map<DevType, std::function<std::unique_ptr<MemOp>(int dev_id)>, DevTypeHash> creators_ {};
   std::mutex mutex_;
 };
 

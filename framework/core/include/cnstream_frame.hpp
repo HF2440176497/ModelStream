@@ -143,7 +143,7 @@ class FrameInfo : private NonCopyable {
 
 #ifdef UNIT_TEST
  public:
-  uint32_t test_idx = 0;  // 用于单元测试
+  uint32_t test_idx = 0;
 #else
  private:
 #endif

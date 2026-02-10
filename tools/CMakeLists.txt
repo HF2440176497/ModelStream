@@ -5,23 +5,82 @@ if(NOT DEFINED MODELSTREAM_ROOT_PATH)
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
+
 # ---[ gflags
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
-include_directories(${GFLAGS_INCLUDE_DIRS})
+if(GFLAGS_FOUND)
+  message(STATUS "Using installed GFlags for modules unittest")
+  include_directories(${GFLAGS_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GFlags not found! Please ensure GFlags is installed and set GFLAGS_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
 # ---[ glog
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
-include_directories(${GLOG_INCLUDE_DIRS})
+if(GLOG_FOUND)
+  message(STATUS "Using installed GLog for modules unittest")
+  include_directories(${GLOG_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "GLog not found! Please ensure GLog is installed and set GLOG_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
 
-# ---[ nlohmann_json
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann_json/include)
+# ---[ nlohmann/json
+include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
-# ---[ source: framework
+# ---[ framework
+include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${MODELSTREAM_ROOT_PATH})
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
+if(HAVE_FRAMEWORK_TARGET)
+  list(APPEND DEPENDENCIES modelstream_core)
+endif()
+
+if(build_tests)
+  add_definitions(-DUNIT_TEST)
+endif()
+
+set(3RDPARTY_LIBS "")
+set(DEPENDENCIES "")
+
+list(APPEND 3RDPARTY_LIBS ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+
+# ---[ opencv
+include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
+if(OpenCV_FOUND)
+  list(APPEND 3RDPARTY_LIBS ${OpenCV_LIBS})
+  include_directories(${OpenCV_INCLUDE_DIRS})
+else()
+  message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed and set OpenCV_ROOT_DIR or CMAKE_PREFIX_PATH")
+endif()
+
+# ---[ libyuv
+if(build_libyuv)
+  if(TARGET yuv)  # 根据 libyuv 内的 cmake 文件确定
+    list(APPEND 3RDPARTY_LIBS yuv)
+    list(APPEND DEPENDENCIES yuv)
+    set(HAVE_BUILD_LIBYUV TRUE)
+    message(STATUS "----- Using libyuv static library: yuv")
+  elseif(TARGET yuv_shared)
+    list(APPEND 3RDPARTY_LIBS yuv_shared)
+    list(APPEND DEPENDENCIES yuv_shared)
+    set(HAVE_BUILD_LIBYUV TRUE)
+    message(STATUS "----- Using libyuv shared library: yuv_shared")
+  endif()
+  include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
+else()
+  message(FATAL_ERROR "libyuv not found. Set BUILD_LIBYUV=ON in root CMakeLists.txt to build")
+endif()
+
 
 # ---[ Options
 option(build_inspect "build cnstream inspect" ON)
+option(build_demo "build demo executable file" ON)
 
 if(build_inspect)
   add_subdirectory(inspect)
 endif()
+
+if(build_demo)
+  add_subdirectory(demo)
+endif()
+

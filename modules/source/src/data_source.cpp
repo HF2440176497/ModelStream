@@ -26,11 +26,7 @@
 #include <memory>
 #include <string>
 
-#include "cnstream_logging.hpp"
 #include "data_source.hpp"
-#include "data_source_param.hpp"
-
-// #include "profiler/module_profiler.hpp"
 
 namespace cnstream {
 

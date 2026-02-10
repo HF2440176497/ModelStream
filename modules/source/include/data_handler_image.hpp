@@ -16,9 +16,7 @@
 #include <opencv2/highgui.hpp>
 
 #include "cnstream_logging.hpp"
-#include "data_source.hpp"
-#include "data_handler_util.hpp"
-#include "video_decoder.hpp"
+#include "data_handler_util.hpp"  // SourceRender
 
 
 namespace cnstream {

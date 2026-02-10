@@ -7,7 +7,7 @@
 namespace cnstream {
 
 
-static std::string test_pipeline_json = "pipeline_base_test.json";
+static std::string test_pipeline_json = "pipeline.json";
 
 // 在测试实例中，定义出这个 virtual module
 class InferencerVoid: public Module, public ModuleCreator<InferencerVoid> {
@@ -46,7 +46,6 @@ class PipelineConfigLoad : public testing::Test {
   protected:
     cnstream::CNGraphConfig graph_config_;
 };
-
 
 
 }  // namespace cnstream

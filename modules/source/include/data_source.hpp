@@ -9,9 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include "cnstream_frame.hpp"
-#include "cnstream_frame_va.hpp"
-#include "cnstream_pipeline.hpp"
+#include "cnstream_config.hpp"
 #include "cnstream_source.hpp"
 #include "data_source_param.hpp"
 
@@ -100,7 +98,7 @@ class DataSource : public SourceModule, public ModuleCreator<DataSource> {
    DataSourceParam param_;
 };  // class DataSource
 
-REGISTER_MODULE(DataSource);  // 启动反射
+REGISTER_MODULE(DataSource);
 
 // 派生关系: Module SourceModule DataSource
 // SourceModule 并没有提供虚函数接口, DataSource 主要重写 Module 的相关 virtual func

@@ -156,7 +156,7 @@ class SourceModule : public Module {
 
   std::mutex mutex_;
   std::map<std::string /*stream_id*/, std::shared_ptr<SourceHandler>> source_map_;
-};
+};  // class SourceModule
 
 /**
  * @class SourceHandler

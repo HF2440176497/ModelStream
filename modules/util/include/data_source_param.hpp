@@ -21,6 +21,7 @@
 #ifndef MODULES_DATA_SOURCE_PARAM_HPP_
 #define MODULES_DATA_SOURCE_PARAM_HPP_
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 

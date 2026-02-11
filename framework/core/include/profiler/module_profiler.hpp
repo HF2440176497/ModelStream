@@ -72,7 +72,7 @@ class ModuleProfiler: private NonCopyable {
    * @brief Records the start of a process.
    *
    * @param[in] process_name The name of the process.
-   * @param[in] key The unique identifier of a CNFrameInfo instance.
+   * @param[in] key The unique identifier of a FrameInfo instance.
    *
    * @return No return value.  
    */
@@ -82,7 +82,7 @@ class ModuleProfiler: private NonCopyable {
    * @brief Records the end of a process.
    *
    * @param[in] process_name The name of the process.
-   * @param[in] key The unique identifier of a CNFrameInfo instance.
+   * @param[in] key The unique identifier of a FrameInfo instance.
    *
    * @return No return value. 
    */
@@ -92,7 +92,7 @@ class ModuleProfiler: private NonCopyable {
    * @brief Records a dropped frame.
    *
    * @param[in] process_name The name of the process.
-   * @param[in] key The unique identifier of a CNFrameInfo instance.
+   * @param[in] key The unique identifier of a FrameInfo instance.
    *
    * @return No return value. 
    */
@@ -115,7 +115,7 @@ class ModuleProfiler: private NonCopyable {
   /*!
    * @brief Clears profiling data of the stream named by ``stream_name``, as the end of the stream is reached.
    *
-   * @param[in] stream_name The name of the stream, usually the ``CNFrameInfo::stream_id``.
+   * @param[in] stream_name The name of the stream, usually the ``FrameInfo::stream_id``.
    */
   void OnStreamEos(const std::string& stream_name);
 

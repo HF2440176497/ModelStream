@@ -103,6 +103,26 @@ REGISTER_MODULE(DataSource);
 // 派生关系: Module SourceModule DataSource
 // SourceModule 并没有提供虚函数接口, DataSource 主要重写 Module 的相关 virtual func
 
+class ImageHandlerImpl;
+
+class ImageHandler : public SourceHandler {
+ public:
+  static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
+  ~ImageHandler();
+
+  bool Open() override;
+  void Stop() override;
+  void Close() override;
+
+ private:
+  explicit ImageHandler(DataSource *module, const std::string &stream_id);
+
+#ifdef UNIT_TEST
+ public:
+#endif
+  ImageHandlerImpl* impl_ = nullptr;
+};  // class ImageHandler
+
 
 }  // namespace cnstream
 

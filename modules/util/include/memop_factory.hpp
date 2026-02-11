@@ -6,10 +6,11 @@
 #include <functional>
 #include <mutex>
 
-#include "memop.hpp"
 #include "data_source_param.hpp"
 
 namespace cnstream {
+
+class MemOp;
 
 /**
  * @class MemOpFactory

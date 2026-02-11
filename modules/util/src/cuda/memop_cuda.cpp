@@ -24,8 +24,8 @@ CudaMemOp::CudaMemOp() {}
 
 CudaMemOp::~CudaMemOp() {}
 
-std::shared_ptr<CNSyncedMemory> CudaMemOp::CreateSyncedMemory(size_t size) {
-  return std::make_shared<CNSyncedMemoryCuda>(size, device_id_);
+std::unique_ptr<CNSyncedMemory> CudaMemOp::CreateSyncedMemory(size_t size) {
+  return std::make_unique<CNSyncedMemoryCuda>(size, device_id_);
 }
 
 std::shared_ptr<void> CudaMemOp::Allocate(size_t bytes) {
@@ -39,8 +39,8 @@ void CudaMemOp::Copy(void* dst, const void* src, size_t size) {
   CHECK_CUDA_RUNTIME(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToDevice));
 }
 
-void CudaMemOp::SetData(std::shared_ptr<CNSyncedMemory> mem, void* data) {
-  auto cuda_mem = std::dynamic_pointer_cast<CNSyncedMemoryCuda>(mem);
+void CudaMemOp::SetData(CNSyncedMemory* mem, void* data) {
+  auto cuda_mem = dynamic_cast<CNSyncedMemoryCuda*>(mem);
   if (!cuda_mem) {
     throw std::runtime_error("CudaMemOp: mem is not CNSyncedMemoryCuda");
   }

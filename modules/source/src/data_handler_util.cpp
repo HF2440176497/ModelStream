@@ -4,10 +4,11 @@
 #include "data_source_param.hpp"  // DevContext, DataFormat
 #include "data_handler_util.hpp"
 
+namespace cnstream {
 
-int SourceRender::Process(std::shared_ptr<CNFrameInfo> frame_info, DecodeFrame *decode_frame, uint64_t frame_id,
+int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *decode_frame, uint64_t frame_id,
                           const DataSourceParam &param_) {
-  CNDataFramePtr frame = frame_info->collection.Get<CNDataFramePtr>(kCNDataFrameTag);
+  DataFramePtr frame = frame_info->collection.Get<DataFramePtr>(kDataFrameTag);
   if (!frame || !decode_frame) {
     LOGF(SOURCE) << "SourceRender::Process: frame or decode_frame is NULL";
     return -1;
@@ -28,4 +29,6 @@ int SourceRender::Process(std::shared_ptr<CNFrameInfo> frame_info, DecodeFrame *
   // 2. 创建 memop 来拷贝图像内存
   frame->CopyToSyncMem(decode_frame);
   return 0;
+}
+
 }

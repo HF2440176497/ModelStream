@@ -7,6 +7,7 @@
 #include <chrono>
 
 #include "cnstream_source.hpp"  // SourceHandler
+#include "cnstream_frame_va.hpp"  // DataFrame
 
 namespace cnstream {
 
@@ -17,7 +18,7 @@ class SourceRender {
 
   virtual bool CreateInterrupt() { return interrupt_.load(); }
 
-  // 调用处：HandlerImpl::OnDecodeFrame
+  // invoked by: HandlerImpl::OnDecodeFrame
   std::shared_ptr<FrameInfo> CreateFrameInfo(bool eos = false) {
     std::shared_ptr<FrameInfo> data;
     if (handler_ == nullptr) {
@@ -69,11 +70,13 @@ class SourceRender {
     return handler_->SendData(data);
   }
 
+ public:
+  static int Process(std::shared_ptr<FrameInfo> frame_info,
+                     DecodeFrame *frame, uint64_t frame_id, const DataSourceParam &param_);
+ 
  protected:
   SourceHandler *handler_;
   bool eos_sent_ = false;
-
- protected:
   std::atomic<bool> interrupt_{false};
   uint64_t frame_count_ = 0;
   uint64_t frame_id_ = 0;

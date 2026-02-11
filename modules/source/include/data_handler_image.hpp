@@ -17,6 +17,8 @@
 
 #include "cnstream_logging.hpp"
 #include "data_handler_util.hpp"  // SourceRender
+#include "data_source.hpp"  // DataSource
+#include "data_source_param.hpp"  // DataSourceParam
 
 
 namespace cnstream {
@@ -41,7 +43,7 @@ class ImageHandlerImpl: public SourceRender {
 
 public:
   void OnEndFrame();
-  std::shared_ptr<CNFrameInfo> OnDecodeFrame(DecodeFrame* frame);
+  std::shared_ptr<FrameInfo> OnDecodeFrame(DecodeFrame* frame);
 
 #ifdef UNIT_TEST
  public:

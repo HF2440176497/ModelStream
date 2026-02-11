@@ -57,8 +57,8 @@ class MemOp {
   virtual std::shared_ptr<void> Allocate(size_t bytes);  // 分配操作算子的目标内存，内含 RAII 管理
   virtual void Copy(void* dst, const void* src, size_t size);
   virtual int GetDeviceId() const;
-  virtual std::shared_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size);
-  virtual void SetData(std::shared_ptr<CNSyncedMemory> mem, void* data);  // 将分配的目标内存绑定到 CNSyncedMemory
+  virtual std::unique_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size);
+  virtual void SetData(CNSyncedMemory* mem, void* data);  // 将分配的目标内存绑定到 CNSyncedMemory
   virtual int ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame);
 };
 

@@ -134,7 +134,6 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
       }
     }
   }
-  std::string err_msg;
   if (!checker.IsNum({KEY_INTERVAL}, paramSet, err_msg, true)) {
     LOGE(SOURCE) << "[DataSource] " << err_msg;
     return false;

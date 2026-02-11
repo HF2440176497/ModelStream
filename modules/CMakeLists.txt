@@ -29,9 +29,11 @@ include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 # ---[ framework
 include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
 have_framework_target(${MODELSTREAM_ROOT_PATH})
-include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 if(HAVE_FRAMEWORK_TARGET)
+  include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
   list(APPEND DEPENDENCIES modelstream_core)
+else()
+  message(FATAL_ERROR "framework target not found")
 endif()
 
 if(build_tests)
@@ -39,19 +41,15 @@ if(build_tests)
 endif()
 
 option(build_util "build module util" ON)
-option(build_source "build module source" OFF)
+option(build_source "build module source" ON)
 option(build_inference "build module inference" OFF)
-option(build_va "build modulestream_va" OFF)
-
-# Platform options
-option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" OFF)
-
+option(build_va "build modulestream_va" ON)
 
 # ---[ 3rdparty
 set(3RDPARTY_LIBS "")
 set(DEPENDENCIES "")
 
-list(APPEND 3RDPARTY_LIBS ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+list(APPEND 3RDPARTY_LIBS ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 
 # ---[ opencv
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
@@ -59,7 +57,7 @@ if(OpenCV_FOUND)
   list(APPEND 3RDPARTY_LIBS ${OpenCV_LIBS})
   include_directories(${OpenCV_INCLUDE_DIRS})
 else()
-  message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed and set OpenCV_ROOT_DIR or CMAKE_PREFIX_PATH")
+  message(FATAL_ERROR "OpenCV not found! Please ensure OpenCV is installed")
 endif()
 
 # ---[ libyuv
@@ -67,12 +65,12 @@ if(build_libyuv)
   if(TARGET yuv)  # 根据 libyuv 内的 cmake 文件确定
     list(APPEND 3RDPARTY_LIBS yuv)
     list(APPEND DEPENDENCIES yuv)
-    set(HAVE_BUILD_LIBYUV TRUE)
+    set(has_built_libyuv TRUE)
     message(STATUS "----- Using libyuv static library: yuv")
   elseif(TARGET yuv_shared)
     list(APPEND 3RDPARTY_LIBS yuv_shared)
     list(APPEND DEPENDENCIES yuv_shared)
-    set(HAVE_BUILD_LIBYUV TRUE)
+    set(has_built_libyuv TRUE)
     message(STATUS "----- Using libyuv shared library: yuv_shared")
   endif()
   include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)

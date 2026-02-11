@@ -9,16 +9,20 @@ std::shared_ptr<SourceHandler> ImageHandler::Create(DataSource *module, const st
     LOGE(SOURCE) << "[" << stream_id << "]: module_ null";
     return nullptr;
   }
-  return std::make_shared<ImageHandler>(module, stream_id);
+  return std::shared_ptr<ImageHandler>(new ImageHandler(module, stream_id));
 }
 
 ImageHandler::ImageHandler(DataSource *module, const std::string &stream_id)
     : SourceHandler(module, stream_id) {
-  impl_ = std::make_unique<ImageHandlerImpl>(module, this);
+  impl_ = new ImageHandlerImpl(module, this);
 }
 
 ImageHandler::~ImageHandler() {
   Close();
+  if (impl_) {
+    delete impl_;
+    impl_ = nullptr;
+  }
 }
 
 bool ImageHandler::Open() {
@@ -40,7 +44,6 @@ bool ImageHandler::Open() {
 void ImageHandler::Close() {
   if (impl_) {
     impl_->Close();  // for image_impl: close consumer thread
-    impl_.reset();
   }
 }
 
@@ -112,7 +115,7 @@ void ImageHandlerImpl::Loop() {
   while (running_.load()) {
     controller.Control();
     frame.pts += 1000 / framerate_;
-    std::shared_ptr<CNFrameInfo> data = OnDecodeFrame(&frame);
+    std::shared_ptr<FrameInfo> data = OnDecodeFrame(&frame);
     if (!module_ || !handler_) {
       LOGE(SOURCE) << "ImageHandler: [" << stream_id_ << "]: module_ or handler_ is null";
       break;
@@ -126,19 +129,19 @@ void ImageHandlerImpl::Loop() {
  * 定义如何处理来自数据源图像
  * 调用处：Loop 线程
  */
-std::shared_ptr<CNFrameInfo> ImageHandlerImpl::OnDecodeFrame(DecodeFrame* frame) {
+std::shared_ptr<FrameInfo> ImageHandlerImpl::OnDecodeFrame(DecodeFrame* frame) {
   if (!frame) {
     LOGW(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function frame is nullptr.";
     return nullptr;
   }
-  std::shared_ptr<CNFrameInfo> data = this->CreateFrameInfo();  // 规定了 CNFrameInfo 内含的基本基本成员
+  std::shared_ptr<FrameInfo> data = this->CreateFrameInfo();  // 规定了 FrameInfo 内含的基本基本成员
   if (!data) {
     LOGW(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
     return nullptr;
   }
   data->timestamp = frame->pts;
   if (!frame->valid) {
-    data->flags = static_cast<size_t>(CNFrameFlag::CN_FRAME_FLAG_INVALID);
+    data->flags = static_cast<size_t>(DataFrameFlag::FRAME_FLAG_INVALID);
     this->SendFrameInfo(data);
     return nullptr;
   }
@@ -155,7 +158,7 @@ std::shared_ptr<CNFrameInfo> ImageHandlerImpl::OnDecodeFrame(DecodeFrame* frame)
  */
 void ImageHandlerImpl::OnEndFrame() {
   // 调用 SourceRender::OnEndFrame 发送 EOS 帧
-  std::shared_ptr<CNFrameInfo> data = this->CreateFrameInfo(true);
+  std::shared_ptr<FrameInfo> data = this->CreateFrameInfo(true);
   if (!data) {
     LOGW(SOURCE) << "[FileHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
     return;

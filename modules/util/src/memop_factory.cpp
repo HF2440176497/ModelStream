@@ -1,5 +1,6 @@
 
 #include "memop_factory.hpp"
+#include "memop.hpp"
 
 namespace cnstream {
 

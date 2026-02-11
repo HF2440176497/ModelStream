@@ -12,10 +12,14 @@
 #include <vector>
 
 #include <opencv2/opencv.hpp>
+#include <libyuv/convert.h>
 
 #include "cnstream_common.hpp"
 #include "cnstream_frame.hpp"
 
+// ---- util
+#include "memop.hpp"
+#include "cnstream_syncmem.hpp"
 
 namespace cnstream {
 
@@ -102,7 +106,8 @@ public:
   int height;                                               /*!< The height of the frame. */
   int stride[CN_MAX_PLANES];                                /*!< The strides of the frame. */
   DevContext ctx;                                           /*!< The device context of SOURCE data (ptr_mlu/ptr_cpu). */
-
+  std::unique_ptr<IDataDeallocator> deAllocator_ = nullptr;
+  
 #ifdef UNIT_TEST
  public:
 #else
@@ -119,9 +124,9 @@ using DataFramePtr = std::shared_ptr<DataFrame>;
 // using InferDataPtr = std::shared_ptr<InferData>;
 
 
-inline constexpr char kCNDataFrameTag[] = "CNDataFrame"; /*!< value type in CNFrameInfo::Collection : CNDataFramePtr. */
-inline constexpr char kCNInferObjsTag[] = "CNInferObjs"; /*!< value type in CNFrameInfo::Collection : CNInferObjsPtr. */
-inline constexpr char kCNInferDataTag[] = "CNInferData"; /*!< value type in CNFrameInfo::Collection : CNInferDataPtr. */
+inline constexpr char kDataFrameTag[] = "DataFrame"; /*!< value type in FrameInfo::Collection : DataFramePtr. */
+inline constexpr char kInferObjsTag[] = "InferObjs"; /*!< value type in FrameInfo::Collection : InferObjsPtr. */
+inline constexpr char kInferDataTag[] = "InferData"; /*!< value type in FrameInfo::Collection : InferDataPtr. */
 
 
 }  // namespace cnstream

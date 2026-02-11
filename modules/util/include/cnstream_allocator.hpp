@@ -66,7 +66,7 @@ class CnAllocDeleter final {
 /**
  * 内存分配器全局函数
  */
-std::shared_ptr<void> cnMemAlloc(size_t size, std::shared_ptr<MemoryAllocator> allocator) {
+inline std::shared_ptr<void> cnMemAlloc(size_t size, std::shared_ptr<MemoryAllocator> allocator) {
   if (allocator) {
     std::shared_ptr<void> ds(allocator->alloc(size), CnAllocDeleter(allocator));
     return ds;
@@ -93,7 +93,7 @@ class CpuAllocator : public MemoryAllocator {
 /**
  * 返回后 allocator 仍存在，不会立刻调用 free 释放
  */
-std::shared_ptr<void> cnCpuMemAlloc(size_t size) {
+inline std::shared_ptr<void> cnCpuMemAlloc(size_t size) {
   std::shared_ptr<MemoryAllocator> allocator = std::make_shared<CpuAllocator>();
   return cnMemAlloc(size, allocator);
 }

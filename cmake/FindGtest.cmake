@@ -37,22 +37,22 @@ if(WIN32)
         find_library(GTEST_LIBRARY
             NAMES gtest gtest_static libgtest libgtest_static
             PATHS ${GTEST_ROOT_DIR}
-            PATH_SUFFIXES lib)
+            PATH_SUFFIXES lib lib64)
 
         find_library(GTEST_MAIN_LIBRARY
             NAMES gtest_main gtest_main_static libgtest_main libgtest_main_static
             PATHS ${GTEST_ROOT_DIR}
-            PATH_SUFFIXES lib)
+            PATH_SUFFIXES lib lib64)
 
         find_library(GMOCK_LIBRARY
             NAMES gmock gmock_static libgmock libgmock_static
             PATHS ${GTEST_ROOT_DIR}
-            PATH_SUFFIXES lib)
+            PATH_SUFFIXES lib lib64)
 
         find_library(GMOCK_MAIN_LIBRARY
             NAMES gmock_main gmock_main_static libgmock_main libgmock_main_static
             PATHS ${GTEST_ROOT_DIR}
-            PATH_SUFFIXES lib)
+            PATH_SUFFIXES lib lib64)
     else()
         find_library(GTEST_LIBRARY
             NAMES gtest gtest_static libgtest libgtest_static)

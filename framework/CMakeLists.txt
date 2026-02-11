@@ -47,14 +47,14 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core/src/profiler profiler_srcs
 # note: 前面已设置 include_directories，这里不需要 target_include_directories
 if(build_profiler)
   add_library(framework_profiler OBJECT ${profiler_srcs})
-  target_link_libraries(framework_profiler rt dl pthread ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+  target_link_libraries(framework_profiler ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} rt dl pthread)
   add_custom_target(profiler DEPENDS framework_profiler)
   message(STATUS "Profiler module enabled - targets: framework_profiler, profiler")
 endif()
 
 if(build_core)
   add_library(modelstream_core SHARED ${core_srcs} ${private_srcs} ${profiler_srcs})
-  target_link_libraries(modelstream_core rt dl pthread ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+  target_link_libraries(modelstream_core ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} rt dl pthread)
   # set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
   add_custom_target(core DEPENDS modelstream_core)
   message(STATUS "Core module enabled - targets: modelstream_core, core")

@@ -54,11 +54,11 @@ TEST(CudaMemOp, CreateSyncedMemory) {
   memset(tmp, pattern, bytes);
   CHECK_CUDA_RUNTIME(cudaMemcpy(data_ptr, tmp, bytes, cudaMemcpyHostToDevice));
 
-  memop->SetData(synced_mem, data_ptr);
+  memop->SetData(synced_mem.get(), data_ptr);
   ASSERT_EQ(synced_mem->size_, bytes);
   ASSERT_EQ(synced_mem->head_, SyncedHead::HEAD_AT_CUDA);
 
-  auto cuda_mem = std::dynamic_pointer_cast<CNSyncedMemoryCuda>(synced_mem);
+  auto cuda_mem = dynamic_cast<CNSyncedMemoryCuda*>(synced_mem.get());
   ASSERT_NE(cuda_mem, nullptr);
   ASSERT_EQ(cuda_mem->cuda_ptr_, data_ptr);
 

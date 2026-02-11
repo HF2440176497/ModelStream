@@ -4,19 +4,19 @@
 #include <memory>
 
 #include "cnstream_frame_va.hpp"
-
+#include "memop_factory.hpp"
 
 namespace cnstream {
 
 
 static
-cv::Mat BGRToBGR(const CNDataFrame& frame) {
+cv::Mat BGRToBGR(const DataFrame& frame) {
   const cv::Mat bgr(frame.height, frame.stride[0], CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
   return bgr(cv::Rect(0, 0, frame.width, frame.height)).clone();
 }
 
 static
-cv::Mat RGBToBGR(const CNDataFrame& frame) {
+cv::Mat RGBToBGR(const DataFrame& frame) {
   const cv::Mat rgb(frame.height, frame.stride[0], CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
   cv::Mat bgr;
   cv::cvtColor(rgb, bgr, cv::COLOR_RGB2BGR);
@@ -27,7 +27,7 @@ cv::Mat RGBToBGR(const CNDataFrame& frame) {
  * @brief 转换 NV12 或者 NV21 的 YUV420SP 图像到 BGR 格式
  */
 static
-cv::Mat YUV420SPToBGR(const CNDataFrame& frame, bool nv21) {
+cv::Mat YUV420SPToBGR(const DataFrame& frame, bool nv21) {
   const uint8_t* y_plane = reinterpret_cast<const uint8_t*>(frame.data[0]->GetCpuData());
   const uint8_t* uv_plane = reinterpret_cast<const uint8_t*>(frame.data[1]->GetCpuData());
   int width = frame.width;
@@ -52,17 +52,17 @@ cv::Mat YUV420SPToBGR(const CNDataFrame& frame, bool nv21) {
 }
 
 static inline
-cv::Mat NV12ToBGR(const CNDataFrame& frame) {
+cv::Mat NV12ToBGR(const DataFrame& frame) {
   return YUV420SPToBGR(frame, false);
 }
 
 static inline
-cv::Mat NV21ToBGR(const CNDataFrame& frame) {
+cv::Mat NV21ToBGR(const DataFrame& frame) {
   return YUV420SPToBGR(frame, true);
 }
 
 static inline
-cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
+cv::Mat FrameToImageBGR(const DataFrame& frame) {
   switch (frame.fmt) {
     case DataFormat::PIXEL_FORMAT_BGR24:
       return BGRToBGR(frame);
@@ -83,16 +83,16 @@ cv::Mat FrameToImageBGR(const CNDataFrame& frame) {
  * @brief 转换数据到 BGR 格式
  * 在数据存在于 CPU 上，才可调用
  */
-cv::Mat CNDataFrame::GetImage() {
+cv::Mat DataFrame::GetImage() {
   std::lock_guard<std::mutex> lk(mtx);
   if (!mat_.empty()) {
     return mat_;
   }
-  mat_ = color_cvt::FrameToImageBGR(*this);
+  mat_ = FrameToImageBGR(*this);
   return mat_;
 }
 
-size_t CNDataFrame::GetPlaneBytes(int plane_idx) const {
+size_t DataFrame::GetPlaneBytes(int plane_idx) const {
   if (plane_idx < 0 || plane_idx >= GetPlanes()) return 0;
   switch (fmt) {
     case DataFormat::PIXEL_FORMAT_BGR24:
@@ -124,7 +124,7 @@ size_t DataFrame::GetBytes() const {
  * @brief 每次调用查找已注册的 MemOp 创建器，根据当前 dev_type 和 dev_id 创建 MemOp
  * 调用处：CopyToSyncMem(decode_frame)
  */
-std::unique_ptr<MemOp> CNDataFrame::CreateMemOp() {
+std::unique_ptr<MemOp> DataFrame::CreateMemOp() {
   auto dev_type = this->ctx.dev_type;  // current dev and id
   int dev_id = this->ctx.dev_id;
   std::unique_ptr<MemOp> memop = MemOpFactory::Instance().CreateMemOp(dev_type, dev_id);
@@ -135,7 +135,7 @@ std::unique_ptr<MemOp> CNDataFrame::CreateMemOp() {
   return memop;
 }
 
-void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
+void DataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
   if (this->ctx.dev_type == DevType::INVALID) {
     LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
     return;
@@ -153,7 +153,7 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     for (int i = 0; i < GetPlanes(); i++) {
       const size_t plane_bytes = GetPlaneBytes(i);
       this->data[i] = memop->CreateSyncedMemory(plane_bytes);
-      memop->SetData(this->data[i], decode_frame->plane[i]);
+      memop->SetData(this->data[i].get(), decode_frame->plane[i]);
     }
     return;
   }
@@ -176,7 +176,7 @@ void CNDataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
   for (int i = 0; i < GetPlanes(); ++i) {
     const size_t plane_bytes = GetPlaneBytes(i);
     this->data[i] = memop->CreateSyncedMemory(plane_bytes);
-    memop->SetData(this->data[i], dst_plane);
+    memop->SetData(this->data[i].get(), dst_plane);
     dst_plane = static_cast<uint8_t*>(dst_plane) + plane_bytes;
   }
   Buffer& buffer = mem_manager_.GetBuffer(ctx.dev_type, bytes, ctx.dev_id);

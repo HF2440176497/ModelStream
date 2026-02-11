@@ -17,10 +17,14 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Platform options
+option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" OFF)
+
+
 set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 
-option(build_modules "build modules" OFF)
+option(build_modules "build modules" ON)
 option(build_tests "build unit tests" OFF)
 option(build_libyuv "build libyuv" ON)
 option(build_tools "build tools" ON)
@@ -44,6 +48,7 @@ if (build_libyuv)
   set(LIBYUV_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   set(LIBYUV_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libyuv)
+  set(has_built_libyuv TRUE)
 endif()
 
 if(build_tests)
@@ -52,11 +57,11 @@ if(build_tests)
   
   if(GTEST_FOUND)
     message(STATUS "Found installed GTest (include: ${GTEST_INCLUDE_DIRS}, library: ${GTEST_LIBRARIES})")
-    set(build_gtest_already ON)
+    set(has_built_gtest TRUE)
   else()
     message(STATUS "GTest not found, building from 3rdparty/googletest")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest)
-    set(build_gtest_already ON)
+    set(has_built_gtest TRUE)
   endif()
 endif()
 

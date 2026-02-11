@@ -225,10 +225,10 @@ ImageData BGR24ToNV21(const ImageData& bgr24) {
     img.plane[0].resize(y_size);
     img.plane[1].resize(vu_size);
 
-    // BGR24 -> ARGB
+    // BGR24 -> ARGB (使用 RAWToARGB，因为 BGR24 在内存中是 RGB 顺序)
     std::vector<uint8_t> argb_buffer(bgr24.width * height * 4);
     int argb_stride = bgr24.width * 4;
-    libyuv::RGB24ToARGB(
+    libyuv::RAWToARGB(
         bgr24.plane[0].data(), bgr24.stride[0],
         argb_buffer.data(), argb_stride,
         bgr24.width, height);
@@ -331,14 +331,15 @@ ImageData NV12ToRGB24(const ImageData& nv12) {
     int uv_stride = nv12.stride[1];
     size_t dst_stride = nv12.width * 3;
 
-    libyuv::NV12ToRGB24(
+    std::vector<uint8_t> bgr24_buffer(nv12.width * height * 3);
+    libyuv::NV12ToRGB24Matrix(
         y_plane, y_stride,
         uv_plane, uv_stride,
-        img.plane[0].data(), dst_stride,
+        bgr24_buffer.data(), dst_stride,
+        &libyuv::kYvuH709Constants,
         nv12.width, height);
 
-    // BGR24->RGB24
-    cv::Mat bgr_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
+    const cv::Mat bgr_mat(height, nv12.width, CV_8UC3, bgr24_buffer.data());
     cv::Mat rgb_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
     cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
 
@@ -363,12 +364,13 @@ ImageData NV12ToBGR24(const ImageData& nv12) {
     int uv_stride = nv12.stride[1];
     size_t dst_stride = nv12.width * 3;
 
-    libyuv::NV12ToRGB24(
+    libyuv::NV12ToRGB24Matrix(
         y_plane, y_stride,
         uv_plane, uv_stride,
         img.plane[0].data(), dst_stride,
+        &libyuv::kYvuH709Constants,
         nv12.width, height);
-        
+
     return img;
 }
 
@@ -390,14 +392,15 @@ ImageData NV21ToRGB24(const ImageData& nv21) {
     int vu_stride = nv21.stride[1];
     size_t dst_stride = nv21.width * 3;
 
-    libyuv::NV21ToRGB24(
+    std::vector<uint8_t> bgr24_buffer(nv21.width * height * 3);
+    libyuv::NV21ToRGB24Matrix(
         y_plane, y_stride,
         vu_plane, vu_stride,
-        img.plane[0].data(), dst_stride,
+        bgr24_buffer.data(), dst_stride,
+        &libyuv::kYvuH709Constants,
         nv21.width, height);
-    
-    // BGR24->RGB24
-    cv::Mat bgr_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
+
+    const cv::Mat bgr_mat(height, nv21.width, CV_8UC3, bgr24_buffer.data());
     cv::Mat rgb_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
     cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
 
@@ -422,12 +425,13 @@ ImageData NV21ToBGR24(const ImageData& nv21) {
     int vu_stride = nv21.stride[1];
     size_t dst_stride = nv21.width * 3;
 
-    libyuv::NV21ToRGB24(
+    libyuv::NV21ToRGB24Matrix(
         y_plane, y_stride,
         vu_plane, vu_stride,
         img.plane[0].data(), dst_stride,
+        &libyuv::kYvuH709Constants,
         nv21.width, height);
-    
+
     return img;
 }
 
@@ -462,6 +466,64 @@ ImageData NV12ToNV21(const ImageData& nv12) {
     return img;
 }
 
+// 使用 Matrix 版本的 NV12/NV21 转 BGR (与 cnstream_frame_va.cpp 中方式一致)
+ImageData NV12ToBGR24_Matrix(const ImageData& nv12) {
+    ImageData img;
+    img.fmt = FORMAT_BGR24;
+    img.width = nv12.width;
+    img.height = nv12.height;
+    img.stride[0] = nv12.width * 3;
+    img.stride[1] = 0;
+
+    int height = nv12.height & (~1);
+    img.plane[0].resize(nv12.width * height * 3);
+
+    const uint8_t* y_plane = nv12.plane[0].data();
+    const uint8_t* uv_plane = nv12.plane[1].data();
+    int y_stride = nv12.stride[0];
+    int uv_stride = nv12.stride[1];
+    uint8_t* dst_bgr24 = img.plane[0].data();
+    int dst_stride = nv12.width * 3;
+
+    libyuv::NV12ToRGB24Matrix(
+        y_plane, y_stride,
+        uv_plane, uv_stride,
+        dst_bgr24, dst_stride,
+        &libyuv::kYvuH709Constants,
+        nv12.width, height);
+
+    return img;
+}
+
+ImageData NV21ToBGR24_Matrix(const ImageData& nv21) {
+    ImageData img;
+    img.fmt = FORMAT_BGR24;
+    img.width = nv21.width;
+    img.height = nv21.height;
+    img.stride[0] = nv21.width * 3;
+    img.stride[1] = 0;
+
+    int height = nv21.height & (~1);
+    img.plane[0].resize(nv21.width * height * 3);
+
+    const uint8_t* y_plane = nv21.plane[0].data();
+    const uint8_t* vu_plane = nv21.plane[1].data();
+    int y_stride = nv21.stride[0];
+    int vu_stride = nv21.stride[1];
+    uint8_t* dst_bgr24 = img.plane[0].data();
+    int dst_stride = nv21.width * 3;
+
+    // 使用 kYvuH709Constants 颜色矩阵 (与项目中一致)
+    libyuv::NV21ToRGB24Matrix(
+        y_plane, y_stride,
+        vu_plane, vu_stride,
+        dst_bgr24, dst_stride,
+        &libyuv::kYvuH709Constants,
+        nv21.width, height);
+
+    return img;
+}
+
 // 保存图像到文件（用于验证）
 void SaveImage(const ImageData& img, const std::string& filename) {
     cv::Mat mat;
@@ -480,7 +542,7 @@ void SaveImage(const ImageData& img, const std::string& filename) {
 }
 
 int main(int argc, char* argv[]) {
-    std::string image_path = "tmp/test_image.png";
+    std::string image_path = "tmp/test_image.jpg";
     cv::Mat src_mat = cv::imread(image_path, cv::IMREAD_COLOR);
     if (src_mat.empty()) {
         std::cerr << "Failed to load image: " << image_path << std::endl;
@@ -516,6 +578,28 @@ int main(int argc, char* argv[]) {
     }
     std::cout << std::endl;
 
+    // 3. RGB24 -> NV12
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << "Step 3: RGB24 -> NV12" << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
+    ImageData nv12_from_rgb = RGB24ToNV12(rgb24);
+    nv12_from_rgb.PrintInfo("NV12(from RGB)");
+    if (ValidateImageData(nv12_from_rgb)) {
+        std::cout << "Validation: PASSED" << std::endl;
+    }
+    std::cout << std::endl;
+
+    // 4. RGB24 -> NV21
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << "Step 4: RGB24 -> NV21" << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
+    ImageData nv21_from_rgb = RGB24ToNV21(rgb24);
+    nv21_from_rgb.PrintInfo("NV21(from RGB)");
+    if (ValidateImageData(nv21_from_rgb)) {
+        std::cout << "Validation: PASSED" << std::endl;
+    }
+    std::cout << std::endl;
+
     // 5. BGR24 -> NV12
     std::cout << "----------------------------------------" << std::endl;
     std::cout << "Step 5: BGR24 -> NV12" << std::endl;
@@ -540,7 +624,7 @@ int main(int argc, char* argv[]) {
 
     // 7. NV12 -> RGB24 (与 memop.cpp 方式一致)
     std::cout << "----------------------------------------" << std::endl;
-    std::cout << "Step 7: NV12 -> RGB24" << std::endl;
+    std::cout << "Step 7: NV12 -> RGB24 (libyuv::NV12ToRGB24)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     ImageData rgb24_from_nv12 = NV12ToRGB24(nv12_from_bgr);
     rgb24_from_nv12.PrintInfo("RGB24(from NV12)");
@@ -551,7 +635,7 @@ int main(int argc, char* argv[]) {
 
     // 8. NV21 -> RGB24 (与 memop.cpp 方式一致)
     std::cout << "----------------------------------------" << std::endl;
-    std::cout << "Step 8: NV21 -> RGB24" << std::endl;
+    std::cout << "Step 8: NV21 -> RGB24 (libyuv::NV21ToRGB24)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     ImageData rgb24_from_nv21 = NV21ToRGB24(nv21_from_bgr);
     rgb24_from_nv21.PrintInfo("RGB24(from NV21)");
@@ -562,7 +646,7 @@ int main(int argc, char* argv[]) {
 
     // 9. NV12 -> BGR24 (与 memop.cpp 方式一致：先转RGB24再用OpenCV)
     std::cout << "----------------------------------------" << std::endl;
-    std::cout << "Step 9: NV12 -> BGR24" << std::endl;
+    std::cout << "Step 9: NV12 -> BGR24 (NV12ToRGB24 + OpenCV cvtColor)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     ImageData bgr24_from_nv12 = NV12ToBGR24(nv12_from_bgr);
     bgr24_from_nv12.PrintInfo("BGR24(from NV12)");
@@ -573,11 +657,33 @@ int main(int argc, char* argv[]) {
 
     // 10. NV21 -> BGR24 (与 memop.cpp 方式一致)
     std::cout << "----------------------------------------" << std::endl;
-    std::cout << "Step 10: NV21 -> BGR24" << std::endl;
+    std::cout << "Step 10: NV21 -> BGR24 (NV21ToRGB24 + OpenCV cvtColor)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     ImageData bgr24_from_nv21 = NV21ToBGR24(nv21_from_bgr);
     bgr24_from_nv21.PrintInfo("BGR24(from NV21)");
     if (ValidateImageData(bgr24_from_nv21)) {
+        std::cout << "Validation: PASSED" << std::endl;
+    }
+    std::cout << std::endl;
+
+    // 11. NV12 -> BGR24 (使用 Matrix 版本，与 cnstream_frame_va.cpp 一致)
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << "Step 11: NV12 -> BGR24 (NV12ToRGB24Matrix + kYvuH709Constants)" << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
+    ImageData bgr24_from_nv12_matrix = NV12ToBGR24_Matrix(nv12_from_bgr);
+    bgr24_from_nv12_matrix.PrintInfo("BGR24(from NV12, Matrix)");
+    if (ValidateImageData(bgr24_from_nv12_matrix)) {
+        std::cout << "Validation: PASSED" << std::endl;
+    }
+    std::cout << std::endl;
+
+    // 12. NV21 -> BGR24 (使用 Matrix 版本，与 cnstream_frame_va.cpp 一致)
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << "Step 12: NV21 -> BGR24 (NV21ToRGB24Matrix + kYvuH709Constants)" << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
+    ImageData bgr24_from_nv21_matrix = NV21ToBGR24_Matrix(nv21_from_bgr);
+    bgr24_from_nv21_matrix.PrintInfo("BGR24(from NV21, Matrix)");
+    if (ValidateImageData(bgr24_from_nv21_matrix)) {
         std::cout << "Validation: PASSED" << std::endl;
     }
     std::cout << std::endl;
@@ -603,6 +709,8 @@ int main(int argc, char* argv[]) {
     SaveImage(bgr24_from_nv12, "tmp/output_bgr24_from_nv12.jpg");
     SaveImage(rgb24_from_nv21, "tmp/output_rgb24_from_nv21.jpg");
     SaveImage(bgr24_from_nv21, "tmp/output_bgr24_from_nv21.jpg");
+    SaveImage(bgr24_from_nv12_matrix, "tmp/output_bgr24_from_nv12_matrix.jpg");
+    SaveImage(bgr24_from_nv21_matrix, "tmp/output_bgr24_from_nv21_matrix.jpg");
 
     std::cout << std::endl;
     std::cout << "========================================" << std::endl;

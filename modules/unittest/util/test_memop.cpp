@@ -77,7 +77,7 @@ TEST(MemOp, CreateMemOp) {
   void* data_void_ptr = data.get();
   ASSERT_TRUE(data_void_ptr != nullptr);
 
-  memop->SetData(synced_mem, data_void_ptr);
+  memop->SetData(synced_mem.get(), data_void_ptr);
   buffer.data = std::move(data);
   data = nullptr;
   ASSERT_NE(buffer.data, nullptr);

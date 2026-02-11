@@ -6,22 +6,6 @@
 if(WIN32)
     message(STATUS "=== Setting up library paths for Windows ===")
     
-    # OpenCV
-    if(NOT DEFINED OpenCV_ROOT_DIR)
-        set(OpenCV_ROOT_DIR "D:/source/opencv/build/install" CACHE PATH "Folder contains OpenCV")
-        message(STATUS "OpenCV_ROOT_DIR: ${OpenCV_ROOT_DIR}")
-    else()
-        message(STATUS "OpenCV_ROOT_DIR (user defined): ${OpenCV_ROOT_DIR}")
-    endif()
-    
-    # GTest
-    if(NOT DEFINED GTEST_ROOT_DIR)
-        set(GTEST_ROOT_DIR "D:/source/googletest-1.15.2/install" CACHE PATH "Folder contains Google Test")
-        message(STATUS "GTEST_ROOT_DIR: ${GTEST_ROOT_DIR}")
-    else()
-        message(STATUS "GTEST_ROOT_DIR (user defined): ${GTEST_ROOT_DIR}")
-    endif()
-    
     # GFlags
     if(NOT DEFINED GFLAGS_ROOT_DIR)
         set(GFLAGS_ROOT_DIR "D:/source/gflags-2.3.0/install" CACHE PATH "Folder contains Gflags")
@@ -36,6 +20,22 @@ if(WIN32)
         message(STATUS "GLOG_ROOT_DIR: ${GLOG_ROOT_DIR}")
     else()
         message(STATUS "GLOG_ROOT_DIR (user defined): ${GLOG_ROOT_DIR}")
+    endif()
+
+    # GTest
+    if(NOT DEFINED GTEST_ROOT_DIR)
+        set(GTEST_ROOT_DIR "D:/source/googletest-1.15.2/install" CACHE PATH "Folder contains Google Test")
+        message(STATUS "GTEST_ROOT_DIR: ${GTEST_ROOT_DIR}")
+    else()
+        message(STATUS "GTEST_ROOT_DIR (user defined): ${GTEST_ROOT_DIR}")
+    endif()
+
+    # OpenCV
+    if(NOT DEFINED OpenCV_ROOT_DIR)
+        set(OpenCV_ROOT_DIR "D:/source/opencv/build/install" CACHE PATH "Folder contains OpenCV")
+        message(STATUS "OpenCV_ROOT_DIR: ${OpenCV_ROOT_DIR}")
+    else()
+        message(STATUS "OpenCV_ROOT_DIR (user defined): ${OpenCV_ROOT_DIR}")
     endif()
     
     message(STATUS "=== Library paths setup complete ===")

@@ -86,11 +86,11 @@ void MemOp::Copy(void* dst, const void* src, size_t size)  {
 
 int MemOp::GetDeviceId() const { return -1; }
 
-std::shared_ptr<CNSyncedMemory> MemOp::CreateSyncedMemory(size_t size) {
-  return std::make_shared<CNSyncedMemory>(size);
+std::unique_ptr<CNSyncedMemory> MemOp::CreateSyncedMemory(size_t size) {
+  return std::make_unique<CNSyncedMemory>(size);
 }
 
-void MemOp::SetData(std::shared_ptr<CNSyncedMemory> mem, void* data) {
+void MemOp::SetData(CNSyncedMemory* mem, void* data) {
   mem->SetCpuData(data);
 }
 

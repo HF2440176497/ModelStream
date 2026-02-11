@@ -6,49 +6,36 @@ if(NOT DEFINED MODELSTREAM_ROOT_PATH)
 endif()
 
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGtest.cmake)
-
 if(GTEST_FOUND)
   message(STATUS "Using installed GTest for framework unittest")
   include_directories(${GTEST_INCLUDE_DIRS})
 else()
-  if(NOT build_gtest_already)
+  if(NOT has_built_gtest)
     add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest)
-    set(build_gtest_already ON)
+    set(has_built_gtest TRUE)
   endif()
   include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
 endif()
 
 # ---[ source: framework unittest
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/core core_test_srcs)
 list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/base.cpp)
 list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
-if(TARGET modelstream_core AND (TARGET gtest OR GTEST_FOUND))
-    add_executable(modelstream_core_test ${core_test_srcs})
-    if(GTEST_FOUND)
-      # 使用系统安装的 gtest 库
-      target_link_libraries(modelstream_core_test 
-          modelstream_core
-          gflags
-          glog
-          ${GTEST_LIBRARIES}
-          gflags
-      )
-    else()
-      target_link_libraries(modelstream_core_test 
-          modelstream_core
-          gflags
-          glog
-          gtest
-          gflags
-      )
-    endif()
+include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${MODELSTREAM_ROOT_PATH})
+
+if (GTEST_FOUND and HAVE_FRAMEWORK_TARGET)
+  add_executable(modelstream_core_test ${core_test_srcs})
+  target_include_directories(modelstream_core_test PRIVATE
+    ${MODELSTREAM_ROOT_PATH}/framework/core/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  )
+  target_link_libraries(modelstream_core_test 
+      modelstream_core
+      ${GTEST_LIBRARIES}
+      ${GLOG_LIBRARIES}
+      ${GFLAGS_LIBRARIES}
+  )
 else()
-    if(NOT TARGET modelstream_core)
-        message(STATUS "modelstream_core target not found - skipping modelstream_core_test")
-    endif()
-    if(NOT TARGET gtest AND NOT GTEST_FOUND)
-        message(STATUS "gtest not found - skipping modelstream_core_test")
-    endif()
-endif()
+

@@ -19,10 +19,10 @@ class CudaMemOp : public MemOp {
   
   explicit CudaMemOp(int device_id) : device_id_(device_id) {}
   int GetDeviceId() const override { return device_id_; }
-  std::shared_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size) override;
+  std::unique_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size) override;
   std::shared_ptr<void> Allocate(size_t bytes) override;
   void Copy(void* dst, const void* src, size_t size) override;
-  void SetData(std::shared_ptr<CNSyncedMemory> mem, void* data) override;
+  void SetData(CNSyncedMemory* mem, void* data) override;
   int ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame) override;
 
  protected:

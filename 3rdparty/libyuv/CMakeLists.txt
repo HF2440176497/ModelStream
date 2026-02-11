@@ -22,6 +22,9 @@ LIST ( SORT			ly_unittest_sources )
 
 INCLUDE_DIRECTORIES( BEFORE ${ly_inc_dir} )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
 # this creates the static library (.a)
 ADD_LIBRARY				( ${ly_lib_static} STATIC ${ly_source_files} )
 

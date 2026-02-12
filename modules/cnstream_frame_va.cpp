@@ -43,11 +43,11 @@ cv::Mat YUV420SPToBGR(const DataFrame& frame, bool nv21) {
   uint8_t* dst_bgr24 = bgr.data;
   int dst_stride = width * 3;
   if (nv21)
-    libyuv::NV21ToRGB24Matrix(y_plane, y_stride, uv_plane, uv_stride,
-                              dst_bgr24, dst_stride, &libyuv::kYvuH709Constants, width, height);
+    libyuv::NV21ToRGB24(y_plane, y_stride, uv_plane, uv_stride,
+                        dst_bgr24, dst_stride, width, height);
   else
-    libyuv::NV12ToRGB24Matrix(y_plane, y_stride, uv_plane, uv_stride,
-                              dst_bgr24, dst_stride, &libyuv::kYvuH709Constants, width, height);
+    libyuv::NV12ToRGB24(y_plane, y_stride, uv_plane, uv_stride,
+                        dst_bgr24, dst_stride, width, height);
   return bgr;
 }
 

@@ -155,7 +155,7 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
       int y_stride = width;
       int uv_stride = width;
       if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
-        ret = libyuv::NV12ToRGB24(
+        ret = libyuv::NV12ToRAW(
           y_plane, y_stride,
           uv_plane, uv_stride,
           static_cast<uint8_t*>(dst), dst_stride,
@@ -166,11 +166,6 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
           uv_plane, uv_stride,
           static_cast<uint8_t*>(dst), dst_stride,
           width, height);
-        if (ret == 0) {
-          cv::Mat rgb_mat(height, width, CV_8UC3, dst);
-          cv::Mat bgr_mat(height, width, CV_8UC3, dst);
-          cv::cvtColor(rgb_mat, bgr_mat, cv::COLOR_RGB2BGR);
-        }
       } else {
         LOGE(CORE) << "MemOp::ConvertImageFormat: Unsupported destination format " 
                    << static_cast<int>(dst_fmt) << " for source NV12";
@@ -189,7 +184,7 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
       int uv_stride = width;
       
       if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
-        ret = libyuv::NV21ToRGB24(
+        ret = libyuv::NV21ToRAW(
           y_plane, y_stride,
           uv_plane, uv_stride,
           static_cast<uint8_t*>(dst), dst_stride,
@@ -200,11 +195,6 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
           uv_plane, uv_stride,
           static_cast<uint8_t*>(dst), dst_stride,
           width, height);
-        if (ret == 0) {
-          cv::Mat rgb_mat(height, width, CV_8UC3, dst);
-          cv::Mat bgr_mat(height, width, CV_8UC3, dst);
-          cv::cvtColor(rgb_mat, bgr_mat, cv::COLOR_RGB2BGR);
-        }
       } else {
         LOGE(CORE) << "MemOp::ConvertImageFormat: Unsupported destination format " 
                    << static_cast<int>(dst_fmt) << " for source NV21";

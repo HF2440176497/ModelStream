@@ -331,16 +331,21 @@ ImageData NV12ToRGB24(const ImageData& nv12) {
     int uv_stride = nv12.stride[1];
     size_t dst_stride = nv12.width * 3;
 
-    libyuv::NV12ToRGB24(
+    // libyuv::NV12ToRGB24(
+    //     y_plane, y_stride,
+    //     uv_plane, uv_stride,
+    //     img.plane[0].data(), dst_stride,
+    //     nv12.width, height);
+
+    // // BGR24->RGB24
+    // cv::Mat bgr_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
+    // cv::Mat rgb_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
+    // cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
+    libyuv::NV12ToRAW(
         y_plane, y_stride,
         uv_plane, uv_stride,
         img.plane[0].data(), dst_stride,
         nv12.width, height);
-
-    // BGR24->RGB24
-    cv::Mat bgr_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
-    cv::Mat rgb_mat(height, nv12.width, CV_8UC3, img.plane[0].data());
-    cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
 
     return img;
 }
@@ -390,17 +395,23 @@ ImageData NV21ToRGB24(const ImageData& nv21) {
     int vu_stride = nv21.stride[1];
     size_t dst_stride = nv21.width * 3;
 
-    libyuv::NV21ToRGB24(
+    // libyuv::NV21ToRGB24(
+    //     y_plane, y_stride,
+    //     vu_plane, vu_stride,
+    //     img.plane[0].data(), dst_stride,
+    //     nv21.width, height);
+    
+    // // BGR24->RGB24
+    // cv::Mat bgr_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
+    // cv::Mat rgb_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
+    // cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
+
+    libyuv::NV21ToRAW(
         y_plane, y_stride,
         vu_plane, vu_stride,
         img.plane[0].data(), dst_stride,
         nv21.width, height);
     
-    // BGR24->RGB24
-    cv::Mat bgr_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
-    cv::Mat rgb_mat(height, nv21.width, CV_8UC3, img.plane[0].data());
-    cv::cvtColor(bgr_mat, rgb_mat, cv::COLOR_BGR2RGB);
-
     return img;
 }
 
@@ -603,6 +614,7 @@ int main(int argc, char* argv[]) {
     SaveImage(bgr24_from_nv12, "tmp/output_bgr24_from_nv12.jpg");
     SaveImage(rgb24_from_nv21, "tmp/output_rgb24_from_nv21.jpg");
     SaveImage(bgr24_from_nv21, "tmp/output_bgr24_from_nv21.jpg");
+    SaveImage(bgr24_roundtrip, "tmp/output_bgr24_roundtrip.jpg");
 
     std::cout << std::endl;
     std::cout << "========================================" << std::endl;

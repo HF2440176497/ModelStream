@@ -1,6 +1,6 @@
 
-#include "include/base.hpp"
-#include "util/cnstream_allocator.hpp"
+#include "base.hpp"
+#include "cnstream_allocator.hpp"
 
 namespace cnstream {
 

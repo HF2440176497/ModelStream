@@ -28,7 +28,6 @@
 namespace cnstream {
 
 Connector::Connector(const size_t conveyor_count, size_t conveyor_capacity) {
-  // 保证至少为 1
   conveyor_count_ = conveyor_count > 0 ? conveyor_count : 1;
   conveyor_capacity_ = conveyor_capacity > 0 ? conveyor_capacity : 1;
   conveyors_.reserve(conveyor_count_);
@@ -117,7 +116,7 @@ Conveyor* Connector::GetConveyorByIdx(int idx) const {
 void Connector::EmptyDataQueue() {
   size_t conveyor_cnt = GetConveyorCount();
   for (size_t conveyor_idx = 0; conveyor_idx < conveyor_cnt; ++conveyor_idx) {
-    GetConveyorByIdx(conveyor_idx)->PopAllDataBuffer();
+    GetConveyorByIdx(conveyor_idx)->PopAllDataBuffer();  // 对应的具体队列会加锁清空
   }
 }
 

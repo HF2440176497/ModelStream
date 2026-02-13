@@ -6,8 +6,7 @@
 
 namespace cnstream {
 
-int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *decode_frame, uint64_t frame_id,
-                          const DataSourceParam &param_) {
+int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *decode_frame, uint64_t frame_id) {
   DataFramePtr frame = frame_info->collection.Get<DataFramePtr>(kDataFrameTag);
   if (!frame || !decode_frame) {
     LOGF(SOURCE) << "SourceRender::Process: frame or decode_frame is NULL";
@@ -19,13 +18,20 @@ int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *de
   frame->width = decode_frame->width;
   frame->height = decode_frame->height;
   if (decode_frame->buf_ref) {
-    IDecBufRef *ptr = decode_frame->buf_ref.release();
-    frame->deAllocator_.reset(new Deallocator(ptr));  // 转移到 deAllocator_ 指向
+    frame->deAllocator_ = std::make_unique<Deallocator>(decode_frame->buf_ref.release());  // decode_frame 中的内存转移到 frame deAllocator_, 后续由 frame 管理
+    decode_frame->buf_ref = nullptr;
   }
   // 1.2 ctx 保存目标 dev info
   // 在解码完成之后，DataSource 的模块参数不再使用，而是直接使用已得到的编码帧 decode_frame
   frame->ctx = DevContext(decode_frame->dev_type, decode_frame->device_id);
-  frame->fmt = DataFormat::PIXEL_FORMAT_BGR24;  // 统一转换为 BGR24 格式
+
+  // note: 固定为 RGB24 格式
+  frame->fmt = DataFormat::PIXEL_FORMAT_RGB24;
+  for (int i = 0; i < frame->GetPlanes(); ++i) {
+    if (i == 0) {
+      frame->stride[i] = frame->width * 3;
+    }
+  }
   // 2. 创建 memop 来拷贝图像内存
   frame->CopyToSyncMem(decode_frame);
   return 0;

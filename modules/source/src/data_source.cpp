@@ -90,9 +90,8 @@ bool DataSource::Open(ModuleParamSet paramSet) {
   if (paramSet.find(KEY_ONLY_KEY_FRAME) != paramSet.end()) {
     param_.only_key_frame_ = (paramSet[KEY_ONLY_KEY_FRAME] == "true");
   }
-  if (paramSet.find(KEY_FILE_PATH) != paramSet.end()) {
-    param_.file_path_ = paramSet[KEY_FILE_PATH];
-  }
+  param_.param_set_ = paramSet;
+  param_set_ = paramSet;  // of SourceModule, for handlers
   return true;
 }
 
@@ -110,7 +109,7 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
   ParametersChecker checker;
   for (auto &it : paramSet) {
     if (!param_register_.IsRegisted(it.first)) {
-      LOGW(SOURCE) << "[DataSource] Unknown param: " << it.first;
+      LOGW(SOURCE) << "[DataSource] Unknown param: " << it.first << "; Maybe for handler usage";
     }
   }
   std::string err_msg;
@@ -134,7 +133,7 @@ bool DataSource::CheckParamSet(const ModuleParamSet &paramSet) const {
       }
     }
   }
-  if (!checker.IsNum({KEY_INTERVAL}, paramSet, err_msg, true)) {
+  if (!checker.IsNum({KEY_INTERVAL}, paramSet, err_msg, false)) {
     LOGE(SOURCE) << "[DataSource] " << err_msg;
     return false;
   }

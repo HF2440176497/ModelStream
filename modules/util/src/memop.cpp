@@ -33,6 +33,7 @@ Buffer& MemoryBufferCollection::GetBuffer(DevType type, size_t size, int device_
     if (it->second.size >= size) {
       return it->second;
     }
+    buffers_.erase(it);
   }
   Buffer empty_buffer{nullptr, size, device_id};
   auto result = buffers_.emplace(type, std::move(empty_buffer));
@@ -146,7 +147,7 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
       break;
     }
     case DataFormat::PIXEL_FORMAT_YUV420_NV12: {
-      if (src_frame->planeNum < 2) {
+      if (src_frame->planeNum != 2) {
         LOGE(CORE) << "MemOp::ConvertImageFormat: NV12 format requires 2 planes";
         return -1;
       }
@@ -174,7 +175,7 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
       break;
     }
     case DataFormat::PIXEL_FORMAT_YUV420_NV21: {
-      if (src_frame->planeNum < 2) {
+      if (src_frame->planeNum != 2) {
         LOGE(CORE) << "MemOp::ConvertImageFormat: NV21 format requires 2 planes";
         return -1;
       }

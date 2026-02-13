@@ -8,10 +8,11 @@
 #include <vector>
 #include <cstring>
 
-
+#ifdef NVIDIA_PLATFORM
 #include "cnstream_syncmem_cuda.hpp"
-#include "cnstream_logging.hpp"
+#endif
 
+#include "cnstream_logging.hpp"
 
 
 class CNSyncedMemoryTest : public ::testing::Test {
@@ -21,6 +22,8 @@ protected:
 };
 
 namespace cnstream {
+
+#ifdef NVIDIA_PLATFORM
 
 /**
  * 在 CPU 上设置数据 —— 转移到 CUDA —— 转移回 CPU 并验证
@@ -101,4 +104,6 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   cudaFree(manual_cuda_ptr);
 }
 
-}
+#endif
+
+}  // end namespace

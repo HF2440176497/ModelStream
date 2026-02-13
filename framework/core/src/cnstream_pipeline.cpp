@@ -154,13 +154,13 @@ bool Pipeline::Start() {
 
   // start data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    // if (!node->data.parent_nodes_mask) continue;  // head node
+    if (!node->data.parent_nodes_mask) continue;  // head node
     node->data.module->GetConnector()->Start();
   }
 
   // create process threads
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    // if (!node->data.parent_nodes_mask) continue;  // head node
+    if (!node->data.parent_nodes_mask) continue;  // head node
     const auto& config = node->GetConfig();
     for (int conveyor_idx = 0; conveyor_idx < config.parallelism; ++conveyor_idx) {
       threads_.push_back(std::thread(&Pipeline::TaskLoop, this, &node->data, conveyor_idx));
@@ -185,7 +185,7 @@ bool Pipeline::Stop() {
 
   // stop data transmit
   for (auto node = graph_->DFSBegin(); node != graph_->DFSEnd(); ++node) {
-    // if (!node->data.parent_nodes_mask) continue;  // head node
+    if (!node->data.parent_nodes_mask) continue;  // head node
     auto connector = node->data.module->GetConnector();
     if (connector) {
       // push data will be rejected after Stop()
@@ -227,7 +227,10 @@ CNModuleConfig Pipeline::GetModuleConfig(const std::string& module_name) const {
   return {};
 }
 
-bool Pipeline::ProvideData(const Module* module, std::shared_ptr<FrameInfo> data) {
+/**
+ * @brief Module 通过 Pipeline 传输数据的入口
+ */
+bool Pipeline::ProvideData(const Module* module, const std::shared_ptr<FrameInfo> data) {
   // check running.
   if (!IsRunning()) {
     LOGE(CORE) << "[" << module->GetName() << "]" << " Provide data to pipeline [" << GetName() << "] failed, "
@@ -242,7 +245,7 @@ bool Pipeline::ProvideData(const Module* module, std::shared_ptr<FrameInfo> data
     return false;
   }
   // data can only created by root nodes.
-  // 非根节点时，module_mask 标记了已经过的节点，在 TransmitData - MarkPassed 中会被更新
+  // 非根节点时，module_mask 标记了已经过的节点，在后续 TransmitData - MarkPassed 中会被更新
   // 根节点时，module_mask 标记的所有 module 中不会经过节点
   // 两种节点的设置都会在后续的 TransmitData 中，这里要求只有根节点才能创建 modules_mask_ 为 0 的全新数据
   if (!data->GetModulesMask() && module->context_->parent_nodes_mask) {
@@ -264,14 +267,26 @@ bool Pipeline::IsRootNode(const std::string& module_name) const {
 bool Pipeline::IsLeafNode(const std::string& module_name) const {
   auto module = GetModule(module_name);
   if (!module) return false;
-  return module->context_->node.lock()->GetNext().empty();
+  if (module->context_->node.expired()) {
+    LOGE(CORE) << "Module named [" << module_name << "] is not created by current pipeline.";
+    return false;
+  } else {
+    auto p = module->context_->node.lock();
+    if (!p) {
+      LOGE(CORE) << "Module named [" << module_name << "] is not created by current pipeline.";
+      return false;
+    }
+    return p->GetNext().empty();
+  }
+  return false;
 }
 
 bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
   all_modules_mask_ = 0;
 
   /**
-   * 我们通过迭代器访问的都是 std::shared_ptr<typename CNGraph<T>::CNNode>
+   * 我们通过迭代器访问的都是 std::shared_ptr<typename CNGraph<NodeContext>::CNNode>
+   * 遍历过程中会增加 graph_ 中对 CNNode 的引用计数
    */
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
     const CNModuleConfig& config = node_iter->GetConfig();
@@ -281,12 +296,12 @@ bool Pipeline::CreateModules(std::vector<std::shared_ptr<Module>>* modules) {
           << "], class name : [" << config.className << "].";
       return false;
     }
-    module->context_ = &node_iter->data;  // raw pointer
+    module->context_ = &node_iter->data;  // NodeContext
     node_iter->data.node = *node_iter;  // 反向引用到 CNNode, 但是不增加引用
     node_iter->data.parent_nodes_mask = 0;
     node_iter->data.route_mask = 0;
     node_iter->data.module = std::shared_ptr<Module>(module);  // 完全控制, Module 是在图中遍历的
-    node_iter->data.module->SetContainer(this);  // 设置 Pipeline, Sasha: 可以是 weak_ref
+    node_iter->data.module->SetContainer(this);
     modules->push_back(node_iter->data.module);
     all_modules_mask_ |= 1UL << node_iter->data.module->GetId();
   }
@@ -325,7 +340,7 @@ void Pipeline::GenerateModulesMask() {
 bool Pipeline::CreateConnectors() {
   // node_iter: std::shared_ptr<CNNode> 
   for (auto node_iter = graph_->DFSBegin(); node_iter != graph_->DFSEnd(); ++node_iter) {
-    // if (!node_iter->data.parent_nodes_mask) continue;
+    if (!node_iter->data.parent_nodes_mask) continue;  // head nodes
     const auto &config = node_iter->GetConfig();
     // check if parallelism and max_input_queue_size is valid.
     if (config.parallelism <= 0 || config.maxInputQueueSize <= 0) {
@@ -429,6 +444,9 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameIn
   if (data->IsEos()) {
     // OnEos(context, data);
   }
+#ifdef UNIT_TEST
+  LOGD(CORE) << "[" << context->module->GetName() << "]" << " [" << data->stream_id << "] pass through all modules; data->IsEos = " << std::boolalpha << data->IsEos();
+#endif
 }
 
 /**
@@ -440,10 +458,11 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInf
     return;
   }
   if (!context->parent_nodes_mask) {
-    // root node
+    // head node
     // set mask to 1 for never touched modules, for case which has multiple source modules.
     data->SetModulesMask(all_modules_mask_ ^ context->route_mask);
   }
+  // 如果数据经过的是头结点，那么 
   // SetModulesMask 标记当前根节点不会经过的节点
   // 异或：相同为 0，不同为 1
 
@@ -455,7 +474,16 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInf
   }
   OnProcessEnd(context, data);
 
+  // auto node = context->node.lock();
+  if (context->node.expired()) {
+    LOGE(CORE) << "NodeContext[" << context->module->GetName() << "] is expired.";
+    return;
+  }
   auto node = context->node.lock();
+  if (!node) {
+    LOGE(CORE) << "NodeContext[" << context->module->GetName() << "] is expired.";
+    return;
+  }
   auto module = context->module;
   const uint64_t cur_mask = data->MarkPassed(module.get());
   const bool passed_by_all_modules = PassedByAllModules(cur_mask);
@@ -479,7 +507,7 @@ void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInf
 
     const int conveyor_idx = data->GetStreamIndex() % connector->GetConveyorCount();
     while (connector->IsRunning() && connector->PushDataBufferToConveyor(conveyor_idx, data) == false) {
-      if (connector->GetFailTime(conveyor_idx) % 50 == 0) {
+      if (connector->GetFailTime(conveyor_idx) % 10 == 0) {
         // Show infomation when conveyor is full in every second
         LOGD(CORE) << "[" << next_module->GetName() << " " << conveyor_idx << "] " << "Input buffer is full";
       }

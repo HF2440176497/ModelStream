@@ -12,11 +12,17 @@
 namespace cnstream {
 
 struct Buffer {
-  std::shared_ptr<void> data;
-  size_t size;
-  int device_id;
+  std::shared_ptr<void> data = nullptr;
+  size_t size = 0;
+  int device_id = -1;
+  Buffer() = default;
   Buffer(std::shared_ptr<void> d, size_t s, int dev) 
       : data(std::move(d)), size(s), device_id(dev) {}
+  ~Buffer() {
+    if (data) {
+      data.reset();
+    }
+  }
 };
 
 /**
@@ -24,6 +30,10 @@ struct Buffer {
  */
 class MemoryBufferCollection {
  public:
+  MemoryBufferCollection() = default;
+  ~MemoryBufferCollection() {
+    ClearAll();
+  }
   Buffer& GetBuffer(DevType type, size_t size, int device_id);
   bool Has(DevType type);
   Buffer* Get(DevType type);
@@ -31,7 +41,11 @@ class MemoryBufferCollection {
   void ClearAll();
   size_t GetDeviceCount();
 
+#ifdef UNIT_TEST
+ public:
+#else
  private:
+#endif
   std::map<DevType, Buffer> buffers_ {};
   std::mutex mutex_;
 };

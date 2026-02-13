@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "cnstream_common.hpp"
+#include "cnstream_config.hpp"
 #include "cnstream_module.hpp"
 
 namespace cnstream {
@@ -145,7 +146,7 @@ class SourceModule : public Module {
    *
    * @return Returns true if data is transmitted successfully, othersize returns false.
    */
-  bool SendData(std::shared_ptr<FrameInfo> data);
+  bool SendData(const std::shared_ptr<FrameInfo> data);
 
  private:
   int Process(std::shared_ptr<FrameInfo> data) override {
@@ -153,9 +154,11 @@ class SourceModule : public Module {
     LOGE(CORE) << "As a source module, Process() should not be invoked\n";
     return 0;
   }
-
-  std::mutex mutex_;
-  std::map<std::string /*stream_id*/, std::shared_ptr<SourceHandler>> source_map_;
+  std::mutex mutex_;  // lock source_map_
+  std::map<std::string, std::shared_ptr<SourceHandler>> source_map_;  // stream_id: source_handler
+ 
+ protected:
+  ModuleParamSet param_set_;
 };  // class SourceModule
 
 /**
@@ -227,7 +230,7 @@ class SourceHandler : private NonCopyable {
    * 
    * @note 调用处 handler->SendData(data)
    */
-  bool SendData(std::shared_ptr<FrameInfo> data) {
+  bool SendData(const std::shared_ptr<FrameInfo> data) {
     if (this->module_) {
       return this->module_->SendData(data);
     }
@@ -236,10 +239,16 @@ class SourceHandler : private NonCopyable {
 
   int GetStreamIndex() const { return stream_index_; }
 
+  // note: params of handler itself 
+  virtual void RegisterHandlerParams() { }
+  virtual bool CheckHandlerParams(const ModuleParamSet& params) { return true; }
+  virtual bool SetHandlerParams(const ModuleParamSet& params) { return true; }
+
  protected:
   SourceModule *module_ = nullptr;
   mutable std::string stream_id_;  // 在构造时指定
   uint32_t stream_index_ = INVALID_STREAM_IDX;
+  ParamRegister param_register_;  // check params from custom params for handler itself
 };
 
 }  // namespace cnstream

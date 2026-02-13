@@ -37,7 +37,14 @@ class DataFrame : public NonCopyable {
    *
    * @return No return value.
    */
-  DataFrame() = default;
+  DataFrame() {
+    for (int i = 0; i < CN_MAX_PLANES; ++i) {
+      data[i] = nullptr;
+    }
+    for (int i = 0; i < CN_MAX_PLANES; ++i) {
+      stride[i] = 0;
+    }
+  };
   /**
    * @brief Destructs an object.
    *
@@ -97,13 +104,13 @@ class DataFrame : public NonCopyable {
   }
 
 public:
-  MemoryBufferCollection mem_manager_;  // 内存分配集合
+  MemoryBufferCollection mem_manager_;
   std::unique_ptr<CNSyncedMemory> data[CN_MAX_PLANES];
   uint64_t frame_id = -1;                              /*!< The frame index that incremented from 0. */
 
-  DataFormat fmt;                                         /*!< The format of the frame. */
-  int width;                                                /*!< The width of the frame. */
-  int height;                                               /*!< The height of the frame. */
+  DataFormat fmt = DataFormat::INVALID;        /*!< The format of the frame. */
+  int width = 0;                                            /*!< The width of the frame. */
+  int height = 0;                                           /*!< The height of the frame. */
   int stride[CN_MAX_PLANES];                                /*!< The strides of the frame. */
   DevContext ctx;                                           /*!< The device context of SOURCE data (ptr_mlu/ptr_cpu). */
   std::unique_ptr<IDataDeallocator> deAllocator_ = nullptr;

@@ -53,9 +53,42 @@ void ImageHandler::Stop() {
   }
 }
 
+// Note: not use，handler may carry additional params
+void ImageHandler::RegisterHandlerParams() {
+  param_register_.Register(KEY_FILE_PATH, "Path to the image file.");
+  param_register_.Register(KEY_FRAMERATE, "Framerate for image display. Default is 5.");
+}
+
+bool ImageHandler::CheckHandlerParams(const ModuleParamSet& params) {
+  if (params.find(KEY_FILE_PATH) == params.end()) {
+    LOGE(SOURCE) << "[ImageHandler] file_path is required";
+    return false;
+  }
+  if (access(params.at(KEY_FILE_PATH).c_str(), F_OK) == -1) {
+    LOGE(SOURCE) << "[ImageHandler] file not found: " << params.at(KEY_FILE_PATH);
+    return false;
+  }
+  if (params.find(KEY_FRAMERATE) == params.end()) {
+    LOGE(SOURCE) << "[ImageHandler] framerate is required";
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief 保留来自 module 的 params_set_
+ */
+bool ImageHandler::SetHandlerParams(const ModuleParamSet& params) {
+  if (impl_) {
+    impl_->param_set_ = params;  // SourceModule param_set_
+  }
+  return true;
+}
+
 bool ImageHandlerImpl::Open() {
-  param_ = module_->GetSourceParam();
-  image_path_ = param_.file_path_;
+  // if you need something, just get it
+  image_path_ = param_set_.at(KEY_FILE_PATH);
+  framerate_ = std::stoi(param_set_.at(KEY_FRAMERATE));
   if (image_path_.empty() || access(image_path_.c_str(), F_OK) == -1) {
     LOGE(SOURCE) << "ImageHandlerImpl: Image path not found: " << image_path_;
     return false;
@@ -95,24 +128,24 @@ void ImageHandlerImpl::Loop() {
   FrController controller(framerate_);
   if (framerate_ > 0) controller.Start();
 
-  // note: image_handler 直接手动指定 BGR24, 视频流解码时则需要 decoder 决定
-  DecodeFrame frame(image_.rows, image_.cols, DataFormat::PIXEL_FORMAT_BGR24);
-  frame.dev_type = DevType::CPU;
-  frame.planeNum = 1;  // BGR格式使用1个平面
-  
-  // 分配内存并复制数据
-  size_t data_size = image_.rows * image_.cols * 3;  // BGR格式每个像素3字节
-  uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
-  if (!buffer) {
-    LOGE(SOURCE) << "ImageHandlerImpl: Failed to allocate memory for image data";
-    return;
-  }
-  memcpy(buffer, image_.data, data_size);
-  frame.plane[0] = buffer;
-  frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
-  frame.buf_ref = std::make_unique<MatBufRef>(buffer);
-
   while (running_.load()) {
+    // 每次循环创建新的 DecodeFrame
+    DecodeFrame frame(image_.rows, image_.cols, DataFormat::PIXEL_FORMAT_BGR24);
+    frame.dev_type = DevType::CPU;
+    frame.planeNum = 1;  // BGR格式使用1个平面
+    
+    // 分配内存并复制数据
+    size_t data_size = image_.rows * image_.cols * 3;  // BGR格式每个像素3字节
+    uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
+    if (!buffer) {
+      LOGE(SOURCE) << "ImageHandlerImpl: Failed to allocate memory for image data";
+      return;
+    }
+    memcpy(buffer, image_.data, data_size);
+    frame.plane[0] = buffer;
+    frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
+    frame.buf_ref = std::make_unique<MatBufRef>(buffer);  // 交给 MatBufRef 管理释放
+
     controller.Control();
     frame.pts += 1000 / framerate_;
     std::shared_ptr<FrameInfo> data = OnDecodeFrame(&frame);
@@ -145,7 +178,7 @@ std::shared_ptr<FrameInfo> ImageHandlerImpl::OnDecodeFrame(DecodeFrame* frame) {
     this->SendFrameInfo(data);
     return nullptr;
   }
-  int ret = SourceRender::Process(data, frame, frame_id_++, param_);
+  int ret = SourceRender::Process(data, frame, frame_id_++);
   if (ret < 0) {
     LOGE(SOURCE) << "[" << stream_id_ << "]: SetupDataFrame function, failed to setup data frame.";
     return nullptr;

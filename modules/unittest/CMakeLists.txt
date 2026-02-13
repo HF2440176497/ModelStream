@@ -23,6 +23,9 @@ include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/private)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/util)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../util/include)  # modules/util 头文件
+
 # unittest 头文件
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -42,10 +45,12 @@ if(NVIDIA_PLATFORM)
 endif()
 
 include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${MODELSTREAM_ROOT_PATH})
 have_modules_target(${MODELSTREAM_ROOT_PATH})
-if(HAVE_MODULES_TARGET)
+
+if(HAVE_FRAMEWORK_TARGET AND HAVE_MODULES_TARGET)
   foreach(module ${module_list})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../${module}/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../${module}/include)  # modules/$module_name/include
     file(GLOB_RECURSE test_${module}_srcs ${CMAKE_CURRENT_SOURCE_DIR}/${module}/*.cpp)
     list(APPEND test_srcs ${test_${module}_srcs})
   endforeach()
@@ -54,15 +59,15 @@ else()
 endif()
 
 add_executable(modelstream_modules_test ${test_srcs})
-add_dependencies(modelstream_modules_test modelstream_va)
+add_dependencies(modelstream_modules_test modelstream_va modelstream_core)
 
-set(test_link_libs "modelstream_va glog rt dl pthread")
+set(test_link_libs modelstream_va modelstream_core)
 if(NVIDIA_PLATFORM)
   list(APPEND test_link_libs ${CUDA_LIBRARIES})
 endif()
 
 if(GTEST_FOUND)
-  target_link_libraries(modelstream_modules_test ${test_link_libs} ${GTEST_LIBRARIES} gflags)
+  target_link_libraries(modelstream_modules_test ${test_link_libs} ${GTEST_LIBRARIES} glog gflags rt dl pthread)
 else()
-  target_link_libraries(modelstream_modules_test ${test_link_libs} gtest gflags)
+  target_link_libraries(modelstream_modules_test ${test_link_libs} gtest glog gflags rt dl pthread)
 endif()

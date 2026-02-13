@@ -25,6 +25,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "cnstream_config.hpp"
+
 namespace cnstream {
 
 inline constexpr uint32_t CN_MAX_PLANES = 3;
@@ -145,6 +147,10 @@ struct DecodeFrame {
   DecodeFrame(int height, int width, DataFormat fmt = DataFormat::PIXEL_FORMAT_BGR24) : height(height), width(width), fmt(fmt) {
     valid = true;
     pts = 0;
+    for (int i = 0; i < CN_MAX_PLANES; ++i) {
+      plane[i] = nullptr;
+      stride[i] = 0;
+    }
   }
   bool valid;
   int64_t pts;
@@ -161,7 +167,12 @@ struct DecodeFrame {
   std::unique_ptr<IDecBufRef> buf_ref = nullptr;
 
  public:
-  ~DecodeFrame() {}
+  ~DecodeFrame() {
+    // note: DecodeFrame 不负责 plane 的内存管理
+    for (int i = 0; i < CN_MAX_PLANES; ++i) {
+      plane[i] = nullptr;
+    }
+  }
 };
 
 
@@ -182,7 +193,9 @@ inline const std::string KEY_DEVICE_ID = "device_id";
 inline const std::string KEY_INTERVAL = "interval";
 inline const std::string KEY_DECODER_TYPE = "decoder_type";
 inline const std::string KEY_ONLY_KEY_FRAME = "only_key_frame";
+
 inline const std::string KEY_FILE_PATH = "file_path";
+inline const std::string KEY_FRAMERATE = "framerate";
 
 /*!
  * @brief DataSourceParam is a structure for private usage.
@@ -193,7 +206,7 @@ struct DataSourceParam {
   OutputType output_type_ = OutputType::OUTPUT_CPU;     /*!< The output type */
   DecoderType decoder_type_ = DecoderType::DECODER_CPU; /*!< The decoder type. */
   bool only_key_frame_ = false;                         /*!< Whether only to decode key frames. */
-  std::string file_path_ = "";                          /*!< The file path of the video or image file. */
+  ModuleParamSet param_set_ {};
 };
 }  // namespace cnstream
 

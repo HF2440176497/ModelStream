@@ -155,7 +155,7 @@ void DataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
       this->data[i] = memop->CreateSyncedMemory(plane_bytes);
       memop->SetData(this->data[i].get(), decode_frame->plane[i]);
     }
-    return;
+    return;  // 此时仍由 deAllocator_ 管理内存
   }
   // 2. 分配内存-格式转换-创建SyncedMemory
   size_t bytes = GetBytes();
@@ -180,8 +180,8 @@ void DataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
     dst_plane = static_cast<uint8_t*>(dst_plane) + plane_bytes;
   }
   Buffer& buffer = mem_manager_.GetBuffer(ctx.dev_type, bytes, ctx.dev_id);
-  buffer.data = std::move(dst_buffer);  // buffer.data 会自动管理生命周期
-  this->deAllocator_.reset();  // 非零拷贝场景，确保释放
+  buffer.data = std::move(dst_buffer);
+  this->deAllocator_.reset();  // 非零拷贝场景，确保释放; 交给 buffer.data 管理生命周期
 }
 
 // bool CNInferObject::AddAttribute(const std::string& key, const CNInferAttr& value) {

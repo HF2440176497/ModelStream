@@ -152,10 +152,20 @@ bool CNModuleConfig::ParseByJSONStr(const std::string& jstr) {
     for (auto it = doc[key_custom_params].begin(); it != doc[key_custom_params].end(); ++it) {
       const std::string& key = it.key();
       const nlohmann::ordered_json& value = it.value();
-      this->parameters.insert(std::make_pair(key, value.dump()));
+      std::string str_value;
+      if (value.is_string()) {
+        str_value = value.get<std::string>();
+      } else {
+        str_value = value.dump();
+      }
+      this->parameters.insert(std::make_pair(key, str_value));
     }
-    // TODO: pipeline.json 配置文件所在目录，需要检查 CNS_JSON_DIR_PARAM_NAME 的使用
-    this->parameters.insert(std::make_pair(CNS_JSON_DIR_PARAM_NAME, config_root_dir));
+    if (this->parameters.end() != this->parameters.find(CNS_JSON_DIR_PARAM_NAME)) {
+      config_root_dir = this->parameters[CNS_JSON_DIR_PARAM_NAME];
+      LOGW(CORE) << "Parameter [" << CNS_JSON_DIR_PARAM_NAME << "]  is manually set as [" << config_root_dir << "]";
+    } else {
+      this->parameters.insert(std::make_pair(CNS_JSON_DIR_PARAM_NAME, config_root_dir));
+    }
   } else {
     this->parameters = {};
   }
@@ -191,6 +201,12 @@ bool CNGraphConfig::ParseByJSONStr(const std::string& json_str) {
   return true;
 }
 
+/**
+ * @brief 如果 path 是绝对路径，直接返回；否则，返回相对于 json_file_dir 参数目录的路径
+ * @param path 
+ * @param param_set 
+ * @note CheckPath 调用
+ */
 std::string GetPathRelativeToTheJSONFile(const std::string& path, const ModuleParamSet& param_set) {
   std::string jsf_dir = "./";
   // pipeline json dir

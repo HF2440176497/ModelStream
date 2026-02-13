@@ -48,7 +48,6 @@
 #include "util/cnstream_rwlock.hpp"
 
 #include "private/cnstream_module_pri.hpp"
-
 #include "profiler/module_profiler.hpp"
 
 namespace cnstream {
@@ -157,7 +156,6 @@ class Module : private NonCopyable {
    * @note This function will be invoked when flow-EOS is forwarded by the framework.
    */
   virtual void OnEos(const std::string &stream_id) {}
-  // TODO: CNstream 的编解码模块进行了重写，此项目暂时未用到
 
   /**
    * @brief Gets the name of this module.
@@ -221,6 +219,8 @@ class Module : private NonCopyable {
    * @brief Gets module profiler.
    *
    * @return Returns a pointer to the module's profiler.
+   * 
+   * @note ModuleProfiler 是在 Pipeline 中管理的，此函数通过 pipeline 成员来获取对应的 ModuleProfiler
    */
   ModuleProfiler* GetProfiler();
 
@@ -271,7 +271,7 @@ class Module : private NonCopyable {
    */
   int DoProcess(std::shared_ptr<FrameInfo> data);
 
-  int DoTransmitData(std::shared_ptr<FrameInfo> data);
+  int DoTransmitData(const std::shared_ptr<FrameInfo> data);
 
   Pipeline *container_ = nullptr;  ///< The container.
   RwLock container_lock_;

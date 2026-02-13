@@ -45,7 +45,6 @@
 
 namespace cnstream {
 
-// cnstream_module 将包含 module_pri.hpp
 class Module;
 
 // Group:Framework Function

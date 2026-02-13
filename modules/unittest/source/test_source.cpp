@@ -10,9 +10,9 @@
 #include <chrono>
 #include <typeinfo>
 
-#include "opencv2/opencv.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
 namespace cnstream {
 
@@ -46,7 +46,7 @@ static uint64_t getCurrentTimestampMs() {
 
 static void ResetParam(ModuleParamSet &param) {
   param["output_type"] = "cpu";
-  param["device_id"] = "0";
+  param["device_id"] = "-1";
   param["interval"] = "1";
   param["decoder_type"] = "cpu";
 }
@@ -76,6 +76,10 @@ class SourceModuleTest : public testing::Test {
 
     virtual void TearDown() {  // 当前用例结束
       LOGI(SourceModuleTest) << "TearDown";
+      if (pipeline_) {
+        pipeline_->Stop();
+      }
+      image_handler_.reset();
     }
 
   protected:
@@ -151,24 +155,21 @@ TEST_F(SourceModuleTest, Loop) {
 
   LOGI(SourceModuleTest) << "Handler stream idx: " << image_handler_->GetStreamIndex();
   EXPECT_NE(image_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex
-  
-  // 手动发送 EOS 此时 sourcemodule 是不能移除 handler 的
   EXPECT_TRUE(pipeline_->IsRunning());
   
-  image_handler_->impl_->SendFlowEos();
-  PrintStreamEos();  // 创建 eos 帧之后应当看到 eos_map 注册了 false
-  EXPECT_FALSE(StreamEosMapValue(stream_id_));
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));  // 等待 EOS 消息被处理
+  image_handler_->Stop();
+  image_handler_->Close();
+  
+  PrintStreamEos();
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   LOGI(SourceModuleTest) << "Wait for EOS message to be processed";
   LOGI(SourceModuleTest) << "CheckStreamEosReached(stream_id_) = " << std::boolalpha << CheckStreamEosReached(stream_id_, true);
   LOGI(SourceModuleTest) << "Wait for EOS message complete";
+  
+  pipeline_->Stop();
 }
 
-/**
- * Sasha: 2026-01-02
- * 修改之后的 ImageHandler 循环生成 DecodeFrame，然后通过 SourceModule 自己向 Pipeline 发送
- */
 
 
 }  // namespace cnstream

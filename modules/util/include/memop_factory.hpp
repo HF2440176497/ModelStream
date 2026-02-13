@@ -6,6 +6,7 @@
 #include <functional>
 #include <mutex>
 
+#include "cnstream_logging.hpp"
 #include "data_source_param.hpp"
 
 namespace cnstream {
@@ -19,7 +20,7 @@ class MemOp;
  * MemOpFactory采用单例模式，允许不同硬件平台的MemOp实现通过注册机制加入，而不需要修改通用代码。
  */
 class MemOpFactory {
-public:
+ public:
   /**
    * @brief 获取MemOpFactory的单例实例
    * @return 返回MemOpFactory的唯一实例
@@ -44,13 +45,14 @@ public:
    */
   std::unique_ptr<MemOp> CreateMemOp(DevType dev_type, int dev_id);
 
-private:
+ private:
   MemOpFactory();
   ~MemOpFactory();
   MemOpFactory(const MemOpFactory&) = delete;
   MemOpFactory& operator=(const MemOpFactory&) = delete;
 
 #ifdef UNIT_TEST
+ public:
   void PrintRegisteredCreators() {
     LOGI(MEMOP_FACTORY) << "PrintRegisteredCreators size: " << creators_.size();
     for (const auto& pair : creators_) {
@@ -60,7 +62,7 @@ private:
   }
 #endif
 
-private:
+ private:
   struct DevTypeHash {
     template <typename T>
     std::size_t operator()(const T& dev_type) const {

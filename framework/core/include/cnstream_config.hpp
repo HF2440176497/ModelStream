@@ -138,8 +138,8 @@ struct ProfilerConfig : public CNConfigBase {
  * @endcode
  */
 struct CNModuleConfig : public CNConfigBase {
-  std::string name;  ///< The name of the module.
-  std::map<std::string, std::string> parameters;         ///< The key-value pairs. The pipeline passes this value to the CNModuleConfig::name module.
+  std::string                        name;           ///< The name of the module.
+  std::map<std::string, std::string> parameters;  ///< The key-value pairs. custom parameters of the module.
   int parallelism;        ///< Module parallelism. It is equal to module thread number or the data queue of input data.
   int maxInputQueueSize;  ///< The maximum size of the input data queues.
   std::string           className;  ///< The class name of the module.
@@ -209,7 +209,7 @@ struct CNGraphConfig : public CNConfigBase {
  */
 class ParamRegister {
  private:
-  std::vector<std::pair<std::string /*key*/, std::string /*desc*/>> module_params_;
+  std::vector<std::pair<std::string /*key*/, std::string /*desc*/>> module_params_ {};
   std::string module_desc_;
 
  public:
@@ -303,13 +303,13 @@ class ParametersChecker {
    * @param[in] check_list A list of parameter names.
    * @param[in] paramSet The module parameters.
    * @param[out] err_msg The error message.
-   * @param[in] greater_than_zero If this parameter is set to ``true``, the parameter set should be
-   * greater than or equal to zero. If this parameter is set to ``false``, the parameter set is less than zero.
+   * @param[in] allow_negative If this parameter is set to ``true`` (default), negative numbers are allowed.
+   *                           If set to ``false``, the parameter must be non-negative (>= 0).
    *
    * @return Returns true if the parameters are number and the value is in the correct range. Otherwise, returns false.
    */
-  bool IsNum(const std::list<std::string> &check_list, const ModuleParamSet &paramSet, std::string &err_msg,  // NOLINT
-             bool greater_than_zero = false) {
+  bool IsNum(const std::list<std::string> &check_list, const ModuleParamSet &paramSet, std::string &err_msg,
+             bool allow_negative = true) {
     for (auto &it : check_list) {
       if (paramSet.find(it) != paramSet.end()) {
         std::stringstream sin(paramSet.find(it)->second);
@@ -323,11 +323,9 @@ class ParametersChecker {
           err_msg = "[" + it + "] : " + paramSet.find(it)->second + " is not a number.";
           return false;
         }
-        if (greater_than_zero) {
-          if (d < 0) {
-            err_msg = "[" + it + "] : " + paramSet.find(it)->second + " must be greater than zero.";
-            return false;
-          }
+        if (!allow_negative && d < 0) {
+          err_msg = "[" + it + "] : " + paramSet.find(it)->second + " must be non-negative (>= 0).";
+          return false;
         }
       }
     }

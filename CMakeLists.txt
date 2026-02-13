@@ -25,7 +25,7 @@ set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 
 option(build_modules "build modules" ON)
-option(build_tests "build unit tests" OFF)
+option(build_tests "build unit tests" ON)
 option(build_libyuv "build libyuv" ON)
 option(build_tools "build tools" ON)
 option(build_python_api "build python api" OFF)

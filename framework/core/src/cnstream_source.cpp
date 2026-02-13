@@ -86,6 +86,15 @@ int SourceModule::AddSource(std::shared_ptr<SourceHandler> handler) {
     LOGE(CORE) << "handler is null";
     return -1;
   }
+  // param_set_ set in DataSource::Open
+  if (!handler->CheckHandlerParams(param_set_)) {
+    LOGE(CORE) << "handler check params failed";
+    return -1;
+  }
+  if (!handler->SetHandlerParams(param_set_)) {
+    LOGE(CORE) << "handler set params failed";
+    return -1;
+  }
   std::string stream_id = handler->GetStreamId();
   std::unique_lock<std::mutex> lock(mutex_);
   if (source_map_.find(stream_id) != source_map_.end()) {
@@ -250,7 +259,7 @@ int SourceModule::RemoveSources(bool force) {
  * 调用处：SourceHandler::SendData
  * @note 目前我们只用在 EOS 帧的情况下会用到
  */
-bool SourceModule::SendData(std::shared_ptr<FrameInfo> data) {
+bool SourceModule::SendData(const std::shared_ptr<FrameInfo> data) {
   if (!data->IsEos() && IsStreamRemoved(data->stream_id)) {
     return false;
   }

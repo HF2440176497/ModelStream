@@ -61,13 +61,6 @@ class Connector : private NonCopyable {
   explicit Connector(const size_t conveyor_count, size_t conveyor_capacity = 20);
   ~Connector();
 
-  // 使用 unique_ptr 不允许拷贝语义 
-  Connector(const Connector&) = delete;
-  Connector& operator=(const Connector&) = delete;
-  
-  Connector(Connector&&) = default;
-  Connector& operator=(Connector&&) = default;
-
   const size_t GetConveyorCount() const;
   size_t GetConveyorCapacity() const;
   bool IsConveyorFull(int conveyor_idx) const;
@@ -91,7 +84,6 @@ class Connector : private NonCopyable {
   Conveyor* GetConveyorByIdx(int idx) const;
   Conveyor* GetConveyor(int conveyor_idx) const;
 
-  // std::vector<Conveyor*> conveyors_;
   std::vector<std::unique_ptr<Conveyor>> conveyors_;
   size_t conveyor_count_ = 0;
   size_t conveyor_capacity_ = 20;

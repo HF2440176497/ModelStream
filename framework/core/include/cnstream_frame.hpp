@@ -156,7 +156,7 @@ class FrameInfo : private NonCopyable {
   uint64_t GetModulesMask();
   uint64_t MarkPassed(Module* current);  // return changed mask
 
-  std::mutex mask_lock_;
+  mutable std::mutex mask_lock_;
   /* Identifies which modules have processed this data */
   uint64_t modules_mask_ = 0;
 

@@ -36,62 +36,7 @@
 #include "private/cnstream_constants_pri.hpp"
 
 
-// 弃用标记
-#if defined(__GNUC__) || defined(__clang__)
-#define CNS_DEPRECATED __attribute__((deprecated))
-#elif defined(_MSC_VER)
-#define CNS_DEPRECATED __declspec(deprecated)
-#else
-#error You need to implement CNS_DEPRECATED for this compiler
-#define CNS_DEPRECATED
-#endif
-
-// 临时忽略弃用警告
-#if defined(__GNUC__)
-#define CNS_IGNORE_DEPRECATED_PUSH \
-  _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
-#define CNS_IGNORE_DEPRECATED_POP _Pragma("GCC diagnostic pop")
-#elif defined(__clang__)
-#define CNS_IGNORE_DEPRECATED_PUSH \
-  _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
-#define CNS_IGNORE_DEPRECATED_POP _Pragma("clang diagnostic pop")
-#elif defined(_MSC_VER) && _MSC_VER >= 1400
-#define CNS_IGNORE_DEPRECATED_PUSH \
-  __pragma(warning(push)) __pragma(warning(disable : 4996)) #define CNS_IGNORE_DEPRECATED_POP __pragma(warning(pop))
-#else
-#error You need to implement CNS_IGNORE_DEPRECATED_PUSH and  \
-    CNS_IGNORE_DEPRECATED_POP for this compiler
-#define CNS_IGNORE_DEPRECATED_PUSH
-#define CNS_IGNORE_DEPRECATED_POP
-#endif
-
 namespace cnstream {
-/*!
- * @enum CNPixelFormat
- *
- * @brief Enumeration variables describing the picture formats
- */
-enum class CNPixelFormat {
-  YUV420P = 0,  /*!< The format with planar Y4-U1-V1, I420 */
-  RGB24,        /*!< The format with packed R8G8B8 */
-  BGR24,        /*!< The format with packed B8G8R8 */
-  NV21,         /*!< The format with semi-Planar Y4-V1U1 */
-  NV12,         /*!< The format with semi-Planar Y4-U1V1 */
-  I422,         /*!< The format with semi-Planar I422 */
-  I444,         /*!< The format with semi-Planar I444 */
-};
-
-/*!
- * @enum CNCodecType
- *
- * @brief Enumeration variables describing the codec types
- */
-enum class CNCodecType {
-  H264 = 0,  /*!< The H264 codec type */
-  HEVC,      /*!< The HEVC codec type */
-  MPEG4,     /*!< The MPEG4 codec type */
-  JPEG       /*!< The JPEG codec type */
-};
 
 /*!
  * @class NonCopyable
@@ -156,6 +101,8 @@ void SetStreamRemoved(const std::string &stream_id, bool value = true);
 bool IsStreamRemoved(const std::string &stream_id);
 
 void PrintStreamEos();
+
+bool StreamEosMapValue(const std::string &stream_id);
 
 /**
  * @brief

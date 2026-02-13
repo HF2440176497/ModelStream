@@ -95,4 +95,14 @@ void PrintStreamEos() {
   std::cout << std::endl;
 }
 
+bool StreamEosMapValue(const std::string &stream_id) {
+  std::lock_guard<std::mutex> guard(s_eos_lock_);
+  auto iter = s_stream_eos_map_.find(stream_id);
+  if (iter != s_stream_eos_map_.end()) {
+    return iter->second.load();
+  }
+  LOGW(CORE) << "StreamEosMapValue, stream_id not found " << stream_id;
+  return false;
+}
+
 }  // namespace cnstream

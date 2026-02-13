@@ -1,9 +1,11 @@
 
-
-#include "util/include/memop_factory.hpp"
-#include "util/include/memop.hpp"
+#include "data_source_param.hpp"
+#include "memop_factory.hpp"
+#include "memop.hpp"
 
 #include "base.hpp"
+
+namespace cnstream {
 
 /**
  * @brief 创建一个测试用的 DecodeFrame
@@ -18,7 +20,13 @@ DecodeFrame* CreateTestDecodeFrame(DataFormat fmt, int width, int height) {
   frame->width = width;
   frame->height = height;
   frame->device_id = -1;
-  
+  frame->planeNum = 0;
+
+  // note: 一定确保为空，否则存在 plane[i] 为野指针，释放时引起错误
+  for (int i = 0; i < CN_MAX_PLANES; ++i) {
+    frame->plane[i] = nullptr;
+    frame->stride[i] = 0;
+  }
   size_t frame_size = 0;
   if (fmt == DataFormat::PIXEL_FORMAT_BGR24 || 
       fmt == DataFormat::PIXEL_FORMAT_RGB24) {
@@ -47,7 +55,6 @@ void CleanupTestDecodeFrame(DecodeFrame* frame) {
   }
 }
 
-namespace cnstream {
 
 TEST(MemOpFactory, RegisterMemOpCreator) {
   auto& factory = MemOpFactory::Instance();
@@ -62,13 +69,14 @@ TEST(MemOp, CreateMemOp) {
   auto memop = factory.CreateMemOp(DevType::CPU, -1);
   ASSERT_TRUE(memop != nullptr);
 
+  size_t bytes = 64 * 1024;
+
   // Mem Manager
   auto mem_manager = cnstream::MemoryBufferCollection();
-  Buffer& buffer = mem_manager.GetBuffer(DevType::CPU, bytes);
+  Buffer& buffer = mem_manager.GetBuffer(DevType::CPU, bytes, -1);
   EXPECT_TRUE(mem_manager.Has(DevType::CPU));
   ASSERT_EQ(buffer.data, nullptr);  // 首先注册时，Data 为空
 
-  size_t bytes = 64 * 1024;
   auto synced_mem = memop->CreateSyncedMemory(bytes);
   ASSERT_TRUE(synced_mem != nullptr);
 
@@ -83,12 +91,18 @@ TEST(MemOp, CreateMemOp) {
   ASSERT_NE(buffer.data, nullptr);
 
   // 2. 尝试再申请一个新 Buffer
-  size_t test_size = 2 * bytes;  
-  Buffer& new_buffer = mem_manager.GetBuffer(DevType::CPU, test_size, -1);
+  size_t test_size = 2 * bytes;
+  EXPECT_EQ(mem_manager.buffers_.size(), 1);  // CPU
+  Buffer& new_buffer = mem_manager.GetBuffer(DevType::CUDA, test_size, -1);
   EXPECT_EQ(new_buffer.size, test_size);
   EXPECT_EQ(new_buffer.device_id, -1);
-  EXPECT_TRUE(mem_manager.Has(DevType::CPU));
-  EXPECT_EQ(mem_manager.GetDeviceCount(), 1);  // 只会含有一个 CPU Buffer
+  EXPECT_TRUE(mem_manager.Has(DevType::CUDA));
+  EXPECT_EQ(mem_manager.GetDeviceCount(), 1 + 1);  // 只会含有一个 CPU Buffer
+  EXPECT_NE(&new_buffer, &buffer);  // 两者地址不同
+
+  mem_manager.ClearAll();
+  EXPECT_EQ(mem_manager.buffers_.size(), 0);
+  new_buffer = mem_manager.GetBuffer(DevType::CPU, test_size, -1);
   EXPECT_NE(&new_buffer, &buffer);  // 两者地址不同
   
   // 重新取出并对比 应该等于第二次放入的更大的 Buffer

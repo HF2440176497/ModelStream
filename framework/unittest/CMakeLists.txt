@@ -25,7 +25,7 @@ list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
 have_framework_target(${MODELSTREAM_ROOT_PATH})
 
-if (GTEST_FOUND and HAVE_FRAMEWORK_TARGET)
+if (GTEST_FOUND AND HAVE_FRAMEWORK_TARGET)
   add_executable(modelstream_core_test ${core_test_srcs})
   target_include_directories(modelstream_core_test PRIVATE
     ${MODELSTREAM_ROOT_PATH}/framework/core/include
@@ -37,5 +37,5 @@ if (GTEST_FOUND and HAVE_FRAMEWORK_TARGET)
       ${GLOG_LIBRARIES}
       ${GFLAGS_LIBRARIES}
   )
-else()
+endif()
 

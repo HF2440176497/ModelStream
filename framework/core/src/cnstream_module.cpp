@@ -85,7 +85,7 @@ bool Module::PostEvent(Event e) {
  * @return 1 传输成功
  * @return 0 传输失败
  */
-int Module::DoTransmitData(std::shared_ptr<FrameInfo> data) {
+int Module::DoTransmitData(const std::shared_ptr<FrameInfo> data) {
   RwLockReadGuard guard(container_lock_);
   if (container_) {
     return container_->ProvideData(this, data);

@@ -249,7 +249,7 @@ class Pipeline : private NonCopyable {
    *
    * @see Module::Process.
    */
-  bool ProvideData(const Module* module, std::shared_ptr<FrameInfo> data);
+  bool ProvideData(const Module* module, const std::shared_ptr<FrameInfo> data);
   /**
    * @brief Gets the event bus in the pipeline.
    *

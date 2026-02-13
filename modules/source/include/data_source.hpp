@@ -114,6 +114,10 @@ class ImageHandler : public SourceHandler {
   void Stop() override;
   void Close() override;
 
+  void RegisterHandlerParams() override;
+  bool CheckHandlerParams(const ModuleParamSet& params) override;
+  bool SetHandlerParams(const ModuleParamSet& params) override;
+
  private:
   explicit ImageHandler(DataSource *module, const std::string &stream_id);
 

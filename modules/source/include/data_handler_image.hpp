@@ -31,11 +31,13 @@ class ImageHandlerImpl: public SourceRender {
     }
     void* data_;
   };
+
+ friend class ImageHandler;
+
  public:
   explicit ImageHandlerImpl(DataSource *module, SourceHandler *handler)
       : SourceRender(handler), module_(module), stream_id_(handler->GetStreamId()) {}
   
-  // Impl 接口通过 SourceHandler 调用
   bool Open();
   void Close();
   void Stop();
@@ -51,13 +53,14 @@ public:
  private:
 #endif
   std::atomic<bool> running_{false};
-  int framerate_ = 5;
+
   std::string image_path_;
+  int framerate_ = 10;
+
   cv::Mat image_;
   std::thread thread_;  // consumer thread
   DataSource *module_;
   std::string stream_id_;
-  DataSourceParam param_;  // from DataSource
 };
 
 }  // namespace cnstream

@@ -138,10 +138,10 @@ struct ProfilerConfig : public CNConfigBase {
  * @endcode
  */
 struct CNModuleConfig : public CNConfigBase {
-  std::string                        name;           ///< The name of the module.
+  std::string                        name;        ///< The name of the module.
   std::map<std::string, std::string> parameters;  ///< The key-value pairs. custom parameters of the module.
-  int parallelism;        ///< Module parallelism. It is equal to module thread number or the data queue of input data.
-  int maxInputQueueSize;  ///< The maximum size of the input data queues.
+  int parallelism = 1;  ///< Module parallelism. It is equal to module thread number or the data queue of input data.
+  int maxInputQueueSize = 20;       ///< The maximum size of the input data queues.
   std::string           className;  ///< The class name of the module.
   std::set<std::string> next;       ///< The name of the downstream modules.
   bool                  ParseByJSONStr(const std::string &jstr) override;
@@ -154,7 +154,6 @@ struct CNModuleConfig : public CNConfigBase {
   std::string key_next_modules = "next_modules";                  ///< The key of next_modules.
   std::string key_custom_params = "custom_params";                ///< The key of custom_params.
 };
-
 
 /**
  * @struct CNGraphConfig

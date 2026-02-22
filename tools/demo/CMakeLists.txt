@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..
-        CACHE INTERNAL "Top-level directory of this project")
-endif()
+set(DEMO_SOURCES
+    json_parse_demo.cpp
+    libyuv_demo.cpp
+)
 
-file(GLOB DEMO_SOURCES "*.cpp")
+if(NVIDIA_PLATFORM)
+    list(APPEND DEMO_SOURCES cuda/transfmt_cuda_demo.cpp)
+endif()
 
 foreach(demo_source ${DEMO_SOURCES})
     get_filename_component(demo_name ${demo_source} NAME_WE)

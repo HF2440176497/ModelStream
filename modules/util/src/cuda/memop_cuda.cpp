@@ -5,6 +5,7 @@
 #include "cuda/memop_cuda.hpp"
 #include "cuda/cuda_check.hpp"
 #include "cuda/cnstream_sysncmem_cuda.hpp"
+#include "cuda/transfmt_cuda.cuh"
 
 namespace cnstream {
 
@@ -52,7 +53,17 @@ void CudaMemOp::SetData(CNSyncedMemory* mem, void* data) {
  * @brief 使用 CUDA, 将解码帧转换为 dst_fmt 格式
  */
 int CudaMemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame) {
+  int width = src_frame->width;
+  int height = src_frame->height;
+  if (dst_fmt != DataFormat::PIXEL_FORMAT_BGR24 &&
+      dst_fmt != DataFormat::PIXEL_FORMAT_RGB24) {
+    LOGE(CORE) << "MemOp::ConvertImageFormat: Unsupported destination format " 
+               << static_cast<int>(dst_fmt);
+    return -1;
+  }
 
+
+  
 
   return 0;
 }

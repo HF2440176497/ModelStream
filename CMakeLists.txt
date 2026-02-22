@@ -48,7 +48,6 @@ if (build_libyuv)
   set(LIBYUV_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   set(LIBYUV_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libyuv)
-  set(has_built_libyuv TRUE)
 endif()
 
 if(build_tests)

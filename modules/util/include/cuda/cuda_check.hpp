@@ -13,22 +13,25 @@ namespace cnstream {
 #define CHECK_CUDA_RUNTIME(op) __check_cuda_runtime((op), #op, __FILE__, __LINE__)
 
 bool __check_cuda_runtime(cudaError_t code, const char* op, const char* file, int line) {
-	if (code != cudaSuccess) {
-		const char* err_name = cudaGetErrorName(code);
-		const char* err_message = cudaGetErrorString(code);
-		printf("check_cuda_runtime error %s:%d  %s failed. \n  code = %s, message = %s\n", file, line, op, err_name, err_message);
-		return false;
-	}
-	return true;
+  if (code != cudaSuccess) {
+    const char* err_name = cudaGetErrorName(code);
+    const char* err_message = cudaGetErrorString(code);
+    printf("check_cuda_runtime error %s:%d  %s failed. \n  code = %s, message = %s\n", 
+		file, line, op, err_name, err_message);
+    return false;
+  }
+  return true;
 }
 
-#define CHECK_CUDA_KERNEL(...)                                                                         \
-    __VA_ARGS__;                                                                                     \
-    do{cudaError_t cudaStatus = cudaPeekAtLastError();                                               \
-    if (cudaStatus != cudaSuccess){                                                                  \
-        INFO("launch failed: %s", cudaGetErrorString(cudaStatus));                                  \
-    }} while(0);
+#define CHECK_CUDA_KERNEL(...)                                   \
+  __VA_ARGS__;                                                   \
+  do {                                                           \
+    cudaError_t cudaStatus = cudaPeekAtLastError();              \
+    if (cudaStatus != cudaSuccess) {                             \
+      INFO("launch failed: %s", cudaGetErrorString(cudaStatus)); \
+    }                                                            \
+  } while (0);
 
-}
+}  // namespace cnstream
 
 #endif  // CUDA_CHECK_HPP_

@@ -41,6 +41,8 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <sstream>
+#include <string>
 
 #include "cnstream_common.hpp"
 #include "data_source_param.hpp"  // DevContext, DataFormat
@@ -67,6 +69,13 @@ enum class SyncedHead {
  */
 class CNSyncedMemory : private NonCopyable {
  public:
+  struct StatusInfo {
+    size_t size = 0;
+    int dev_id = -1;
+    SyncedHead head = SyncedHead::UNINITIALIZED;
+    bool own_cpu_data = false;
+  };
+
   explicit CNSyncedMemory(size_t size);
   explicit CNSyncedMemory(size_t size, int dev_id);
   virtual ~CNSyncedMemory();
@@ -118,6 +127,34 @@ class CNSyncedMemory : private NonCopyable {
    * @return Returns data bytes.
    */
   size_t GetSize() const { return size_; }
+
+  StatusInfo GetStatusInfo() const {
+    StatusInfo info;
+    info.size = size_;
+    info.dev_id = dev_id_;
+    info.head = head_;
+    info.own_cpu_data = (cpu_ptr_ != nullptr);
+    return info;
+  }
+
+  std::string StatusToString() const {
+    StatusInfo info = GetStatusInfo();
+    std::string head_str;
+    switch (info.head) {
+      case SyncedHead::UNINITIALIZED: head_str = "UNINITIALIZED"; break;
+      case SyncedHead::HEAD_AT_CPU: head_str = "HEAD_AT_CPU"; break;
+      case SyncedHead::HEAD_AT_CUDA: head_str = "HEAD_AT_CUDA"; break;
+      case SyncedHead::HEAD_AT_NPU: head_str = "HEAD_AT_NPU"; break;
+      case SyncedHead::SYNCED: head_str = "SYNCED"; break;
+      default: head_str = "UNKNOWN"; break;
+    }
+    std::ostringstream oss;
+    oss << "CNSyncedMemory{size=" << info.size
+        << ", dev_id=" << info.dev_id
+        << ", head=" << head_str
+        << ", own_cpu_data=" << std::boolalpha << info.own_cpu_data << "}";
+    return oss.str();
+  }
 
 public:
   virtual void ToCpu();

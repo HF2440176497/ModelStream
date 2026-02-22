@@ -451,6 +451,7 @@ void Pipeline::OnPassThrough(NodeContext* context, const std::shared_ptr<FrameIn
 
 /**
  * @note: 数据传输的核心函数，在 Module 处理完后
+ * 仅在 Pipeline::ProvideData 中调用
  */
 void Pipeline::TransmitData(NodeContext* context, const std::shared_ptr<FrameInfo>& data) {
   if (data->IsInvalid()) {

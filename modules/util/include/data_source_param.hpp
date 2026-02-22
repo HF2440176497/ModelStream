@@ -48,6 +48,20 @@ enum class DataFormat {
   PIXEL_FORMAT_BGRA32           /*!< This frame is in the BGRA32 format. */
 };
 
+inline std::string DataFormat2Str(DataFormat fmt) {
+  switch (fmt) {
+    case DataFormat::PIXEL_FORMAT_YUV420_NV21: return "YUV420_NV21";
+    case DataFormat::PIXEL_FORMAT_YUV420_NV12: return "YUV420_NV12";
+    case DataFormat::PIXEL_FORMAT_BGR24: return "BGR24";
+    case DataFormat::PIXEL_FORMAT_RGB24: return "RGB24";
+    case DataFormat::PIXEL_FORMAT_ARGB32: return "ARGB32";
+    case DataFormat::PIXEL_FORMAT_ABGR32: return "ABGR32";
+    case DataFormat::PIXEL_FORMAT_RGBA32: return "RGBA32";
+    case DataFormat::PIXEL_FORMAT_BGRA32: return "BGRA32";
+    default: return "INVALID";
+  }
+}
+
 enum class DevType {
   INVALID = -1,                /*!< Invalid device type. */
   CPU = 0,                     /*!< The data is allocated by CPU. */
@@ -66,6 +80,13 @@ struct DevContext {
   int dev_id = -1;                /*!< Ordinal device ID. */
 };
 
+inline std::string DevType2Str(DevType type) {
+  switch (type) {
+    case DevType::CPU: return "CPU";
+    case DevType::CUDA: return "CUDA";
+    default: return "INVALID";
+  }
+}
 
 /**
  * @brief Gets image plane number by a specified image format.

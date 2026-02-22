@@ -293,7 +293,11 @@ class IdxManager {
   size_t GetModuleIdx();
   void ReturnModuleIdx(size_t id_);
 
+#ifdef UNIT_TEST
+ public:
+#else
  private:
+#endif
   std::mutex id_lock;
   std::map<std::string, uint32_t> stream_idx_map;
   std::bitset<MAX_STREAM_NUM> stream_bitset;

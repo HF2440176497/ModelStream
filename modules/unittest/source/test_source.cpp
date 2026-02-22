@@ -17,38 +17,68 @@
 namespace cnstream {
 
 static std::string test_pipeline_json = "pipeline_base_test.json";
-static std::vector<std::string> expected_nodes = {"DataSource", "InferencerVoid"};
+static std::vector<std::string> expected_nodes = {"DataSource", "InferencerProcess"};
+
+static bool has_save_frame_mat = false;
+static std::string save_file = "tmp/test_save.jpg";
 
 // 在测试实例中，定义出这个 virtual module
-class InferencerVoid: public Module, public ModuleCreator<InferencerVoid> {
+class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> {
   public:
-    InferencerVoid(const std::string &name) : Module(name) {}
-    ~InferencerVoid() {}
+    InferencerProcess(const std::string &name) : Module(name) {}
+    ~InferencerProcess() {}
     bool Open(ModuleParamSet params) override {
       return true;
     }
+
     void Close() override {
-      LOGI(InferencerVoid) << "Close";
+      LOGI(InferencerProcess) << "Close";
     }
-    int Process(std::shared_ptr<FrameInfo> frame) override {
-      LOGI(InferencerVoid) << "Process frame " << frame->stream_id << "; with time: " << frame->timestamp;
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    void OnEos(std::string stream_id) override {
+      LOGI(InferencerProcess) << "OnEos: " << stream_id;
+    }
+
+    int Process(std::shared_ptr<FrameInfo> frame_info) override {
+      LOGI(InferencerProcess) << "---------- Process frame " << frame_info->stream_id << "; with time: " << frame_info->timestamp;
+      DataFramePtr frame = frame_info->collection.Get<DataFramePtr>(kDataFrameTag);
+      if (!frame) {
+        LOGE(InferencerProcess) << "frame is empty";
+        return -1;
+      }
+      std::cout << "--- frame datafmt: " << DataFormat2Str(frame->fmt) << std::endl;
+      std::cout << "--- frame devtype: " << DevType2Str(frame->ctx.dev_type) << std::endl;
+      std::cout << "--- frame devid: " << frame->ctx.dev_id << std::endl;
+      
+      std::cout << "--- frame image height: " << frame->height << std::endl;  
+      std::cout << "--- frame image width: " << frame->width << "; stride: " << frame->stride[0] << std::endl;
+
+      for (int i = 0; i < frame->GetPlanes(); ++i) {
+        std::string mem_status_info = frame->data[i].StatusToString();
+        std::cout << "--- frame plane " << i << " mem status: " << mem_status_info << std::endl;
+      }
+      if (frame->HasImage()) {
+        LOGW(InferencerProcess) << "before get image, frame_mat_ should be empty";
+      }
+      cv::Mat frame_mat = frame->GetImage();
+      if (frame_mat.empty()) {
+        LOGE(InferencerProcess) << "frame_mat_ is empty";
+        return -1;
+      }
+      if (!has_save_frame_mat) {
+        cv::imwrite(save_file, frame_mat);
+        has_save_frame_mat = true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
       return 0;
     }
 };
 
-REGISTER_MODULE(InferencerVoid);
+REGISTER_MODULE(InferencerProcess);
 
 static uint64_t getCurrentTimestampMs() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::system_clock::now().time_since_epoch()).count();
-}
-
-static void ResetParam(ModuleParamSet &param) {
-  param["output_type"] = "cpu";
-  param["device_id"] = "-1";
-  param["interval"] = "1";
-  param["decoder_type"] = "cpu";
 }
 
 class EosObserver: public StreamMsgObserver {
@@ -67,9 +97,7 @@ class SourceModuleTest : public testing::Test {
       graph_config.ParseByJSONStr(json_content);
       graph_config_ = graph_config;
 
-      ResetParam(test_param_);
-
-      pipeline_ = std::make_shared<Pipeline>("test_pipeline");
+      pipeline_ = std::make_shared<Pipeline>("pipeline");
       EXPECT_NE(pipeline_, nullptr);
       EXPECT_TRUE(pipeline_->BuildPipeline(graph_config_));
     }
@@ -88,7 +116,6 @@ class SourceModuleTest : public testing::Test {
     std::shared_ptr<DataSource> module_ = nullptr;
     std::shared_ptr<Pipeline> pipeline_ = nullptr;
     cnstream::CNGraphConfig graph_config_;
-    ModuleParamSet test_param_;
 };
 
 
@@ -110,20 +137,27 @@ TEST_F(SourceModuleTest, PipelineInit) {
 
   // 检查 Module 相关 mask 标志位
   // PS: 必须要在 Build 完成的 Pipeline 中看到
-  std::cout << "----- Module Mask: " << std::endl;
+  std::cout << "---------- Module Mask: " << std::endl;
   for (auto node_iter = pipeline_->graph_->DFSBegin(); node_iter != pipeline_->graph_->DFSEnd(); ++node_iter) {
+    if (!node_iter->data.parent_nodes_mask) {  // head node
+      std::cout << "--- head node name: " << node_iter->data.module->GetName() << std::endl;
+    } else {  // not head node
+      std::cout << "--- not head node name: " << node_iter->data.module->GetName() << std::endl;
+    }
     std::cout << "node name: " << node_iter->data.module->GetName() << std::endl;
     std::cout << "module id: " << node_iter->data.module->GetId() << std::endl;
     std::cout << "route_mask: " << node_iter->data.route_mask << std::endl;
     std::cout << "parent_nodes_mask: " << node_iter->data.parent_nodes_mask << std::endl;
   }
   // DataSource 标记 route_mask 非 0, parent_nodes_mask 为 0
-  // InferencerVoid 标记 route_mask 为 0 (因为是头节点) parent_nodes_mask 非 0 
+  // InferencerProcess 标记 route_mask 为 0 (因为是头节点) parent_nodes_mask 非 0 
 
   // 发现：DataSource 的 route_mask 也包含了自身 Module 的标记
 
-  // 应当含有 DataSource 和 InferencerVoid 
-  ModuleFactory::Instance()->PrintRegistedModules();
+  std::vector<std::string> registed_modules = ModuleFactory::Instance()->GetRegisted();;
+  EXPECT_EQ(registed_modules.size(), expected_nodes.size());
+  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "DataSource") != registed_modules.end());
+  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "InferencerProcess") != registed_modules.end());
 
 }  // PipelineInit
 
@@ -136,9 +170,6 @@ TEST_F(SourceModuleTest, Loop) {
   Module* module_in_pipeline = pipeline_->GetModule("decoder");
   EXPECT_NE(module_in_pipeline, nullptr);
 
-  ResetParam(test_param_);
-  EXPECT_TRUE(module_in_pipeline->CheckParamSet(test_param_));
-  EXPECT_TRUE(module_in_pipeline->Open(test_param_));
   DataSource *source = dynamic_cast<DataSource*>(module_in_pipeline);
   EXPECT_NE(source, nullptr);
 
@@ -146,13 +177,17 @@ TEST_F(SourceModuleTest, Loop) {
   image_handler_ = std::dynamic_pointer_cast<ImageHandler>(source_handler_ptr);
   EXPECT_NE(image_handler_, nullptr);
 
-  // 开启 Pipeline
   EXPECT_TRUE(pipeline_->Start());
-  EXPECT_FALSE(IsStreamRemoved(stream_id_));  // 此处应该没有被移除
+  EXPECT_FALSE(IsStreamRemoved(stream_id_));  // 此处不应当被移除
 
   EXPECT_EQ(source->AddSource(image_handler_), 0);
   EXPECT_TRUE(image_handler_->impl_->running_);
 
+  // AddSource 之后，handler handler 理应可以获取到配置参数
+  std::cout << "image_handler_->impl_->image_path = " << image_handler_->impl_->image_path_ << std::endl;
+  std::cout << "image_handler_->impl_->framerate_ = " << image_handler_->impl_->framerate_ << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
   LOGI(SourceModuleTest) << "Handler stream idx: " << image_handler_->GetStreamIndex();
   EXPECT_NE(image_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex
   EXPECT_TRUE(pipeline_->IsRunning());
@@ -170,6 +205,49 @@ TEST_F(SourceModuleTest, Loop) {
   pipeline_->Stop();
 }
 
+/**
+ * 测试多个流，每个流处理各自的图像
+ */
+TEST_F(SourceModuleTest, MutilStream) {
+  Module* module_in_pipeline = pipeline_->GetModule("decoder");
+  DataSource *source = dynamic_cast<DataSource*>(module_in_pipeline);
+
+  std::vector<std::string> stream_ids = {"channel-1", "channel-2"};
+  std::unordered_map<std::string, std::shared_ptr<ImageHandler>> handlers;
+
+  for (auto stream_id : stream_ids) {
+    std::shared_ptr<SourceHandler> source_handler_ptr = ImageHandler::Create(source, stream_id);
+    auto handler = std::dynamic_pointer_cast<ImageHandler>(source_handler_ptr);
+    EXPECT_NE(handler, nullptr);
+    handlers[stream_id] = handler;
+  }
+
+  EXPECT_TRUE(pipeline_->Start());
+  for (auto stream_id : stream_ids) {
+    EXPECT_EQ(source->AddSource(handlers[stream_id]), 0);
+    EXPECT_TRUE(handlers[stream_id]->impl_->running_);
+  }
+  
+  Module* module_infer = pipeline_->GetModule("InferencerProcess");
+  int conveyor_count = module_infer->GetConnector()->conveyor_count_;
+  std::cout << "Inference Module connector conveyor count: " << conveyor_count << std::endl;
+  // note: 对于只含有 InferencerProcess 模块的 pipeline，线程数 == InferencerProcess conveyor_count == parallel_num
+  EXPECT_EQ(pipeline_->threads_.size(), conveyor_count);
+
+  // 运行开始，我们查看 Pipeline 内部：
+  // （1）每个流的索引是否正确
+  // （2）数据传输过程中的详细信息
+  for (auto stream_id : stream_ids) {
+    std::cout << "stream_id = " << stream_id << "; " << "stream_index = " << handlers[stream_id]->GetStreamIndex() << std::endl;
+    EXPECT_EQ(handlers[stream_id]->GetStreamId(), stream_id);
+    EXPECT_EQ(handlers[stream_id]->GetStreamIndex(), pipeline_->idxManager_->stream_idx_map[stream_id]);
+    EXPECT_EQ(handlers[stream_id]->GetStreamIndex(), pipeline_->GetStreamIndex(stream_id));
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  pipeline_->Stop();
+
+}
 
 
 }  // namespace cnstream

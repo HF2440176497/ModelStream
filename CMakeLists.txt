@@ -20,6 +20,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Platform options
 option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" OFF)
 
+if (NVIDIA_PLATFORM)
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_ARCHITECTURES "89" CACHE STRING "CUDA architectures")
+endif()
 
 set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")

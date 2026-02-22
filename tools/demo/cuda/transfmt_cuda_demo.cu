@@ -15,16 +15,45 @@
 #include <random>
 #include <vector>
 
-#include "cuda/cuda_check.hpp"
-#include "data_source_param.hpp"
 #include "libyuv/convert.h"
-#include "libyuv/convert_argb.h"
-#include "libyuv/planar_functions.h"
-#include "memop_factory.hpp"
+#include "libyuv/convert_from_argb.h"
 
-using namespace cnstream;
 
 #define DEFAULT_IMAGE_PATH "test_image.png"
+
+#define CHECK_CUDA_RUNTIME(op) __check_cuda_runtime((op), #op, __FILE__, __LINE__)
+
+bool __check_cuda_runtime(cudaError_t code, const char* op, const char* file, int line) {
+  if (code != cudaSuccess) {
+    const char* err_name = cudaGetErrorName(code);
+    const char* err_message = cudaGetErrorString(code);
+    printf("check_cuda_runtime error %s:%d  %s failed. \n  code = %s, message = %s\n", 
+		file, line, op, err_name, err_message);
+    return false;
+  }
+  return true;
+}
+
+#define CHECK_CUDA_KERNEL(...)                                   \
+  __VA_ARGS__;                                                   \
+  do {                                                           \
+    cudaError_t cudaStatus = cudaPeekAtLastError();              \
+    if (cudaStatus != cudaSuccess) {                             \
+      INFO("launch failed: %s", cudaGetErrorString(cudaStatus)); \
+    }                                                            \
+  } while (0);
+
+enum class DataFormat {
+  INVALID = -1,                 /*!< This frame is invalid. */
+  PIXEL_FORMAT_YUV420_NV21 = 0, /*!< This frame is in the YUV420SP(NV21) format. */
+  PIXEL_FORMAT_YUV420_NV12,     /*!< This frame is in the YUV420sp(NV12) format. */
+  PIXEL_FORMAT_BGR24,           /*!< This frame is in the BGR24 format. */
+  PIXEL_FORMAT_RGB24,           /*!< This frame is in the RGB24 format. */
+  PIXEL_FORMAT_ARGB32,          /*!< This frame is in the ARGB32 format. */
+  PIXEL_FORMAT_ABGR32,          /*!< This frame is in the ABGR32 format. */
+  PIXEL_FORMAT_RGBA32,          /*!< This frame is in the RGBA32 format. */
+  PIXEL_FORMAT_BGRA32           /*!< This frame is in the BGRA32 format. */
+};
 
 __global__ void NV12ToRGB24Kernel(const uint8_t* __restrict__ y_plane, const uint8_t* __restrict__ uv_plane,
                                   uint8_t* __restrict__ rgb_out, int width, int height, int y_stride, int uv_stride,
@@ -342,6 +371,159 @@ bool TestWithLibyuvCPU(TestFrame& frame) {
   return true;
 }
 
+bool CreateUniformTestImage(int width, int height, uint8_t r_val, uint8_t g_val, uint8_t b_val, TestFrame& frame) {
+  std::cout << "\n=== Creating uniform test image (R=" << (int)r_val 
+            << ", G=" << (int)g_val << ", B=" << (int)b_val << ") ===" << std::endl;
+
+  frame.width = width;
+  frame.height = height;
+  frame.fmt = DataFormat::PIXEL_FORMAT_YUV420_NV12;
+
+  if (frame.height % 2 != 0 || frame.width % 2 != 0) {
+    frame.height = (frame.height / 2) * 2;
+    frame.width = (frame.width / 2) * 2;
+  }
+
+  cv::Mat src_mat(frame.height, frame.width, CV_8UC3);
+  for (int y = 0; y < frame.height; ++y) {
+    for (int x = 0; x < frame.width; ++x) {
+      src_mat.at<cv::Vec3b>(y, x) = cv::Vec3b(b_val, g_val, r_val);
+    }
+  }
+
+  cv::imwrite("uniform_test_original_bgr.png", src_mat);
+  std::cout << "Original BGR image saved to: uniform_test_original_bgr.png" << std::endl;
+
+  frame.y_plane.resize(frame.width * frame.height);
+  frame.uv_plane.resize(frame.width * frame.height / 2);
+
+  std::vector<uint8_t> bgr_buffer(frame.width * frame.height * 3);
+  memcpy(bgr_buffer.data(), src_mat.data, bgr_buffer.size());
+
+  std::vector<uint8_t> argb_buffer(frame.width * frame.height * 4);
+  int                  argb_stride = frame.width * 4;
+  libyuv::RGB24ToARGB(bgr_buffer.data(), frame.width * 3, argb_buffer.data(), argb_stride, frame.width, frame.height);
+  libyuv::ARGBToNV12(argb_buffer.data(), argb_stride, frame.y_plane.data(), frame.width, 
+                    frame.uv_plane.data(), frame.width, frame.width, frame.height);
+
+  std::cout << "Image converted to NV12 format" << std::endl;
+  return true;
+}
+
+
+/**
+ * 检查经过核函数转换之后，每个通道的内存排列
+ */
+bool TestChannelConsistency(TestFrame& frame, uint8_t expected_r, uint8_t expected_g, uint8_t expected_b) {
+  std::cout << "\n=== Testing channel consistency (Expected: R=" << (int)expected_r 
+            << ", G=" << (int)expected_g << ", B=" << (int)expected_b << ") ===" << std::endl;
+
+  if (frame.bgr_plane.empty()) {
+    std::cerr << "BGR plane is empty, run TestNV12ToBGR24_CUDA first" << std::endl;
+    return false;
+  }
+
+  int width = frame.width;
+  int height = frame.height;
+
+  size_t total_pixels = width * height;
+  size_t b_errors = 0, g_errors = 0, r_errors = 0;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      int idx = (y * width + x) * 3;
+      uint8_t b = frame.bgr_plane[idx + 0];
+      uint8_t g = frame.bgr_plane[idx + 1];
+      uint8_t r = frame.bgr_plane[idx + 2];
+
+      if (std::abs(static_cast<int>(b) - static_cast<int>(expected_b)) > 1) b_errors++;
+      if (std::abs(static_cast<int>(g) - static_cast<int>(expected_g)) > 1) g_errors++;
+      if (std::abs(static_cast<int>(r) - static_cast<int>(expected_r)) > 1) r_errors++;
+    }
+  }
+
+  // std::cout << "Channel consistency check:" << std::endl;
+  // std::cout << "  B channel: " << b_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * b_errors / total_pixels) << "%)" << std::endl;
+  // std::cout << "  G channel: " << g_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * g_errors / total_pixels) << "%)" << std::endl;
+  // std::cout << "  R channel: " << r_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * r_errors / total_pixels) << "%)" << std::endl;
+
+  std::cout << "\nBGR memory layout analysis:" << std::endl;
+  std::cout << "  Memory[0] = B = " << (int)frame.bgr_plane[0] << " (expected: " << (int)expected_b << ")" << std::endl;
+  std::cout << "  Memory[1] = G = " << (int)frame.bgr_plane[1] << " (expected: " << (int)expected_g << ")" << std::endl;
+  std::cout << "  Memory[2] = R = " << (int)frame.bgr_plane[2] << " (expected: " << (int)expected_r << ")" << std::endl;
+
+  bool b_match = (b_errors == 0);
+  bool g_match = (g_errors == 0);
+  bool r_match = (r_errors == 0);
+
+  if (b_match && g_match && r_match) {
+    std::cout << "\n[PASS] All channels match expected values!" << std::endl;
+  } else {
+    std::cout << "\n[FAIL] Channel mismatch detected!" << std::endl;
+  }
+
+  return (b_match && g_match && r_match);
+}
+
+bool TestOpenCVConversionConsistency(TestFrame& frame, uint8_t expected_r, uint8_t expected_g, uint8_t expected_b) {
+  std::cout << "\n=== Testing OpenCV NV12 -> BGR24 conversion ===" << std::endl;
+
+  std::vector<uint8_t> opencv_bgr(frame.width * frame.height * 3);
+  
+  cv::Mat rgb_mat(frame.height, frame.width, CV_8UC3);
+  cv::Mat bgr_mat(frame.height, frame.width, CV_8UC3);
+
+  libyuv::NV12ToRGB24(frame.y_plane.data(), frame.width, frame.uv_plane.data(), frame.width,
+                      rgb_mat.data, frame.width * 3, frame.width, frame.height);
+                      
+  // cv::cvtColor(rgb_mat, bgr_mat, cv::COLOR_RGB2BGR);
+  // memcpy(opencv_bgr.data(), bgr_mat.data, opencv_bgr.size());
+  // cv::imwrite("nv12_to_bgr24_opencv.png", bgr_mat);
+
+  // note: 根据之前 libyuv_demo 的分析结果， 不再需要 cvtColor
+  // 根据实验结果，证实如此
+  memcpy(opencv_bgr.data(), rgb_mat.data, opencv_bgr.size());
+  cv::imwrite("nv12_to_bgr24_opencv.png", rgb_mat);
+  
+  std::cout << "OpenCV conversion result saved to: nv12_to_bgr24_opencv.png" << std::endl;
+
+  int width = frame.width;
+  int height = frame.height;
+  size_t total_pixels = width * height;
+  size_t b_errors = 0, g_errors = 0, r_errors = 0;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      int idx = (y * width + x) * 3;
+      uint8_t b = opencv_bgr[idx + 0];
+      uint8_t g = opencv_bgr[idx + 1];
+      uint8_t r = opencv_bgr[idx + 2];
+
+      if (std::abs(static_cast<int>(b) - static_cast<int>(expected_b)) > 1) b_errors++;
+      if (std::abs(static_cast<int>(g) - static_cast<int>(expected_g)) > 1) g_errors++;
+      if (std::abs(static_cast<int>(r) - static_cast<int>(expected_r)) > 1) r_errors++;
+    }
+  }
+
+  // std::cout << "OpenCV channel consistency check:" << std::endl;
+  // std::cout << "  B channel: " << b_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * b_errors / total_pixels) << "%)" << std::endl;
+  // std::cout << "  G channel: " << g_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * g_errors / total_pixels) << "%)" << std::endl;
+  // std::cout << "  R channel: " << r_errors << " / " << total_pixels << " pixels different ("
+  //           << (100.0 * r_errors / total_pixels) << "%)" << std::endl;
+
+  std::cout << "\nOpenCV BGR memory layout:" << std::endl;
+  std::cout << "  Memory[0] = B = " << (int)opencv_bgr[0] << " (expected: " << (int)expected_b << ")" << std::endl;
+  std::cout << "  Memory[1] = G = " << (int)opencv_bgr[1] << " (expected: " << (int)expected_g << ")" << std::endl;
+  std::cout << "  Memory[2] = R = " << (int)opencv_bgr[2] << " (expected: " << (int)expected_r << ")" << std::endl;
+
+  return (b_errors == 0 && g_errors == 0 && r_errors == 0);
+}
+
 int main(int argc, char** argv) {
   std::string image_path = (argc > 1) ? argv[1] : DEFAULT_IMAGE_PATH;
 
@@ -384,6 +566,31 @@ int main(int argc, char** argv) {
   TestNV12ToBGR24_CUDA(frame);
   TestRGB24ToBGR24_CUDA(frame);
   TestWithLibyuvCPU(frame);
+
+  std::cout << "\n\n";
+  std::cout << "########################################" << std::endl;
+  std::cout << "#  Channel Consistency Test (R=G=B)  #" << std::endl;
+  std::cout << "########################################" << std::endl;
+
+  TestFrame uniform_frame;
+  const int test_width = 640;
+  const int test_height = 480;
+  const uint8_t test_r = 10;
+  const uint8_t test_g = 128;
+  const uint8_t test_b = 242;
+
+  if (!CreateUniformTestImage(test_width, test_height, test_r, test_g, test_b, uniform_frame)) {
+    std::cerr << "Failed to create uniform test image" << std::endl;
+    return -1;
+  } 
+  if (!AllocateGpuMemory(uniform_frame)) {
+    std::cerr << "Failed to allocate GPU memory for uniform frame" << std::endl;
+  } else {
+    CopyToGpu(uniform_frame);
+    TestNV12ToBGR24_CUDA(uniform_frame);
+    TestChannelConsistency(uniform_frame, test_r, test_g, test_b);
+    TestOpenCVConversionConsistency(uniform_frame, test_r, test_g, test_b);
+  }
 
   std::cout << "\n========================================" << std::endl;
   std::cout << "  Demo completed successfully!        " << std::endl;

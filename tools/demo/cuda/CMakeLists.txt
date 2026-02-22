@@ -4,11 +4,15 @@
 cmake_minimum_required(VERSION 3.13)
 
 if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../..
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
+project(tools_cuda_demo LANGUAGES C CXX CUDA)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_ARCHITECTURES "89")
 
 set(3RDPARTY_LIBS "")
 set(DEPENDENCIES "")
@@ -19,6 +23,17 @@ include_directories(${CUDA_INCLUDE_DIRS})
 list(APPEND 3RDPARTY_LIBS ${CUDA_LIBRARIES})
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
+message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
+
+# ---[ NPP (NVIDIA Performance Primitives)
+find_path(NPP_INCLUDE_DIR npp.h 
+    PATHS ${CUDA_INCLUDE_DIRS}
+    PATH_SUFFIXES npp)
+if(NPP_INCLUDE_DIR)
+    include_directories(${NPP_INCLUDE_DIR})
+    message(STATUS "----- NPP include: ${NPP_INCLUDE_DIR}")
+endif()
+
 # ---[ opencv
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
 if(OpenCV_FOUND)
@@ -26,9 +41,12 @@ if(OpenCV_FOUND)
   list(APPEND 3RDPARTY_LIBS ${OpenCV_LIBS})
 endif()
 
+message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
+
 # ---[ libyuv
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
-add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv)
+add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv
+  ${CMAKE_BINARY_DIR}/bin)
 if(TARGET yuv)
   list(APPEND 3RDPARTY_LIBS yuv)
   list(APPEND DEPENDENCIES yuv)
@@ -44,6 +62,7 @@ endif()
 # Source files
 set(DEMO_SOURCES
     transfmt_cuda_demo.cu
+    transfmt_cuda_npp_demo.cu
 )
 
 foreach(demo_source ${DEMO_SOURCES})
@@ -52,6 +71,17 @@ foreach(demo_source ${DEMO_SOURCES})
     
     target_link_libraries(${demo_name} 
         ${3RDPARTY_LIBS}
+        npps
+        nppc
+        nppial
+        nppicc
+        nppidei
+        nppif
+        nppig
+        nppim
+        nppist
+        nppisu
+        nppitc
         rt
         dl
         pthread

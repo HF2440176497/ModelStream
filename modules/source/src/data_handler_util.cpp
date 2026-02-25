@@ -18,7 +18,9 @@ int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *de
   frame->width = decode_frame->width;
   frame->height = decode_frame->height;
   if (decode_frame->buf_ref) {
-    frame->deAllocator_ = std::make_unique<Deallocator>(decode_frame->buf_ref.release());  // decode_frame 中的内存转移到 frame deAllocator_, 后续由 frame 管理
+    // decode_frame 中的内存转移到 frame deAllocator_, 后续由 frame 管理
+    // 两个 unique_ptr 之间移交内存所有权
+    frame->deAllocator_ = std::make_unique<Deallocator>(decode_frame->buf_ref.release());  
     decode_frame->buf_ref = nullptr;
   }
   // 1.2 ctx 保存目标 dev info

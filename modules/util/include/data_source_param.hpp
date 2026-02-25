@@ -157,7 +157,7 @@ class Deallocator : public IDataDeallocator {
   explicit Deallocator(IDecBufRef *ptr) {
     ptr_.reset(ptr);
   }
-  ~Deallocator() {
+  virtual ~Deallocator() {
     ptr_.reset();
   }
  private:
@@ -217,6 +217,7 @@ inline const std::string KEY_ONLY_KEY_FRAME = "only_key_frame";
 
 inline const std::string KEY_FILE_PATH = "file_path";
 inline const std::string KEY_FRAMERATE = "framerate";
+inline const std::string KEY_STREAM_URL = "stream_url";
 
 /*!
  * @brief DataSourceParam is a structure for private usage.

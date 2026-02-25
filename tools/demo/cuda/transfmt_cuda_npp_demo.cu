@@ -509,6 +509,80 @@ bool TestChannelConsistency(TestFrame& frame, uint8_t expected_r, uint8_t expect
   return (b_match && g_match && r_match);
 }
 
+
+bool TestChannelConsistencyLibyuvCPU(TestFrame& frame, uint8_t expected_r, uint8_t expected_g, uint8_t expected_b) {
+  std::cout << "\n=== Testing with libyuv (CPU) channel consistency for comparison ===" << std::endl;
+
+  std::vector<uint8_t> cpu_rgb(frame.width * frame.height * 3);
+  std::vector<uint8_t> cpu_bgr(frame.width * frame.height * 3);
+
+  // actual: To RGB24
+  int ret = libyuv::NV12ToRAW(frame.y_plane.data(), frame.width, frame.uv_plane.data(), frame.width, 
+                            cpu_rgb.data(), frame.width * 3, frame.width, frame.height);
+
+  if (ret != 0) {
+    std::cerr << "libyuv::NV12ToRAW failed with error: " << ret << std::endl;
+    return false;
+  }
+
+  // actual: To BGR24
+  ret = libyuv::NV12ToRGB24(frame.y_plane.data(), frame.width, frame.uv_plane.data(), frame.width, 
+                            cpu_bgr.data(), frame.width * 3, frame.width, frame.height);
+
+  if (ret != 0) {
+    std::cerr << "libyuv::NV12ToRGB24 failed with error: " << ret << std::endl;
+    return false;
+  }
+
+  cv::Mat rgb_mat(frame.height, frame.width, CV_8UC3, cpu_rgb.data());
+  cv::Mat bgr_mat;
+  cv::cvtColor(rgb_mat, bgr_mat, cv::COLOR_RGB2BGR);
+  cv::Mat bgr_mat2(frame.height, frame.width, CV_8UC3, cpu_bgr.data());
+
+  // 得到 libyuv 的 BGR 图像之后，对比期望的 BGR 值
+  int width = frame.width;
+  int height = frame.height;
+
+  size_t total_pixels = width * height;
+  size_t b_errors = 0, g_errors = 0, r_errors = 0;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      uint8_t b = bgr_mat2.at<cv::Vec3b>(y, x)[0];
+      uint8_t g = bgr_mat2.at<cv::Vec3b>(y, x)[1];
+      uint8_t r = bgr_mat2.at<cv::Vec3b>(y, x)[2];
+      if (std::abs(static_cast<int>(b) - static_cast<int>(expected_b)) > 1) b_errors++;
+      if (std::abs(static_cast<int>(g) - static_cast<int>(expected_g)) > 1) g_errors++;
+      if (std::abs(static_cast<int>(r) - static_cast<int>(expected_r)) > 1) r_errors++;
+    }
+  }
+
+  std::cout << "Channel consistency check:" << std::endl;
+  std::cout << "  B channel: " << b_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * b_errors / total_pixels) << "%)" << std::endl;
+  std::cout << "  G channel: " << g_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * g_errors / total_pixels) << "%)" << std::endl;
+  std::cout << "  R channel: " << r_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * r_errors / total_pixels) << "%)" << std::endl;
+
+  std::cout << "\nBGR memory layout analysis:" << std::endl;
+  std::cout << "  Memory[0] = B = " << (int)bgr_mat2.at<cv::Vec3b>(0, 0)[0] << " (expected: " << (int)expected_b << ")" << std::endl;
+  std::cout << "  Memory[1] = G = " << (int)bgr_mat2.at<cv::Vec3b>(0, 0)[1] << " (expected: " << (int)expected_g << ")" << std::endl;
+  std::cout << "  Memory[2] = R = " << (int)bgr_mat2.at<cv::Vec3b>(0, 0)[2] << " (expected: " << (int)expected_r << ")" << std::endl;
+
+  bool b_match = (b_errors == 0);
+  bool g_match = (g_errors == 0);
+  bool r_match = (r_errors == 0);
+
+  if (b_match && g_match && r_match) {
+    std::cout << "\n[PASS] All channels match expected values!" << std::endl;
+  } else {
+    std::cout << "\n[FAIL] Channel mismatch detected!" << std::endl;
+  }
+  return (b_match && g_match && r_match);
+}
+
+
 bool TestOpenCVConversionConsistency(TestFrame& frame, uint8_t expected_r, uint8_t expected_g, uint8_t expected_b) {
   std::cout << "\n=== Testing OpenCV NV12 -> BGR24 conversion ===" << std::endl;
 
@@ -639,6 +713,9 @@ int main(int argc, char** argv) {
   std::cout << "\n--- NPP with Swap ---" << std::endl;
   TestNV12ToRGB24_NPP(uniform_frame, "nv12_to_rgb24_npp_uniform.jpg");
   TestChannelConsistency(uniform_frame, test_r, test_g, test_b);
+
+  // 单独验证 Libyuv 通道一致性
+  TestChannelConsistencyLibyuvCPU(uniform_frame, test_r, test_g, test_b);
 
   std::cout << "\n========================================" << std::endl;
   std::cout << "  NPP Demo completed successfully!    " << std::endl;

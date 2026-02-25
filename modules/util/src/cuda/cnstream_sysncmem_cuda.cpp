@@ -39,7 +39,7 @@ CNSyncedMemoryCuda::~CNSyncedMemoryCuda() {
 
 void CNSyncedMemoryCuda::ToCpu() {
   if (0 == size_) return;
-  
+  CHECK_CUDA_RUNTIME(cudaSetDevice(dev_id_));
   switch (head_) {
     case SyncedHead::UNINITIALIZED:
       if (cuda_ptr_ or cpu_ptr_) {
@@ -61,11 +61,7 @@ void CNSyncedMemoryCuda::ToCpu() {
         memset(cpu_ptr_, 0, size_);
         own_dev_data_[DevType::CPU] = true;
       }
-      // Sasha: 如果 cpu_ptr_ 是指定的，上面判断不通过，那么我们不应该改变 own_dev_data_ 对应标记
-      // Set device if specified
-      if (dev_id_ >= 0) {
-        cudaSetDevice(dev_id_);
-      }
+      // Sasha: 如果 cpu_ptr_ 已经之前指定过，上面判断也就不通过，所以也不应该改变 own_dev_data_ 对应标记
       CHECK_CUDA_RUNTIME(cudaMemcpy(cpu_ptr_, cuda_ptr_, size_, cudaMemcpyDeviceToHost));
       head_ = SyncedHead::SYNCED;
       break;
@@ -78,9 +74,7 @@ void CNSyncedMemoryCuda::ToCpu() {
 void CNSyncedMemoryCuda::ToCuda() {
   if (0 == size_) return;
   // Set device if specified
-  if (dev_id_ >= 0) {
-    cudaSetDevice(dev_id_);
-  }
+  CHECK_CUDA_RUNTIME(cudaSetDevice(dev_id_));
   switch (head_) {
     case SyncedHead::UNINITIALIZED:
       if (cuda_ptr_ or cpu_ptr_) {  // 不应该存在已分配的 CUDA 内存
@@ -124,9 +118,7 @@ void CNSyncedMemoryCuda::SetCudaData(void* data) {
       LOGE(FRAME) << "CNSyncedMemoryCuda::SetCudaData ERROR, cuda_ptr_ should not be NULL.";
       return;
     }
-    if (dev_id_ >= 0) {
-      CHECK_CUDA_RUNTIME(cudaSetDevice(dev_id_));
-    }
+    CHECK_CUDA_RUNTIME(cudaSetDevice(dev_id_));
     CHECK_CUDA_RUNTIME(cudaFree(cuda_ptr_));
   }
   cuda_ptr_ = data;

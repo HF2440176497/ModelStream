@@ -1,1 +1,0 @@
--I/usr/local/cuda/include -I"/home/wanghf/model-stream/ModelStream/tools/demo/cuda/../../../3rdparty/libyuv/include" -isystem /usr/local/include/opencv4

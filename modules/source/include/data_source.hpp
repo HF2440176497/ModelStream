@@ -127,6 +127,30 @@ class ImageHandler : public SourceHandler {
   ImageHandlerImpl* impl_ = nullptr;
 };  // class ImageHandler
 
+class VideoHandlerImpl;
+
+class VideoHandler : public SourceHandler {
+ public:
+  static std::shared_ptr<SourceHandler> Create(DataSource *module, const std::string &stream_id);
+  ~VideoHandler();
+
+  bool Open() override;
+  void Stop() override;
+  void Close() override;
+
+  void RegisterHandlerParams() override;
+  bool CheckHandlerParams(const ModuleParamSet& params) override;
+  bool SetHandlerParams(const ModuleParamSet& params) override;
+
+ private:
+  explicit VideoHandler(DataSource *module, const std::string &stream_id);
+
+#ifdef UNIT_TEST
+ public:
+#endif
+  VideoHandlerImpl* impl_ = nullptr;
+};  // class VideoHandler
+
 
 }  // namespace cnstream
 

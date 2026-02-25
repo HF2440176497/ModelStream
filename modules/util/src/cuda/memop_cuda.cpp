@@ -2,6 +2,7 @@
 
 #include "memop_factory.hpp"
 
+#include "cnstream_logging.hpp"
 #include "cuda/memop_cuda.hpp"
 #include "cuda/cuda_check.hpp"
 #include "cuda/cnstream_sysncmem_cuda.hpp"
@@ -57,14 +58,75 @@ int CudaMemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFra
   int height = src_frame->height;
   if (dst_fmt != DataFormat::PIXEL_FORMAT_BGR24 &&
       dst_fmt != DataFormat::PIXEL_FORMAT_RGB24) {
-    LOGE(CORE) << "MemOp::ConvertImageFormat: Unsupported destination format " 
+    LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
                << static_cast<int>(dst_fmt);
     return -1;
   }
+  DataFormat src_fmt = src_frame->fmt;
 
+  // RGB or BGR 只需要拷贝 plane[0]
+  if (dst_fmt == src_fmt) {
+    LOGW(CORE) << "CudaMemOp::ConvertImageFormat: Source format is same as destination format";
+    Copy(dst, src_frame->plane[0], width * height * 3);
+    return 0;
+  }
+  size_t dst_stride = width * 3;
+  int ret = 0;
 
-  
-
+  switch (src_fmt) {
+    case DataFormat::PIXEL_FORMAT_BGR24: {
+      if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
+        ret = NppRGB24ToBGR24(dst, width, height, src_frame->plane[0]);
+      } else {
+        LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
+                   << static_cast<int>(dst_fmt) << " for source BGR24";
+        return -1;
+      }
+      break;
+    }
+    case DataFormat::PIXEL_FORMAT_RGB24: {
+      if (dst_fmt == DataFormat::PIXEL_FORMAT_BGR24) {
+        ret = NppBGR24ToRGB24(dst, width, height, src_frame->plane[0]);
+      } else {
+        LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
+                   << static_cast<int>(dst_fmt) << " for source RGB24";
+        return -1;
+      }
+      break;
+    }
+    case DataFormat::PIXEL_FORMAT_YUV420_NV12: {
+      if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
+        ret = NppNV12ToRGB24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+      } else if (dst_fmt == DataFormat::PIXEL_FORMAT_BGR24) {
+        ret = NppNV12ToBGR24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+      } else {
+        LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
+                   << static_cast<int>(dst_fmt) << " for source NV12";
+        return -1;
+      }
+      break;
+    }
+    case DataFormat::PIXEL_FORMAT_YUV420_NV21: {
+      if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
+        ret = NppNV21ToRGB24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+      } else if (dst_fmt == DataFormat::PIXEL_FORMAT_BGR24) {
+        ret = NppNV21ToBGR24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+      } else {
+        LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
+                   << static_cast<int>(dst_fmt) << " for source NV21";
+        return -1;
+      }
+      break;
+    }
+    default:
+      LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported source format " 
+                 << static_cast<int>(src_fmt);
+      return -1;
+  }
+  if (ret != 0) {
+    LOGE(CORE) << "CudaMemOp::ConvertImageFormat: libyuv conversion failed with error code: " << ret;
+    return ret;
+  }
   return 0;
 }
 

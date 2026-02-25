@@ -2,10 +2,12 @@
 #include "base.hpp"
 
 #include "cnstream_logging.hpp"
-#include "data_handler_image.hpp"
-#include "data_source.hpp"
 #include "cnstream_pipeline.hpp"
 #include "cnstream_module.hpp"
+
+#include "data_source.hpp"
+#include "data_handler_image.hpp"
+#include "data_handler_video.hpp"
 
 #include <chrono>
 #include <typeinfo>
@@ -16,7 +18,8 @@
 
 namespace cnstream {
 
-static std::string test_pipeline_json = "pipeline_base_test.json";
+static std::string test_pipeline_json = "pipeline_base.json";
+static std::string test_pipeline_video_json = "pipeline_base_video.json";
 static std::vector<std::string> expected_nodes = {"DataSource", "InferencerProcess"};
 
 static bool has_save_frame_mat = false;
@@ -81,43 +84,75 @@ static uint64_t getCurrentTimestampMs() {
     std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-class EosObserver: public StreamMsgObserver {
-  public:
-    void Update(const StreamMsg &msg) override {
-    }
+class EosObserver : public StreamMsgObserver {
+ public:
+  void Update(const StreamMsg &msg) override {}
 };
 
 class SourceModuleTest : public testing::Test {
-  protected:
-    virtual void SetUp() {
-      std::string json_content = readFile(test_pipeline_json.c_str());
-      EXPECT_FALSE(json_content.empty()) << "Read json file failed";
-      cnstream::CNGraphConfig graph_config;
-      graph_config.config_root_dir = "./";
-      graph_config.ParseByJSONStr(json_content);
-      graph_config_ = graph_config;
+ protected:
+  virtual void SetUp() {
+    std::string json_content = readFile(test_pipeline_json.c_str());
+    EXPECT_FALSE(json_content.empty()) << "Read json file failed";
+    cnstream::CNGraphConfig graph_config;
+    graph_config.config_root_dir = "./";
+    graph_config.ParseByJSONStr(json_content);
+    graph_config_ = graph_config;
 
-      pipeline_ = std::make_shared<Pipeline>("pipeline");
-      EXPECT_NE(pipeline_, nullptr);
-      EXPECT_TRUE(pipeline_->BuildPipeline(graph_config_));
+    pipeline_ = std::make_shared<Pipeline>("pipeline");
+    EXPECT_NE(pipeline_, nullptr);
+    EXPECT_TRUE(pipeline_->BuildPipeline(graph_config_));
+  }
+
+  virtual void TearDown() {  // 当前用例结束
+    LOGI(SourceModuleTest) << "TearDown";
+    if (pipeline_) {
+      pipeline_->Stop();
     }
+    image_handler_.reset();
+  }
 
-    virtual void TearDown() {  // 当前用例结束
-      LOGI(SourceModuleTest) << "TearDown";
-      if (pipeline_) {
-        pipeline_->Stop();
-      }
-      image_handler_.reset();
-    }
-
-  protected:
-    const std::string stream_id_ = "channel-1";
-    std::shared_ptr<ImageHandler> image_handler_ = nullptr;
-    std::shared_ptr<DataSource> module_ = nullptr;
-    std::shared_ptr<Pipeline> pipeline_ = nullptr;
-    cnstream::CNGraphConfig graph_config_;
+ protected:
+  const std::string             stream_id_ = "channel-1";
+  std::shared_ptr<ImageHandler> image_handler_ = nullptr;
+  std::shared_ptr<DataSource>   module_ = nullptr;
+  std::shared_ptr<Pipeline>     pipeline_ = nullptr;
+  cnstream::CNGraphConfig       graph_config_;
 };
 
+/**
+ * @brief 测试 VideoSourceHandler 进行硬解码
+ */
+class VideoSourceTest : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    std::string json_content = readFile(test_pipeline_video_json.c_str());
+    EXPECT_FALSE(json_content.empty()) << "Read json file failed";
+    cnstream::CNGraphConfig graph_config;
+    graph_config.config_root_dir = "./";
+    graph_config.ParseByJSONStr(json_content);
+    graph_config_ = graph_config;
+
+    pipeline_ = std::make_shared<Pipeline>("pipeline");
+    EXPECT_NE(pipeline_, nullptr);
+    EXPECT_TRUE(pipeline_->BuildPipeline(graph_config_));
+  }
+
+  virtual void TearDown() {
+    LOGI(VideoSourceTest) << "TearDown";
+    if (pipeline_) {
+      pipeline_->Stop();
+    }
+    video_handler_.reset();
+  }
+
+ protected:
+  const std::string stream_id_ = "channel-1";
+  std::shared_ptr<VideoHandler> video_handler_ = nullptr;
+  std::shared_ptr<DataSource>   module_ = nullptr;
+  std::shared_ptr<Pipeline>     pipeline_ = nullptr;
+  cnstream::CNGraphConfig       graph_config_;
+};
 
 TEST(Source, BasicOutput) {
   std::cout << "=== Standard output test ===" << std::endl;
@@ -249,5 +284,46 @@ TEST_F(SourceModuleTest, MutilStream) {
 
 }
 
+/**
+ * 单独使用一个 pipeline 测试 video_handler
+ */
+TEST_F(VideoSourceTest, Loop) {
+  EXPECT_NE(pipeline_, nullptr);
+  Module* module_in_pipeline = pipeline_->GetModule("decoder");
+  EXPECT_NE(module_in_pipeline, nullptr);
+
+  DataSource *source = dynamic_cast<DataSource*>(module_in_pipeline);
+  EXPECT_NE(source, nullptr);
+
+  std::shared_ptr<SourceHandler> source_handler_ptr = VideoHandler::Create(source, stream_id_);
+  video_handler_ = std::dynamic_pointer_cast<VideoHandler>(source_handler_ptr);
+  EXPECT_NE(video_handler_, nullptr);
+
+  EXPECT_TRUE(pipeline_->Start());
+  EXPECT_FALSE(IsStreamRemoved(stream_id_));  // 此处不应当被移除
+
+  EXPECT_EQ(source->AddSource(video_handler_), 0);
+  EXPECT_TRUE(video_handler_->impl_->running_);
+
+  // AddSource 之后，handler handler 理应可以获取到配置参数
+  std::cout << "video_handler_->impl_->stream_url = " << video_handler_->impl_->stream_url_ << std::endl;
+  std::cout << "video_handler_->impl_->framerate_ = " << video_handler_->impl_->framerate_ << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
+  LOGI(SourceModuleTest) << "Handler stream idx: " << video_handler_->GetStreamIndex();
+  EXPECT_NE(video_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex
+  EXPECT_TRUE(pipeline_->IsRunning());
+  
+  video_handler_->Stop();
+  video_handler_->Close();
+  
+  PrintStreamEos();
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  LOGI(SourceModuleTest) << "Wait for EOS message to be processed";
+  LOGI(SourceModuleTest) << "CheckStreamEosReached(stream_id_) = " << std::boolalpha << CheckStreamEosReached(stream_id_, true);
+  LOGI(SourceModuleTest) << "Wait for EOS message complete";
+  
+  pipeline_->Stop();
 
 }  // namespace cnstream

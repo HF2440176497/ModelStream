@@ -329,8 +329,8 @@ int VideoHandlerImpl::decode_write() {
 
       int width = s_frame_->width;
       int height = s_frame_->height;
-      size_t y_size = s_frame_->linesize[0] * height;
-      size_t uv_size = s_frame_->linesize[1] * height / 2;
+      size_t y_size = s_frame_->linesize[0] * height;  // width * height 
+      size_t uv_size = s_frame_->linesize[1] * height / 2;  // width * height / 2
 
       uint8_t* y_buffer = new (std::nothrow) uint8_t[y_size];
       uint8_t* uv_buffer = new (std::nothrow) uint8_t[uv_size];

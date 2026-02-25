@@ -79,7 +79,11 @@ class VideoHandlerImpl : public SourceRender {
  private:
   static enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);
 
+#ifdef UNIT_TEST
+ public:
+#else
  private:
+#endif
   std::atomic<bool> running_{false};
   std::thread thread_;
 

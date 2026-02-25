@@ -4,4 +4,4 @@ data/
 lib/
 bin/
 docs/
-tools/demo/cuda/build/
+**/build/

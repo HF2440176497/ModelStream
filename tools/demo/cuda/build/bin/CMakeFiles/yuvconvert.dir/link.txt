@@ -1,1 +1,0 @@
-/usr/bin/c++  -fPIC CMakeFiles/yuvconvert.dir/util/yuvconvert.cc.o -o yuvconvert  libyuv.a 

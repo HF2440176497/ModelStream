@@ -13,6 +13,11 @@
 # ==============================================
 # Notice: this original script is only for Linux.
 
+# Support custom FFmpeg installation path
+if(NOT DEFINED FFMPEG_ROOT_DIR)
+    set(FFMPEG_ROOT_DIR "/usr/local/" CACHE PATH "Default FFmpeg root directory")
+endif()
+
 if (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     # in cache already
     set(FFMPEG_FOUND TRUE)
@@ -20,7 +25,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_path(
             FFMPEG_AVCODEC_INCLUDE_DIR
             NAMES libavcodec/avcodec.h
-            PATHS ${_FFMPEG_AVCODEC_INCLUDE_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/include
             /usr/include/ffmpeg
             /usr/local/include
    	    /usr/include/x86_64-linux-gnu            
@@ -29,7 +34,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBAVCODEC
             NAMES avcodec
-            PATHS ${_FFMPEG_AVCODEC_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
             /usr/lib/x86_64-linux-gnu
@@ -38,7 +43,8 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBAVFORMAT
             NAMES avformat
-            PATHS ${_FFMPEG_AVFORMAT_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
+
             /usr/lib64
             /usr/local/lib
 	    /usr/lib/x86_64-linux-gnu
@@ -47,7 +53,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBSWRESAMPLE
             NAMES swresample
-            PATHS ${_FFMPEG_SWRESAMPLE_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
 	    /usr/lib/x86_64-linux-gnu
@@ -56,7 +62,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBAVUTIL
             NAMES avutil
-            PATHS ${_FFMPEG_AVUTIL_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
 	    /usr/lib/x86_64-linux-gnu
@@ -65,7 +71,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBSWSCALE
             NAMES swscale
-            PATHS ${_FFMPEG_SWSCALE_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
 	    /usr/lib/x86_64-linux-gnu
@@ -74,7 +80,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBAVFILTER
             NAMES avfilter
-            PATHS ${_FFMPEG_AVFILTER_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
 	    /usr/lib/x86_64-linux-gnu
@@ -82,7 +88,7 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
     find_library(
             FFMPEG_LIBAVDEVICE
             NAMES avdevice
-            PATHS ${_FFMPEG_AVDEVICE_LIBRARY_DIRS}
+            PATHS ${FFMPEG_ROOT_DIR}/lib
             /usr/lib64
             /usr/local/lib
             /usr/lib/x86_64-linux-gnu

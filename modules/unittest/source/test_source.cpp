@@ -38,7 +38,7 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
       LOGI(InferencerProcess) << "Close";
     }
 
-    void OnEos(std::string stream_id) override {
+    void OnEos(const std::string& stream_id) override {
       LOGI(InferencerProcess) << "OnEos: " << stream_id;
     }
 
@@ -57,7 +57,7 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
       std::cout << "--- frame image width: " << frame->width << "; stride: " << frame->stride[0] << std::endl;
 
       for (int i = 0; i < frame->GetPlanes(); ++i) {
-        std::string mem_status_info = frame->data[i].StatusToString();
+        std::string mem_status_info = frame->data[i]->StatusToString();
         std::cout << "--- frame plane " << i << " mem status: " << mem_status_info << std::endl;
       }
       if (frame->HasImage()) {
@@ -325,5 +325,6 @@ TEST_F(VideoSourceTest, Loop) {
   LOGI(SourceModuleTest) << "Wait for EOS message complete";
   
   pipeline_->Stop();
+}
 
 }  // namespace cnstream

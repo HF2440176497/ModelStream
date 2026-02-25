@@ -7,9 +7,12 @@ endif()
 cmake_minimum_required(VERSION 3.13)
 
 if(WIN32)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLibraryPaths.cmake)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLibraryPaths_win.cmake)
 endif()
 
+if(UNIX)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLibraryPaths_ubuntu.cmake)
+endif()
 
 project(ModelStream LANGUAGES C CXX)
 set(CMAKE_BUILD_TYPE Debug)
@@ -18,11 +21,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Platform options
-option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" OFF)
+option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" ON)
 
 if (NVIDIA_PLATFORM)
   set(CMAKE_CUDA_STANDARD 17)
-  set(CMAKE_CUDA_ARCHITECTURES "89" CACHE STRING "CUDA architectures")
 endif()
 
 set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -52,6 +54,7 @@ if (build_libyuv)
   set(LIBYUV_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   set(LIBYUV_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libyuv)
+  set(has_built_libyuv TRUE)
 endif()
 
 if(build_tests)

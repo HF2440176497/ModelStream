@@ -1,0 +1,25 @@
+bin/CMakeFiles/yuv.dir/source/convert_jpeg.cc.o: \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/source/convert_jpeg.cc \
+ /usr/include/stdc-predef.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/convert.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/basic_types.h \
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h \
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/stdint.h /usr/include/stdint.h \
+ /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+ /usr/include/features.h /usr/include/features-time64.h \
+ /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+ /usr/include/x86_64-linux-gnu/bits/timesize.h \
+ /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+ /usr/include/x86_64-linux-gnu/bits/long-double.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+ /usr/include/x86_64-linux-gnu/bits/types.h \
+ /usr/include/x86_64-linux-gnu/bits/typesizes.h \
+ /usr/include/x86_64-linux-gnu/bits/time64.h \
+ /usr/include/x86_64-linux-gnu/bits/wchar.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/rotate.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/convert_argb.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/convert_from.h \
+ /home/wanghf/model-stream/ModelStream/3rdparty/libyuv/include/libyuv/planar_functions.h

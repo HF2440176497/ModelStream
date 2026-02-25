@@ -1,0 +1,41 @@
+{
+  "profiler_config": {
+    "enable_profile": false
+  },
+
+  "decoder": {
+    "class_name": "cnstream::DataSource",
+    "max_input_queue_size": 20,
+    "next_modules": ["Inferencer"],
+    "custom_params": {
+      "output_type": "cuda",
+      "device_id": "0",
+      "interval": "1",
+      "decoder_type": "cuda",
+      "stream_url": "rtmp://localhost:1935/live/stream_test",
+      "framerate": 5
+    }
+  },
+
+  "Inferencer": {
+    "class_name": "cnstream::InferencerProcess",
+    "parallelism": 2,
+    "max_input_queue_size": 20,
+    "next_modules": [],
+    "custom_params": {
+      "func_name": "subnet0",
+      "model_name": "yolov5_cable_detection",
+      "model_version": "v20250820",
+      "device_id": "0",
+      "batching_timeout": "300",
+      "batchsize": "4",
+      "preproc_name": "CudaYolov5PostPreproc",
+      "postproc_name": "CudaYolov5Postproc",
+      "width": "640",
+      "height": "640",
+      "custom_postproc_params": {
+        "path": "yolov5_cable_detection.json"
+      }
+    }
+  }
+}

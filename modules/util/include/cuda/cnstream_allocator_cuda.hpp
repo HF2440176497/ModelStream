@@ -7,8 +7,11 @@
 #include <memory>
 #include <new>
 
+#include "cnstream_allocator.hpp"
+#include "cnstream_logging.hpp"
 #include "cuda/cuda_check.hpp"
 
+namespace cnstream {
 
 /*!
  * @class CudaDeviceGuard
@@ -81,9 +84,11 @@ class CudaAllocator : public MemoryAllocator {
 /**
  * CUDA 平台全局函数
  */
-std::shared_ptr<void> cnCudaMemAlloc(size_t size, int device_id) {
+inline std::shared_ptr<void> cnCudaMemAlloc(size_t size, int device_id) {
   std::shared_ptr<MemoryAllocator> allocator = std::make_shared<CudaAllocator>(device_id);
   return cnMemAlloc(size, allocator);  // 调用 CudaAllocator::alloc 方法
 }
+
+}  // namespace cnstream
 
 #endif  // CNSTREAM_ALLOCATOR_CUDA_HPP_

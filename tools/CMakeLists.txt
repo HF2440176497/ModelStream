@@ -5,6 +5,8 @@ if(NOT DEFINED MODELSTREAM_ROOT_PATH)
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
+set(TOOLS_3RDPARTY_LIBS "")
+set(TOOLS_DEPENDENCIES "")
 
 # ---[ gflags
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
@@ -39,9 +41,6 @@ if(build_tests)
   add_definitions(-DUNIT_TEST)
 endif()
 
-set(TOOLS_3RDPARTY_LIBS "")
-set(TOOLS_DEPENDENCIES "")
-
 list(APPEND TOOLS_3RDPARTY_LIBS ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
 
 # ---[ opencv
@@ -54,26 +53,24 @@ else()
 endif()
 
 # ---[ libyuv
-if(build_libyuv)
+if(NOT has_built_libyuv)
+  add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
   set(has_built_libyuv TRUE)
-  if(TARGET yuv)  # 根据 libyuv 内的 cmake 文件确定
-    list(APPEND TOOLS_3RDPARTY_LIBS yuv)
-    list(APPEND TOOLS_DEPENDENCIES yuv)
-    message(STATUS "----- Using libyuv static library: yuv")
-  elseif(TARGET yuv_shared)
-    list(APPEND TOOLS_3RDPARTY_LIBS yuv_shared)
-    list(APPEND TOOLS_DEPENDENCIES yuv_shared)
-    message(STATUS "----- Using libyuv shared library: yuv_shared")
-  else()
-    set(has_built_libyuv FALSE)
-    message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
-  endif()
-  include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
-else()
-  set(has_built_libyuv FALSE)
-  message(FATAL_ERROR "libyuv not found. Set BUILD_LIBYUV=ON in root CMakeLists.txt to build")
 endif()
 
+if(TARGET yuv)
+  list(APPEND TOOLS_3RDPARTY_LIBS yuv)
+  list(APPEND TOOLS_DEPENDENCIES yuv)
+  # message(STATUS "----- Using libyuv static library: yuv")
+elseif(TARGET yuv_shared)
+  list(APPEND TOOLS_3RDPARTY_LIBS yuv_shared)
+  list(APPEND TOOLS_DEPENDENCIES yuv_shared)
+  # message(STATUS "----- Using libyuv shared library: yuv_shared")
+else()
+  message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
+endif()
+
+include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
 
 # ---[ Options
 option(build_inspect "build cnstream inspect" ON)

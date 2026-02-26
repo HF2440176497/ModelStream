@@ -159,10 +159,10 @@ class CNSyncedMemory : private NonCopyable {
 public:
   virtual void ToCpu();
 
-#ifndef UNIT_TEST
+#ifdef UNIT_TEST
  public:
 #else
- private:
+ protected:
 #endif
   /**
    * 通过 CNSyncedMemory 分配的，CNSyncedMemory 同时负责回收

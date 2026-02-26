@@ -5,9 +5,9 @@
 #include "memop.hpp"
 
 #include "cnstream_allocator.hpp"
-#include "cnstream_sysncmem.hpp"
+#include "cnstream_syncmem.hpp"
 #include "cuda/cnstream_allocator_cuda.hpp"
-#include "cuda/cnstream_sysncmem_cuda.hpp"
+#include "cuda/cnstream_syncmem_cuda.hpp"
 
 
 namespace cnstream {

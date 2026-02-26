@@ -5,7 +5,7 @@
 #include "cnstream_logging.hpp"
 #include "cuda/memop_cuda.hpp"
 #include "cuda/cuda_check.hpp"
-#include "cuda/cnstream_sysncmem_cuda.hpp"
+#include "cuda/cnstream_syncmem_cuda.hpp"
 #include "cuda/transfmt_cuda.cuh"
 
 namespace cnstream {

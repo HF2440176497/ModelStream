@@ -41,7 +41,7 @@ int NppNV12ToRGB24(void* dst, int width, int height, const void* y_plane, const 
   oSizeROI.width   = width;
   oSizeROI.height  = height;
 
-  status = nppiNV12ToRGB_8u_P2C3R_Ctx(
+  status = nppiNV12ToRGB_709HDTV_8u_P2C3R_Ctx(
     aSrc, aSrcStep,
     pDst, nDstStep,
     oSizeROI,
@@ -74,7 +74,7 @@ int NppNV12ToBGR24(void* dst, int width, int height, const void* y_plane, const 
   oSizeROI.width   = width;
   oSizeROI.height  = height;
 
-  status = nppiNV12ToBGR_8u_P2C3R_Ctx(
+  status = nppiNV12ToBGR_709HDTV_8u_P2C3R_Ctx(
     aSrc, aSrcStep,
     pDst, nDstStep,
     oSizeROI,
@@ -87,6 +87,117 @@ int NppNV12ToBGR24(void* dst, int width, int height, const void* y_plane, const 
 
   return 0;
 }
+
+/**
+ * BT.709 HDTV: 转换 NV21 到 RGB24
+ */
+__global__ void nv21ToRGBKernel(const uint8_t* yPlane, const uint8_t* vuPlane,
+                                uint8_t* bgrOutput, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    if (x >= width || y >= height) return;
+    
+    int idx = y * width + x;
+    
+    uint8_t Y = yPlane[idx];
+    
+    int uvX = x / 2;
+    int uvY = y / 2;
+    int uvIdx = uvY * (width / 2) + uvX;
+
+    uint8_t V = vuPlane[uvIdx * 2];
+    uint8_t U = vuPlane[uvIdx * 2 + 1];
+
+    int C = Y - 16;
+    int D = U - 128;
+    int E = V - 128;
+    
+    int R = (298 * C + 459 * E + 128) >> 8;
+    int G = (298 * C - 55 * D - 137 * E + 128) >> 8;
+    int B = (298 * C + 541 * D + 128) >> 8;
+    
+    R = max(0, min(255, R));
+    G = max(0, min(255, G));
+    B = max(0, min(255, B));
+    
+    int outIdx = idx * 3;
+    bgrOutput[outIdx] = R;
+    bgrOutput[outIdx + 1] = G;
+    bgrOutput[outIdx + 2] = B;
+}
+
+/**
+ * BT.709 HDTV: 转换 NV21 到 BGR24
+ */
+__global__ void nv21ToBGRKernel(const uint8_t* yPlane, const uint8_t* vuPlane,
+                                uint8_t* bgrOutput, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    if (x >= width || y >= height) return;
+    
+    int idx = y * width + x;
+    
+    uint8_t Y = yPlane[idx];
+    
+    int uvX = x / 2;
+    int uvY = y / 2;
+    int uvIdx = uvY * (width / 2) + uvX;
+
+    uint8_t V = vuPlane[uvIdx * 2];
+    uint8_t U = vuPlane[uvIdx * 2 + 1];
+
+    int C = Y - 16;
+    int D = U - 128;
+    int E = V - 128;
+    
+    int R = (298 * C + 459 * E + 128) >> 8;
+    int G = (298 * C - 55 * D - 137 * E + 128) >> 8;
+    int B = (298 * C + 541 * D + 128) >> 8;
+    
+    R = max(0, min(255, R));
+    G = max(0, min(255, G));
+    B = max(0, min(255, B));
+    
+    int outIdx = idx * 3;
+    bgrOutput[outIdx] = B;
+    bgrOutput[outIdx + 1] = G;
+    bgrOutput[outIdx + 2] = R;
+}
+
+// NV21 的转换使用 CUDA kernel 
+int NppNV21ToRGB24(void* dst, int width, int height, 
+  const void* y_plane, const void* uv_plane, cudaStream_t stream) {
+
+  dim3 block(16, 16);
+  dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+  
+  nv21ToRGBKernel<<<grid, block, 0, stream>>>(static_cast<const uint8_t*>(y_plane), static_cast<const uint8_t*>(uv_plane), 
+                    static_cast<uint8_t*>(dst), width, height);
+
+  CHECK_CUDA_RUNTIME(cudaGetLastError());
+  CHECK_CUDA_RUNTIME(cudaDeviceSynchronize());
+
+  return 0;
+}
+
+
+int NppNV21ToBGR24(void* dst, int width, int height, 
+  const void* y_plane, const void* uv_plane, cudaStream_t stream) {
+
+  dim3 block(16, 16);
+  dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+  
+  nv21ToBGRKernel<<<grid, block, 0, stream>>>(static_cast<const uint8_t*>(y_plane), static_cast<const uint8_t*>(uv_plane), 
+                    static_cast<uint8_t*>(dst), width, height);
+
+  CHECK_CUDA_RUNTIME(cudaGetLastError());
+  CHECK_CUDA_RUNTIME(cudaDeviceSynchronize());
+
+  return 0;
+}
+
 
 int NppRGB24ToBGR24(void* dst, int width, int height, const void* src, cudaStream_t stream) {
   NppStreamContext npp_stream_ctx;

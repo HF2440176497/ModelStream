@@ -1,5 +1,5 @@
 
-#include "include/base.hpp"
+#include "base.hpp"
 #include "cnstream_allocator.hpp"  // modules/util/include
 
 #include "cuda/cuda_check.hpp"

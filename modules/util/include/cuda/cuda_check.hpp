@@ -2,6 +2,8 @@
 #ifndef CUDA_CHECK_HPP_
 #define CUDA_CHECK_HPP_
 
+#include <cstdio>
+
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <cuda_device_runtime_api.h>
@@ -12,7 +14,7 @@ namespace cnstream {
 
 #define CHECK_CUDA_RUNTIME(op) __check_cuda_runtime((op), #op, __FILE__, __LINE__)
 
-bool __check_cuda_runtime(cudaError_t code, const char* op, const char* file, int line) {
+inline bool __check_cuda_runtime(cudaError_t code, const char* op, const char* file, int line) {
   if (code != cudaSuccess) {
     const char* err_name = cudaGetErrorName(code);
     const char* err_message = cudaGetErrorString(code);

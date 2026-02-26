@@ -56,10 +56,13 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
       std::cout << "--- frame image height: " << frame->height << std::endl;  
       std::cout << "--- frame image width: " << frame->width << "; stride: " << frame->stride[0] << std::endl;
 
+      // 打印 SyncMem 状态
       for (int i = 0; i < frame->GetPlanes(); ++i) {
         std::string mem_status_info = frame->data[i]->StatusToString();
         std::cout << "--- frame plane " << i << " mem status: " << mem_status_info << std::endl;
       }
+
+      // 尝试通过 SyncMem 落地图片
       if (frame->HasImage()) {
         LOGW(InferencerProcess) << "before get image, frame_mat_ should be empty";
       }

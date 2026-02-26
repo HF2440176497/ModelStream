@@ -792,13 +792,13 @@ bool TestOpenCVConversionConsistency(TestFrame& frame, uint8_t expected_r, uint8
     }
   }
 
-  // std::cout << "OpenCV channel consistency check:" << std::endl;
-  // std::cout << "  B channel: " << b_errors << " / " << total_pixels << " pixels different ("
-  //           << (100.0 * b_errors / total_pixels) << "%)" << std::endl;
-  // std::cout << "  G channel: " << g_errors << " / " << total_pixels << " pixels different ("
-  //           << (100.0 * g_errors / total_pixels) << "%)" << std::endl;
-  // std::cout << "  R channel: " << r_errors << " / " << total_pixels << " pixels different ("
-  //           << (100.0 * r_errors / total_pixels) << "%)" << std::endl;
+  std::cout << "OpenCV channel consistency check:" << std::endl;
+  std::cout << "  B channel: " << b_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * b_errors / total_pixels) << "%)" << std::endl;
+  std::cout << "  G channel: " << g_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * g_errors / total_pixels) << "%)" << std::endl;
+  std::cout << "  R channel: " << r_errors << " / " << total_pixels << " pixels different ("
+            << (100.0 * r_errors / total_pixels) << "%)" << std::endl;
 
   std::cout << "\nOpenCV BGR memory layout:" << std::endl;
   std::cout << "  Memory[0] = B = " << (int)opencv_bgr[0] << " (expected: " << (int)expected_b << ")" << std::endl;

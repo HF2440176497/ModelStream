@@ -8,6 +8,33 @@ endif()
 set(TOOLS_3RDPARTY_LIBS "")
 set(TOOLS_DEPENDENCIES "")
 
+if (build_va)
+  include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+  have_modules_target(${MODELSTREAM_ROOT_PATH})
+  include_directories(
+    ${MODELSTREAM_ROOT_PATH}/modules
+    ${MODELSTREAM_ROOT_PATH}/modules/util/include
+  )
+  if (module_list)
+    foreach(module ${module_list})
+      include_directories(
+        ${MODELSTREAM_ROOT_PATH}/modules/${module}/include
+      )
+    endforeach()
+  endif()
+  if(HAVE_MODULES_TARGET)
+    list(APPEND TOOLS_DEPENDENCIES modelstream_va)
+  endif()
+endif()
+
+# ---[ framework
+include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${MODELSTREAM_ROOT_PATH})
+include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
+if(HAVE_FRAMEWORK_TARGET)
+  list(APPEND TOOLS_DEPENDENCIES modelstream_core)
+endif()
+
 # ---[ gflags
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
 if(GFLAGS_FOUND)
@@ -28,14 +55,6 @@ endif()
 
 # ---[ nlohmann/json
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
-
-# ---[ framework
-include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
-have_framework_target(${MODELSTREAM_ROOT_PATH})
-include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
-if(HAVE_FRAMEWORK_TARGET)
-  list(APPEND TOOLS_DEPENDENCIES modelstream_core)
-endif()
 
 if(build_tests)
   add_definitions(-DUNIT_TEST)

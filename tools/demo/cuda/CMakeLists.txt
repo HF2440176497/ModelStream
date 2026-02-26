@@ -16,22 +16,27 @@ set(CMAKE_CUDA_STANDARD 17)
 set(TOOLS_DEMO_CUDA_3RDPARTY_LIBS "")
 set(TOOLS_DEMO_CUDA_DEPENDENCIES "")
 
-# ---[ CUDA
-find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
-list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS ${CUDA_LIBRARIES})
+# ---[ CUDA Toolkit
+find_package(CUDAToolkit REQUIRED)
+list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS 
+  CUDA::cudart
+  CUDA::nvml
+)
+list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS         
+  CUDA::npps
+  CUDA::nppc
+  CUDA::nppial
+  CUDA::nppicc
+  CUDA::nppidei
+  CUDA::nppif
+  CUDA::nppig
+  CUDA::nppim
+  CUDA::nppist
+  CUDA::nppisu
+  CUDA::nppitc
+)
+
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
-
-message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
-
-# ---[ NPP (NVIDIA Performance Primitives)
-find_path(NPP_INCLUDE_DIR npp.h 
-    PATHS ${CUDA_INCLUDE_DIRS}
-    PATH_SUFFIXES npp)
-if(NPP_INCLUDE_DIR)
-    include_directories(${NPP_INCLUDE_DIR})
-    message(STATUS "----- NPP include: ${NPP_INCLUDE_DIR}")
-endif()
 
 # ---[ opencv
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
@@ -49,7 +54,6 @@ if(NOT has_built_libyuv)
   add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
   set(has_built_libyuv TRUE)
 endif()
-
 if(TARGET yuv)
   list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS yuv)
   list(APPEND TOOLS_DEMO_CUDA_DEPENDENCIES yuv)
@@ -61,11 +65,11 @@ elseif(TARGET yuv_shared)
 else()
   message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
 endif()
-
 include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
 
 # Source files
 set(DEMO_SOURCES
+  inspect_mem.cpp
   transfmt_cuda_npp_demo.cu
   transfmt_cuda_kernel_demo.cu
 )
@@ -75,20 +79,9 @@ foreach(demo_source ${DEMO_SOURCES})
     cuda_add_executable(${demo_name} ${demo_source})
     add_dependencies(${demo_name} ${TOOLS_DEMO_CUDA_DEPENDENCIES})
     target_link_libraries(${demo_name} 
-        ${TOOLS_DEMO_CUDA_3RDPARTY_LIBS}
-        npps
-        nppc
-        nppial
-        nppicc
-        nppidei
-        nppif
-        nppig
-        nppim
-        nppist
-        nppisu
-        nppitc
-        rt
-        dl
-        pthread
+      ${TOOLS_DEMO_CUDA_3RDPARTY_LIBS}
+      rt
+      dl
+      pthread
     )
 endforeach()

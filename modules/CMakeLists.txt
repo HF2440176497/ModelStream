@@ -105,34 +105,29 @@ file(GLOB util_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
 
 if(NVIDIA_PLATFORM)
   enable_language(CUDA)
-  find_package(CUDA REQUIRED)
-  include_directories(${CUDA_INCLUDE_DIRS})
+  find_package(CUDAToolkit REQUIRED)
   file(GLOB util_cuda_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cu)
   list(APPEND util_src ${util_cuda_src})
-  list(APPEND MODULES_3RDPARTY_LIBS ${CUDA_LIBRARIES})
-
-  # ---[ NPP (NVIDIA Performance Primitives)
-  find_path(NPP_INCLUDE_DIR npp.h 
-    PATHS ${CUDA_INCLUDE_DIRS}
-    PATH_SUFFIXES npp)
-  if(NPP_INCLUDE_DIR)
-    include_directories(${NPP_INCLUDE_DIR})
-    list(APPEND MODULES_3RDPARTY_LIBS         
-      npps
-      nppc
-      nppial
-      nppicc
-      nppidei
-      nppif
-      nppig
-      nppim
-      nppist
-      nppisu
-      nppitc)
-    message(STATUS "----- NPP include: ${NPP_INCLUDE_DIR}")
-  endif()
   
+  list(APPEND MODULES_3RDPARTY_LIBS 
+    CUDA::cudart
+    CUDA::nvml
+  )
+  list(APPEND MODULES_3RDPARTY_LIBS         
+    CUDA::npps
+    CUDA::nppc
+    CUDA::nppial
+    CUDA::nppicc
+    CUDA::nppidei
+    CUDA::nppif
+    CUDA::nppig
+    CUDA::nppim
+    CUDA::nppist
+    CUDA::nppisu
+    CUDA::nppitc
+  )
+    
   message(STATUS "NVIDIA platform enabled - adding CUDA sources")
 endif()
 

@@ -48,6 +48,9 @@ class MemoryAllocator : private NonCopyable {
  protected:
   int device_id_ = -1;
   std::mutex mutex_;
+#ifdef UNITTEST
+  size_t size_ = 0;
+#endif
 };
 
 
@@ -64,7 +67,7 @@ class CnAllocDeleter final {
 };
 
 /**
- * 内存分配器全局函数
+ * 内存分配器中间函数，根据指定的 allocator 分配内存
  */
 inline std::shared_ptr<void> cnMemAlloc(size_t size, std::shared_ptr<MemoryAllocator> allocator) {
   if (allocator) {
@@ -77,11 +80,14 @@ inline std::shared_ptr<void> cnMemAlloc(size_t size, std::shared_ptr<MemoryAlloc
 
 class CpuAllocator : public MemoryAllocator {
  public:
-  CpuAllocator() : MemoryAllocator() {}
+  explicit CpuAllocator() : MemoryAllocator() {}
   ~CpuAllocator() = default;
 
   void *alloc(size_t size, int timeout_ms = 0) override {
     size_t alloc_size = (size + 4095) & (~0xFFF);  // Align 4096
+#ifdef UNITTEST
+    size_ = alloc_size;
+#endif
     return static_cast<void *>(new (std::nothrow) uint8_t[alloc_size]);
   }
   void free(void *p) override {

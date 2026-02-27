@@ -78,6 +78,9 @@ MemOp::~MemOp() {}
 
 std::shared_ptr<void> MemOp::Allocate(size_t bytes)  {
   bytes = RoundUpSize(bytes);
+#ifdef UNIT_TEST
+  size_ = bytes;
+#endif
   return cnCpuMemAlloc(bytes);
 }
 

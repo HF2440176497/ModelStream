@@ -358,7 +358,6 @@ int VideoHandlerImpl::decode_write() {
 
     } else if (output_type_ == OutputType::OUTPUT_CUDA) {
 
-      // 此时需要保证解码后是 CUDA 格式
       if (p_frame->format != AV_PIX_FMT_CUDA) {
         LOGE(SOURCE) << "VideoHandlerImpl: p_frame format not supported: " << p_frame->format;
         ret = -1;

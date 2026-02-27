@@ -32,6 +32,9 @@ std::unique_ptr<CNSyncedMemory> CudaMemOp::CreateSyncedMemory(size_t size) {
 
 std::shared_ptr<void> CudaMemOp::Allocate(size_t bytes) {
   bytes = RoundUpSize(bytes);
+#ifdef UNIT_TEST
+  size_ = bytes;
+#endif
   CudaDeviceGuard guard(device_id_);
   return cnCudaMemAlloc(bytes, device_id_);
 }

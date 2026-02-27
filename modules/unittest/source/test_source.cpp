@@ -49,12 +49,12 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
         LOGE(InferencerProcess) << "frame is empty";
         return -1;
       }
-      std::cout << "--- frame datafmt: " << DataFormat2Str(frame->fmt) << std::endl;
-      std::cout << "--- frame devtype: " << DevType2Str(frame->ctx.dev_type) << std::endl;
-      std::cout << "--- frame devid: " << frame->ctx.dev_id << std::endl;
+      std::cout << "--- frame datafmt: " << DataFormat2Str(frame->GetFmt()) << std::endl;
+      std::cout << "--- frame devtype: " << DevType2Str(frame->GetCtx().dev_type) << std::endl;
+      std::cout << "--- frame devid: " << frame->GetCtx().dev_id << std::endl;
       
-      std::cout << "--- frame image height: " << frame->height << std::endl;  
-      std::cout << "--- frame image width: " << frame->width << "; stride: " << frame->stride[0] << std::endl;
+      std::cout << "--- frame image height: " << frame->GetHeight() << std::endl;  
+      std::cout << "--- frame image width: " << frame->GetWidth() << "; stride: " << frame->GetStride(0) << std::endl;
 
       // 打印 SyncMem 状态
       for (int i = 0; i < frame->GetPlanes(); ++i) {
@@ -313,6 +313,15 @@ TEST_F(VideoSourceTest, Loop) {
   std::cout << "video_handler_->impl_->framerate_ = " << video_handler_->impl_->framerate_ << std::endl;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
+
+  // Print profiler info
+  // source module 不会有 kINPUT_PROFILER_NAME kPROCESS_PROFILER_NAME
+  auto infer_profiler = pipeline_->GetModuleProfiler("InferencerProcess");
+  auto infer_profile = infer_profiler->GetProfile();
+  std::cout << "InferencerProcess profile: " << ModuleProfileToString(infer_profile) << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
+
   LOGI(SourceModuleTest) << "Handler stream idx: " << video_handler_->GetStreamIndex();
   EXPECT_NE(video_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex
   EXPECT_TRUE(pipeline_->IsRunning());

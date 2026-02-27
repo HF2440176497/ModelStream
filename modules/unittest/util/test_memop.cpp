@@ -78,12 +78,16 @@ TEST(MemOp, CreateMemOp) {
   ASSERT_EQ(buffer.data, nullptr);  // 首先注册时，Data 为空
 
   auto synced_mem = memop->CreateSyncedMemory(bytes);
-  ASSERT_TRUE(synced_mem != nullptr);
+  ASSERT_NE(synced_mem, nullptr);
+  EXPECT_EQ(synced_mem->size_, bytes);
+  EXPECT_EQ(synced_mem->GetDevId(), -1);
+  EXPECT_EQ(memop->size_, bytes);
 
   auto data = memop->Allocate(bytes);  // std::shared_ptr<void>
-  ASSERT_TRUE(data != nullptr);
+  EXPECT_EQ(memop->size_, bytes);
+  ASSERT_NE(data, nullptr);
   void* data_void_ptr = data.get();
-  ASSERT_TRUE(data_void_ptr != nullptr);
+  ASSERT_NE(data_void_ptr, nullptr);
 
   memop->SetData(synced_mem.get(), data_void_ptr);
   buffer.data = std::move(data);

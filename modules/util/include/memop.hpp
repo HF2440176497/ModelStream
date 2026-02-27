@@ -74,6 +74,11 @@ class MemOp {
   virtual std::unique_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size);
   virtual void SetData(CNSyncedMemory* mem, void* data);  // 将分配的目标内存绑定到 CNSyncedMemory
   virtual int ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame);
+
+#ifdef UNIT_TEST
+  size_t size_ = 0;
+#endif
+
 };
 
 }  // namespace cnstream

@@ -4,21 +4,21 @@
  * This file contains gtest unit tests for the CNSyncedMemory class on CUDA platform.
  */
 
-#include "base.hpp"
 #include <vector>
 #include <cstring>
 
-#ifdef NVIDIA_PLATFORM
-#include "cnstream_syncmem_cuda.hpp"
-#endif
-
+#include "base.hpp"
 #include "cnstream_logging.hpp"
+
+#ifdef NVIDIA_PLATFORM
+#include "cuda/cnstream_syncmem_cuda.hpp"
+#endif
 
 
 class CNSyncedMemoryTest : public ::testing::Test {
 protected:
-  static const int kTestSize = 1024;
-  static const int kFloatCount = kTestSize / sizeof(float);
+  static const int kFloatCount = 1024;
+  static const int kTestSize = 1024 * sizeof(float);
 };
 
 namespace cnstream {
@@ -38,13 +38,14 @@ TEST_F(CNSyncedMemoryTest, BasicFunctionality) {
   for (int i = 0; i < kFloatCount; i++) {
     cpu_data[i] = static_cast<float>(i);
   }
-  // Transfer to CUDA
+  // allocate on CUDA, copy data from CPU to CUDA
   mem.ToCuda();
   ASSERT_EQ(mem.GetHead(), SyncedHead::SYNCED) << "Head should be SYNCED";
+
+  // allocate -> own
   ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data should be owned";
   ASSERT_TRUE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data should be owned";
 
-  // Verify data on CUDA
   const float* cuda_data = static_cast<const float*>(mem.GetCudaData());
   ASSERT_NE(cuda_data, nullptr) << "Failed to get CUDA data";
 
@@ -52,6 +53,10 @@ TEST_F(CNSyncedMemoryTest, BasicFunctionality) {
   float* cpu_data2 = static_cast<float*>(mem.GetMutableCpuData());
   ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CPU) << "Head should be HEAD_AT_CPU after GetMutableCpuData";
   ASSERT_NE(cpu_data2, nullptr) << "Failed to get mutable CPU data after CUDA transfer";
+
+  // GetMutableCpuData 之前是同步的，所以不应该影响 own statuss
+  ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data should be owned";
+  ASSERT_TRUE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data should be owned";
 
   for (int i = 0; i < kFloatCount; i++) {
     ASSERT_FLOAT_EQ(cpu_data2[i], static_cast<float>(i)) << "Data mismatch at index " << i;
@@ -67,7 +72,7 @@ TEST_F(CNSyncedMemoryTest, DeviceContext) {
   }
   const int dev_id = 0; // Use first CUDA device
   CNSyncedMemoryCuda mem(kTestSize, dev_id);
-  EXPECT_EQ(mem.GetDevId(), dev_id) << "Device ID mismatch";
+  ASSERT_EQ(mem.GetDevId(), dev_id) << "Device ID mismatch";
 
   float* cpu_data = static_cast<float*>(mem.GetMutableCpuData());
   ASSERT_NE(cpu_data, nullptr) << "Failed to get mutable CPU data";
@@ -88,18 +93,38 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   ASSERT_EQ(result, cudaSuccess) << "Failed to allocate CUDA memory manually";
 
   mem.SetCudaData(manual_cuda_ptr);
-  EXPECT_FALSE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data ownership should be false after SetCudaData";
-  EXPECT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA) << "Head should be HEAD_AT_CUDA after SetCudaData";
+  ASSERT_FALSE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data ownership should be false after SetCudaData";
+  ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA) << "Head should be HEAD_AT_CUDA after SetCudaData";
 
-  const float* cuda_data = static_cast<const float*>(mem.GetCudaData());
-  EXPECT_EQ(cuda_data, manual_cuda_ptr) << "Manual CUDA pointer not set correctly";
+  const float* const_cuda_data = static_cast<const float*>(mem.GetCudaData());
+  ASSERT_EQ(const_cast<float*>(const_cuda_data), mem.cuda_ptr_) << "Manual CUDA pointer not set correctly";
 
-  EXPECT_EQ(mem.cpu_ptr_, nullptr);
+  ASSERT_EQ(mem.cpu_ptr_, nullptr);
   mem.ToCpu();
-  EXPECT_NE(mem.cpu_ptr_, nullptr) << "CPU data pointer should not be NULL after ToCpu";
-  EXPECT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
-  EXPECT_FALSE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data ownership should be true after ToCpu";
-  EXPECT_EQ(mem.GetHead(), SyncedHead::SYNCED) << "Head should be HEAD_AT_CPU after ToCpu";
+  ASSERT_NE(mem.cpu_ptr_, nullptr) << "CPU data pointer should not be NULL after ToCpu";
+  ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
+  ASSERT_FALSE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data ownership should be true after ToCpu";
+  ASSERT_EQ(mem.GetHead(), SyncedHead::SYNCED) << "Head should be HEAD_AT_CPU after ToCpu";
+
+  // 1）之前是同步的，因此只改变 head 为 HEAD_AT_CUDA
+  float* cuda_data = static_cast<float*>(mem.GetMutableCudaData());
+  ASSERT_NE(cuda_data, nullptr) << "Failed to get CUDA data after ToCpu";
+
+  // 尝试改变 CUDA 数据
+  void *tmp = malloc(kTestSize);
+  float pattern = 0xAB;
+  memset(tmp, pattern, kTestSize);
+  CHECK_CUDA_RUNTIME(cudaMemcpy(cuda_data, tmp, kTestSize, cudaMemcpyHostToDevice));
+
+  // 2）接着 ToCpu, 会分配 cpu 内存, 接着验证 cpu 上的数据是否正确
+  mem.ToCpu();
+  ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
+
+  float* cpu_data = static_cast<float*>(mem.GetCpuData());
+  ASSERT_NE(cpu_data, nullptr) << "Failed to get CPU data after ToCpu";
+  for (int i = 0; i < kFloatCount; i++) {
+    ASSERT_EQ(cpu_data[i], static_cast<float>(pattern)) << "Data mismatch at index " << i;
+  }
 
   cudaFree(manual_cuda_ptr);
 }

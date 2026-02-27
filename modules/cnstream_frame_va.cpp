@@ -11,34 +11,31 @@ namespace cnstream {
 
 static
 cv::Mat BGRToBGR(const DataFrame& frame) {
-  const cv::Mat bgr(frame.height, frame.stride[0], CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
-  return bgr(cv::Rect(0, 0, frame.width, frame.height)).clone();
+  const cv::Mat bgr(frame.GetHeight(), frame.GetStride(0), CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
+  return bgr(cv::Rect(0, 0, frame.GetWidth(), frame.GetHeight())).clone();
 }
 
 static
 cv::Mat RGBToBGR(const DataFrame& frame) {
-  const cv::Mat rgb(frame.height, frame.stride[0], CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
+  const cv::Mat rgb(frame.GetHeight(), frame.GetStride(0), CV_8UC3, const_cast<void*>(frame.data[0]->GetCpuData()));
   cv::Mat bgr;
   cv::cvtColor(rgb, bgr, cv::COLOR_RGB2BGR);
-  return bgr(cv::Rect(0, 0, frame.width, frame.height)).clone();
+  return bgr(cv::Rect(0, 0, frame.GetWidth(), frame.GetHeight())).clone();
 }
 
-/**
- * @brief 转换 NV12 或者 NV21 的 YUV420SP 图像到 BGR 格式
- */
 static
 cv::Mat YUV420SPToBGR(const DataFrame& frame, bool nv21) {
   const uint8_t* y_plane = reinterpret_cast<const uint8_t*>(frame.data[0]->GetCpuData());
   const uint8_t* uv_plane = reinterpret_cast<const uint8_t*>(frame.data[1]->GetCpuData());
-  int width = frame.width;
-  int height = frame.height;
+  int width = frame.GetWidth();
+  int height = frame.GetHeight();
   if (width <= 0 || height <= 1) {
     LOGF(FRAME) << "Invalid width or height, width = " << width << ", height = " << height;
   }
   height = height & (~static_cast<int>(1));
 
-  int y_stride = frame.stride[0];
-  int uv_stride = frame.stride[1];
+  int y_stride = frame.GetStride(0);
+  int uv_stride = frame.GetStride(1);
   cv::Mat bgr(height, width, CV_8UC3);
   uint8_t* dst_bgr24 = bgr.data;
   int dst_stride = width * 3;
@@ -63,7 +60,7 @@ cv::Mat NV21ToBGR(const DataFrame& frame) {
 
 static inline
 cv::Mat FrameToImageBGR(const DataFrame& frame) {
-  switch (frame.fmt) {
+  switch (frame.GetFmt()) {
     case DataFormat::PIXEL_FORMAT_BGR24:
       return BGRToBGR(frame);
     case DataFormat::PIXEL_FORMAT_RGB24:
@@ -73,9 +70,8 @@ cv::Mat FrameToImageBGR(const DataFrame& frame) {
     case DataFormat::PIXEL_FORMAT_YUV420_NV21:
       return NV21ToBGR(frame);
     default:
-      LOGF(FRAME) << "Unsupported pixel format. fmt[" << static_cast<int>(frame.fmt) << "]";
+      LOGF(FRAME) << "Unsupported pixel format. fmt[" << static_cast<int>(frame.GetFmt()) << "]";
   }
-  // never be here
   return cv::Mat();
 }
 
@@ -94,16 +90,16 @@ cv::Mat DataFrame::GetImage() {
 
 size_t DataFrame::GetPlaneBytes(int plane_idx) const {
   if (plane_idx < 0 || plane_idx >= GetPlanes()) return 0;
-  switch (fmt) {
+  switch (fmt_) {
     case DataFormat::PIXEL_FORMAT_BGR24:
     case DataFormat::PIXEL_FORMAT_RGB24:
-      return height * stride[0] * 3;
+      return height_ * stride_[0] * 3;
     case DataFormat::PIXEL_FORMAT_YUV420_NV12:
     case DataFormat::PIXEL_FORMAT_YUV420_NV21:
       if (0 == plane_idx)
-        return height * stride[0];
+        return height_ * stride_[0];
       else if (1 == plane_idx)
-        return std::ceil(1.0 * height * stride[1] / 2);
+        return std::ceil(1.0 * height_ * stride_[1] / 2);
       else
         LOGF(FRAME) << "plane index wrong.";
     default:
@@ -125,9 +121,9 @@ size_t DataFrame::GetBytes() const {
  * 调用处：CopyToSyncMem(decode_frame)
  */
 std::unique_ptr<MemOp> DataFrame::CreateMemOp() {
-  auto dev_type = this->ctx.dev_type;  // current dev and id
-  int dev_id = this->ctx.dev_id;
-  std::unique_ptr<MemOp> memop = MemOpFactory::Instance().CreateMemOp(dev_type, dev_id);
+  auto dev_type = this->ctx_.dev_type;
+  int dev_id = this->ctx_.dev_id;
+  std::unique_ptr<MemOp> memop = MemOpFactory::Instance().CreateMemOp(dev_type, dev_id);  // inside mutex_ lock
   if (!memop) {
     LOGF(FRAME) << "CreateMemOp: failed to create MemOp from " << static_cast<int>(dev_type) << " with dev_id " << dev_id;
     return nullptr;
@@ -136,52 +132,48 @@ std::unique_ptr<MemOp> DataFrame::CreateMemOp() {
 }
 
 void DataFrame::CopyToSyncMem(DecodeFrame* decode_frame) {
-  if (this->ctx.dev_type == DevType::INVALID) {
+  if (this->ctx_.dev_type == DevType::INVALID) {
     LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
     return;
   }
-  if (DataFormat::PIXEL_FORMAT_RGB24 != this->fmt) {
-    LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24, decode_frame fmt is " << static_cast<int>(decode_frame->fmt) << ", this fmt is " << static_cast<int>(this->fmt);
+  if (DataFormat::PIXEL_FORMAT_RGB24 != this->fmt_) {
+    LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24, decode_frame fmt is " << static_cast<int>(decode_frame->fmt) << ", this fmt is " << static_cast<int>(this->fmt_);
     return;
   }
 
-  std::unique_ptr<MemOp> memop = CreateMemOp();  // 局部变量，只在当前次解码使用
+  std::unique_ptr<MemOp> memop = CreateMemOp();
   if (!memop) return;
 
-  // 1. 零拷贝 直接复用内存
-  if (this->deAllocator_ != nullptr && decode_frame->fmt == this->fmt) {
+  if (this->deAllocator_ != nullptr && decode_frame->fmt == this->fmt_) {
     for (int i = 0; i < GetPlanes(); i++) {
       const size_t plane_bytes = GetPlaneBytes(i);
       this->data[i] = memop->CreateSyncedMemory(plane_bytes);
       memop->SetData(this->data[i].get(), decode_frame->plane[i]);
     }
-    return;  // 此时仍由 deAllocator_ 管理内存
+    return;
   }
-  // 2. 分配内存-格式转换-创建SyncedMemory
   size_t bytes = GetBytes();
   bytes = ROUND_UP(bytes, 64 * 1024);
   
   std::shared_ptr<void> dst_buffer = memop->Allocate(bytes);
   void* dst_plane = dst_buffer.get();
 
-  // 格式转换：分平面将转换后的数据写入 dst_plane
-  if (decode_frame->fmt != this->fmt) {
-    int ret = memop->ConvertImageFormat(dst_plane, this->fmt, decode_frame);
+  if (decode_frame->fmt != this->fmt_) {
+    int ret = memop->ConvertImageFormat(dst_plane, this->fmt_, decode_frame);
     if (ret != 0) {
       LOGF(FRAME) << "CopyToSyncMem: Format conversion failed with error code: " << ret;
       return;
     }
   }
-  // 分平面将地址封装到 this->data，但 data 并不管理其生命周期，而是交给 mem_manager 管理
   for (int i = 0; i < GetPlanes(); ++i) {
     const size_t plane_bytes = GetPlaneBytes(i);
     this->data[i] = memop->CreateSyncedMemory(plane_bytes);
     memop->SetData(this->data[i].get(), dst_plane);
     dst_plane = static_cast<uint8_t*>(dst_plane) + plane_bytes;
   }
-  Buffer& buffer = mem_manager_.GetBuffer(ctx.dev_type, bytes, ctx.dev_id);
+  Buffer& buffer = mem_manager_.GetBuffer(ctx_.dev_type, bytes, ctx_.dev_id);
   buffer.data = std::move(dst_buffer);
-  this->deAllocator_.reset();  // 非零拷贝场景，确保释放; 交给 buffer.data 管理生命周期
+  this->deAllocator_.reset();
 }
 
 // bool CNInferObject::AddAttribute(const std::string& key, const CNInferAttr& value) {

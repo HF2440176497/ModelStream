@@ -15,7 +15,7 @@ namespace cnstream {
 class CudaMemOp : public MemOp {
  public:
   CudaMemOp();
-  ~CudaMemOp() override;
+  virtual ~CudaMemOp() override;
   
   explicit CudaMemOp(int device_id) : device_id_(device_id) {}
   int GetDeviceId() const override { return device_id_; }

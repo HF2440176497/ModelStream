@@ -1,4 +1,6 @@
-$sourceDir = "D:\Project_person\ModelStream"
+
+$dirName = "ModelStream"
+$sourceDir = ".\$dirName"
 $excludeDirs = @("docs", "build", "bin", "lib", ".vscode")
 $timestamp = Get-Date -Format "yyyy-MM-dd-HH-mm"
 $outputFile = "$sourceDir\$timestamp.zip"

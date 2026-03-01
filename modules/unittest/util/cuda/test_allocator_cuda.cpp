@@ -43,7 +43,7 @@ TEST(CudaAllocator, CudaMemAllocLoop) {
     std::shared_ptr<void> cur_mem = cnCudaMemAlloc(4000, dev_id);
     ASSERT_NE(cur_mem, nullptr);
     if (i % 500 == 0) {
-      std::cout << "Inspect CudaMemAllocLoop: " << i << " : CUDA info" << inspect.GetBriefInfo() << std::endl;
+      std::cout << "Inspect CudaMemAllocLoop: " << i << " : CUDA Info: " << inspect.GetBriefInfo() << std::endl;
     }
     void* ptr = cur_mem.get();
     ASSERT_NE(ptr, nullptr);

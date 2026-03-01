@@ -51,16 +51,13 @@ class MemOpFactory {
   MemOpFactory(const MemOpFactory&) = delete;
   MemOpFactory& operator=(const MemOpFactory&) = delete;
 
-#ifdef UNIT_TEST
  public:
   void PrintRegisteredCreators() {
     LOGI(MEMOP_FACTORY) << "PrintRegisteredCreators size: " << creators_.size();
     for (const auto& pair : creators_) {
-      LOGI(MEMOP_FACTORY) << "DevType: " << static_cast<int>(pair.first)
-                      << " -> Creator Function Address: " << &pair.second;
+      LOGI(MEMOP_FACTORY) << "DevType: " << DevType2Str(pair.first) << " -> Creator Func Address: " << &pair.second;
     }
   }
-#endif
 
  private:
   struct DevTypeHash {

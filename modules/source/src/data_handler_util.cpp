@@ -9,29 +9,29 @@ namespace cnstream {
 /**
  * OnDecodeFrame 同步调用
  */
-int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *decode_frame, uint64_t frame_id) {
+int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *dec_frame, uint64_t frame_id) {
   DataFramePtr frame = frame_info->collection.Get<DataFramePtr>(kDataFrameTag);
-  if (!frame || !decode_frame) {
-    LOGF(SOURCE) << "SourceRender::Process: frame or decode_frame is NULL";
+  if (!frame || !dec_frame) {
+    LOGF(SOURCE) << "SourceRender::Process: frame or dec_frame is NULL";
     return -1;
   }
-  if (!decode_frame->valid) return -1;
+  if (!dec_frame->valid) return -1;
   frame->frame_id_ = frame_id;
-  frame->width_ = decode_frame->width;
-  frame->height_ = decode_frame->height;
-  if (decode_frame->buf_ref) {
-    frame->deAllocator_ = std::make_unique<Deallocator>(decode_frame->buf_ref.release());
-    decode_frame->buf_ref = nullptr;
+  frame->width_ = dec_frame->width;
+  frame->height_ = dec_frame->height;
+  if (dec_frame->buf_ref) {
+    frame->deAllocator_ = std::make_unique<Deallocator>(dec_frame->buf_ref.release());
+    dec_frame->buf_ref = nullptr;
   }
-  frame->ctx_ = DevContext(decode_frame->dev_type, decode_frame->device_id);
+  frame->ctx_ = DevContext(dec_frame->dev_type, dec_frame->device_id);
 
-  frame->fmt_ = DataFormat::PIXEL_FORMAT_RGB24;
+  frame->fmt_ = DataFormat::PIXEL_FORMAT_RGB24;  // dst fmt
   for (int i = 0; i < frame->GetPlanes(); ++i) {
     if (i == 0) {
       frame->stride_[i] = frame->width_ * 3;
     }
   }
-  frame->CopyToSyncMem(decode_frame);
+  frame->CopyToSyncMem(dec_frame);
   return 0;
 }
 

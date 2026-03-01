@@ -44,6 +44,7 @@
 #include <sstream>
 #include <string>
 
+#include "cnstream_logging.hpp"
 #include "cnstream_common.hpp"
 #include "data_source_param.hpp"  // DevContext, DataFormat
 
@@ -77,13 +78,11 @@ class CNSyncedMemory : private NonCopyable {
   };
 
   explicit CNSyncedMemory(size_t size);
-  explicit CNSyncedMemory(size_t size, int dev_id);
   virtual ~CNSyncedMemory();
 
  public:
-  /**
-   * @brief Gets the device ID.
-   */
+  virtual void* Allocate();
+  virtual void SetData(void* data);
   int GetDevId() const;
 
   /**
@@ -176,6 +175,27 @@ public:
   int dev_id_ = -1;
   mutable std::mutex mutex_;
 };  // class CNSyncedMemory
+
+/**
+ * Allocates data on a host.
+ *
+ * @param ptr Outputs data pointer.
+ * @param size The size of the data to be allocated.
+ */
+inline void CNStreamMallocHost(void** ptr, size_t size) {
+  void* __ptr = malloc(size);
+  LOGF_IF(FRAME, nullptr == __ptr) << "Malloc memory on CPU failed, malloc size:" << size;
+  *ptr = __ptr;
+}
+
+/**
+ * Frees the data allocated by ``CNStreamMallocHost``.
+ *
+ * @param ptr The data address to be freed.
+ */
+inline void CNStreamFreeHost(void* ptr) {
+  free(ptr);
+}
 
 }  // namespace cnstream
 

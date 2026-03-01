@@ -31,10 +31,7 @@ std::unique_ptr<CNSyncedMemory> CudaMemOp::CreateSyncedMemory(size_t size) {
 }
 
 std::shared_ptr<void> CudaMemOp::Allocate(size_t bytes) {
-  bytes = RoundUpSize(bytes);
-#ifdef UNIT_TEST
   size_ = bytes;
-#endif
   CudaDeviceGuard guard(device_id_);
   return cnCudaMemAlloc(bytes, device_id_);
 }
@@ -44,19 +41,21 @@ void CudaMemOp::Copy(void* dst, const void* src, size_t size) {
   CHECK_CUDA_RUNTIME(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToDevice));
 }
 
-void CudaMemOp::SetData(CNSyncedMemory* mem, void* data) {
-  auto cuda_mem = dynamic_cast<CNSyncedMemoryCuda*>(mem);
+int CudaMemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt, 
+                                  const DecodeFrame* src_frame) {
+  if (!dst_mem) return -1;
+#ifdef UNIT_TEST
+  auto cuda_mem = dynamic_cast<CNSyncedMemoryCuda*>(dst_mem);
   if (!cuda_mem) {
-    throw std::runtime_error("CudaMemOp: mem is not CNSyncedMemoryCuda");
+    LOGE(CORE) << "CudaMemOp::ConvertImageFormat: dst_mem is not CNSyncedMemoryCuda";
+    return -1;
   }
-  CudaDeviceGuard guard(device_id_);
-  cuda_mem->SetCudaData(data);
-}
+  void* dst = cuda_mem->Allocate();
+#else
+  void* dst = dst_mem->Allocate();
+#endif
+  if (!dst) return -1;
 
-/**
- * @brief 使用 CUDA, 将解码帧转换为 dst_fmt 格式
- */
-int CudaMemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame) {
   int width = src_frame->width;
   int height = src_frame->height;
   if (dst_fmt != DataFormat::PIXEL_FORMAT_BGR24 &&
@@ -66,16 +65,13 @@ int CudaMemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFra
     return -1;
   }
   DataFormat src_fmt = src_frame->fmt;
-
-  // RGB or BGR 只需要拷贝 plane[0]
   if (dst_fmt == src_fmt) {
     LOGW(CORE) << "CudaMemOp::ConvertImageFormat: Source format is same as destination format";
     Copy(dst, src_frame->plane[0], width * height * 3);
     return 0;
   }
-  size_t dst_stride = width * 3;
+  // size_t dst_stride = width * 3;
   int ret = 0;
-
   switch (src_fmt) {
     case DataFormat::PIXEL_FORMAT_BGR24: {
       if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {

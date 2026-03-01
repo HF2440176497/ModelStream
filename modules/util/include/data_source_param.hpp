@@ -131,7 +131,7 @@ enum class DecoderType {
 
 class IDecBufRef {
 public:
-  virtual ~IDecBufRef() = default;
+  virtual ~IDecBufRef() {}
 };
 
 /**
@@ -159,6 +159,7 @@ class Deallocator : public IDataDeallocator {
   }
   virtual ~Deallocator() {
     ptr_.reset();
+    ptr_ = nullptr;
   }
  private:
   std::unique_ptr<IDecBufRef> ptr_;
@@ -193,6 +194,7 @@ struct DecodeFrame {
     for (int i = 0; i < CN_MAX_PLANES; ++i) {
       plane[i] = nullptr;
     }
+    buf_ref.reset();
   }
 };
 
@@ -216,7 +218,7 @@ inline const std::string KEY_DECODER_TYPE = "decoder_type";
 inline const std::string KEY_ONLY_KEY_FRAME = "only_key_frame";
 
 inline const std::string KEY_FILE_PATH = "file_path";
-inline const std::string KEY_FRAMERATE = "framerate";
+inline const std::string KEY_FRAME_RATE = "frame_rate";
 inline const std::string KEY_STREAM_URL = "stream_url";
 
 /*!

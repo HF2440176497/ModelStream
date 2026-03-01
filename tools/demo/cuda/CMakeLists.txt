@@ -50,7 +50,7 @@ endif()
 message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}")
 
 # ---[ libyuv
-if(NOT has_built_libyuv)
+if(NOT DEFINED has_built_libyuv OR NOT has_built_libyuv)
   add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
   set(has_built_libyuv TRUE)
 endif()

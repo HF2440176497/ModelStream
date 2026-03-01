@@ -25,12 +25,14 @@ public:
     bool own_cuda_data = false;
   };
 
-  CNSyncedMemoryCuda(size_t size);
-  CNSyncedMemoryCuda(size_t size, int dev_id);
+  explicit CNSyncedMemoryCuda(size_t size);
+  explicit CNSyncedMemoryCuda(size_t size, int dev_id);
   ~CNSyncedMemoryCuda() override;
 
 public:
   void ToCpu() override;
+  void* Allocate() override;
+  void SetData(void* data) override;
 
 public:
   void ToCuda();

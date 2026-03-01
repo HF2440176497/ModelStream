@@ -34,41 +34,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace cnstream {
 
-/**
- * Allocates data on a host.
- *
- * @param ptr Outputs data pointer.
- * @param size The size of the data to be allocated.
- */
-static void CNStreamMallocHost(void** ptr, size_t size) {
-  void* __ptr = malloc(size);
-  LOGF_IF(FRAME, nullptr == __ptr) << "Malloc memory on CPU failed, malloc size:" << size;
-  *ptr = __ptr;
-}
-
-/**
- * Frees the data allocated by ``CNStreamMallocHost``.
- *
- * @param ptr The data address to be freed.
- */
-static void CNStreamFreeHost(void* ptr) {
-  free(ptr);
-}
-
 CNSyncedMemory::CNSyncedMemory(size_t size) : size_(size) {
-  own_dev_data_[DevType::CPU] = false;
-}
-
-CNSyncedMemory::CNSyncedMemory(size_t size, int dev_id)
-    : size_(size), dev_id_(dev_id) {
   own_dev_data_[DevType::CPU] = false;
 }
 
 CNSyncedMemory::~CNSyncedMemory() {
   if (0 == size_) return;
   if (cpu_ptr_ && own_dev_data_[DevType::CPU]) {
-    free(cpu_ptr_);
+    CNStreamFreeHost(cpu_ptr_);
   }
+  cpu_ptr_ = nullptr;
+}
+
+void* CNSyncedMemory::Allocate() {
+  return GetMutableCpuData();
+}
+
+void CNSyncedMemory::SetData(void* data) {
+  SetCpuData(data);
 }
 
 void CNSyncedMemory::SetCpuData(void* data) {
@@ -121,6 +104,10 @@ void CNSyncedMemory::ToCpu() {
         return;
       }
     case SyncedHead::SYNCED:
+      if (!cpu_ptr_) {
+        LOGE(FRAME) << "CNSyncedMemoryCuda::ToCpu ERROR, cpu_ptr_ should not be NULL.";
+        return;
+      }
       break;
   }  // end switch
 }

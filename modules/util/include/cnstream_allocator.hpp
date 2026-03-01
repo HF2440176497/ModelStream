@@ -44,13 +44,14 @@ class MemoryAllocator : private NonCopyable {
   virtual void free(void *p) = 0;
   int device_id() const { return device_id_; }
   void set_device_id(int device_id) { device_id_ = device_id; }
-
+#ifdef UNIT_TEST
+ public:
+#else
  protected:
+#endif
   int device_id_ = -1;
   std::mutex mutex_;
-#ifdef UNITTEST
   size_t size_ = 0;
-#endif
 };
 
 
@@ -85,9 +86,7 @@ class CpuAllocator : public MemoryAllocator {
 
   void *alloc(size_t size, int timeout_ms = 0) override {
     size_t alloc_size = (size + 4095) & (~0xFFF);  // Align 4096
-#ifdef UNITTEST
     size_ = alloc_size;
-#endif
     return static_cast<void *>(new (std::nothrow) uint8_t[alloc_size]);
   }
   void free(void *p) override {

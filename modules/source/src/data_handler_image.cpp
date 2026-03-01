@@ -56,7 +56,7 @@ void ImageHandler::Stop() {
 // Note: not use，handler may carry additional params
 void ImageHandler::RegisterHandlerParams() {
   param_register_.Register(KEY_FILE_PATH, "Path to the image file.");
-  param_register_.Register(KEY_FRAMERATE, "Framerate for image display. Default is 5.");
+  param_register_.Register(KEY_FRAME_RATE, "Framerate for image display. Default is 5.");
 }
 
 bool ImageHandler::CheckHandlerParams(const ModuleParamSet& params) {
@@ -68,8 +68,8 @@ bool ImageHandler::CheckHandlerParams(const ModuleParamSet& params) {
     LOGE(SOURCE) << "[ImageHandler] file not found: " << params.at(KEY_FILE_PATH);
     return false;
   }
-  if (params.find(KEY_FRAMERATE) == params.end()) {
-    LOGE(SOURCE) << "[ImageHandler] framerate is required";
+  if (params.find(KEY_FRAME_RATE) == params.end()) {
+    LOGE(SOURCE) << "[ImageHandler] frame_rate is required";
     return false;
   }
   return true;
@@ -88,7 +88,7 @@ bool ImageHandler::SetHandlerParams(const ModuleParamSet& params) {
 bool ImageHandlerImpl::Open() {
   // if you need something, just get it
   image_path_ = param_set_.at(KEY_FILE_PATH);
-  framerate_ = std::stoi(param_set_.at(KEY_FRAMERATE));
+  frame_rate_ = std::stoi(param_set_.at(KEY_FRAME_RATE));
   if (image_path_.empty() || access(image_path_.c_str(), F_OK) == -1) {
     LOGE(SOURCE) << "ImageHandlerImpl: Image path not found: " << image_path_;
     return false;
@@ -125,29 +125,36 @@ void ImageHandlerImpl::Loop() {
     LOGE(SOURCE) << "ImageHandlerImpl: Failed to load image: " << image_path_;
     return;
   }
-  FrController controller(framerate_);
-  if (framerate_ > 0) controller.Start();
+  FrController controller(frame_rate_);
+  if (frame_rate_ > 0) controller.Start();
 
   while (running_.load()) {
     // 每次循环创建新的 DecodeFrame
     DecodeFrame frame(image_.rows, image_.cols, DataFormat::PIXEL_FORMAT_BGR24);
     frame.dev_type = DevType::CPU;
+    frame.device_id = -1;
     frame.planeNum = 1;  // BGR格式使用1个平面
     
-    // 分配内存并复制数据
-    size_t data_size = image_.rows * image_.cols * 3;  // BGR格式每个像素3字节
+    // 分配内存并复制数据 对于 BGR or RGB, index = 1
+    frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
+    size_t data_size = get_plane_bytes(frame.fmt, 0, frame.height, frame.stride);
     uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
     if (!buffer) {
       LOGE(SOURCE) << "ImageHandlerImpl: Failed to allocate memory for image data";
       return;
     }
-    memcpy(buffer, image_.data, data_size);
+    memcpy(buffer, image_.data, image_.step[0] * image_.rows);
+
+#ifdef UNIT_TEST
+    LOGI(SOURCE) << "ImageHandlerImpl: Loop; image width: " << image_.cols << ", height: " << image_.rows;
+    LOGI(SOURCE) << "----------------: Loop; alloca data_size: " << data_size  << ", image_.step[0] * image_.rows: " << image_.step[0] * image_.rows << std::endl;
+#endif
+
     frame.plane[0] = buffer;
-    frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
     frame.buf_ref = std::make_unique<MatBufRef>(buffer);  // 交给 MatBufRef 管理释放
 
     controller.Control();
-    frame.pts += 1000 / framerate_;
+    frame.pts += 1000 / frame_rate_;
     std::shared_ptr<FrameInfo> data = OnDecodeFrame(&frame);
     if (!module_ || !handler_) {
       LOGE(SOURCE) << "ImageHandler: [" << stream_id_ << "]: module_ or handler_ is null";
@@ -164,12 +171,12 @@ void ImageHandlerImpl::Loop() {
  */
 std::shared_ptr<FrameInfo> ImageHandlerImpl::OnDecodeFrame(DecodeFrame* frame) {
   if (!frame) {
-    LOGW(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function frame is nullptr.";
+    LOGE(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function frame is nullptr.";
     return nullptr;
   }
-  std::shared_ptr<FrameInfo> data = this->CreateFrameInfo();  // 规定了 FrameInfo 内含的基本基本成员
+  std::shared_ptr<FrameInfo> data = this->CreateFrameInfo();
   if (!data) {
-    LOGW(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
+    LOGE(SOURCE) << "[ImageHandlerImpl] OnDecodeFrame function, failed to create FrameInfo.";
     return nullptr;
   }
   data->timestamp = frame->pts;

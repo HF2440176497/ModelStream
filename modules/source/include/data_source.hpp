@@ -123,6 +123,8 @@ class ImageHandler : public SourceHandler {
 
 #ifdef UNIT_TEST
  public:
+#else
+ private:
 #endif
   ImageHandlerImpl* impl_ = nullptr;
 };  // class ImageHandler
@@ -147,6 +149,8 @@ class VideoHandler : public SourceHandler {
 
 #ifdef UNIT_TEST
  public:
+#else
+ private:
 #endif
   VideoHandlerImpl* impl_ = nullptr;
 };  // class VideoHandler

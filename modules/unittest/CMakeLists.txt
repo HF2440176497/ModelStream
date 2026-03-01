@@ -17,7 +17,6 @@ else()
   include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
 endif()
 
-
 # 必须包含框架头文件
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
 include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include/private)
@@ -66,8 +65,15 @@ if(NVIDIA_PLATFORM)
   list(APPEND test_link_libs ${CUDA_LIBRARIES})
 endif()
 
-if(GTEST_FOUND)
-  target_link_libraries(modelstream_modules_test ${test_link_libs} ${GTEST_LIBRARIES} glog gflags rt dl pthread)
-else()
-  target_link_libraries(modelstream_modules_test ${test_link_libs} gtest glog gflags rt dl pthread)
+if(HAVE_FRAMEWORK_TARGET AND HAVE_MODULES_TARGET)
+  if(DEFINED MODELSTREAM_LIB_PATH)
+    set_target_properties(modelstream_modules_test PROPERTIES
+        BUILD_RPATH ${MODELSTREAM_LIB_PATH}
+    )
+  endif()
+  if(GTEST_FOUND)
+    target_link_libraries(modelstream_modules_test ${test_link_libs} ${GTEST_LIBRARIES} glog gflags rt dl pthread)
+  elseif(has_built_gtest)
+    target_link_libraries(modelstream_modules_test ${test_link_libs} gtest glog gflags rt dl pthread)
+  endif()
 endif()

@@ -55,7 +55,7 @@ public:
   std::atomic<bool> running_{false};
 
   std::string image_path_;
-  int framerate_ = 10;
+  int frame_rate_ = 10;
 
   cv::Mat image_;
   std::thread thread_;  // consumer thread

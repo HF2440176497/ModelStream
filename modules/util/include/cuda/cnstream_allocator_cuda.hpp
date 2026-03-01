@@ -62,9 +62,7 @@ class CudaAllocator : public MemoryAllocator {
 
   void *alloc(size_t size, int timeout_ms = 0) override {
     size_t alloc_size = (size + 4095) & (~0xFFF);  // Align 4096
-#ifdef UNITTEST
     size_ = alloc_size;
-#endif
 
     std::lock_guard<std::mutex> lk(mutex_);
     CudaDeviceGuard guard(device_id_);

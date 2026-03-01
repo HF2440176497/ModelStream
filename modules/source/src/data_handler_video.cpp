@@ -61,7 +61,7 @@ void VideoHandler::Stop() {
 
 void VideoHandler::RegisterHandlerParams() {
   param_register_.Register(KEY_STREAM_URL, "URL of the video stream (rtsp/rtmp/file).");
-  param_register_.Register(KEY_FRAMERATE, "Framerate for video playback. Default is 25.");
+  param_register_.Register(KEY_FRAME_RATE, "Framerate for video playback. Default is 25.");
 }
 
 bool VideoHandler::CheckHandlerParams(const ModuleParamSet& params) {
@@ -317,11 +317,18 @@ int VideoHandlerImpl::decode_write() {
         break;
       }
 
-      DataFormat nv12_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV12;
-      if (s_frame_->format == AV_PIX_FMT_NV21) {
+      DataFormat nv12_fmt = DataFormat::INVALID;
+      if (s_frame_->format == AV_PIX_FMT_NV12) {
         nv12_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV21;
+      } else if (s_frame_->format == AV_PIX_FMT_NV21) {
+        nv12_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV12;
+      } else {
+        LOGE(SOURCE) << "VideoHandlerImpl: s_frame_ format not supported: " << s_frame_->format;
+        ret = -1;
+        break;
       }
 
+      // Sws_scale 传输到 CPU 的格式 NV12 or NV21
       DecodeFrame frame(s_frame_->height, s_frame_->width, nv12_fmt);
       frame.dev_type = DevType::CPU;
       frame.planeNum = 2;
@@ -330,7 +337,7 @@ int VideoHandlerImpl::decode_write() {
       int width = s_frame_->width;
       int height = s_frame_->height;
       size_t y_size = s_frame_->linesize[0] * height;  // width * height 
-      size_t uv_size = s_frame_->linesize[1] * height / 2;  // width * height / 2
+      size_t uv_size = s_frame_->linesize[1] * height / 2;  // width / 2 * height
 
       uint8_t* y_buffer = new (std::nothrow) uint8_t[y_size];
       uint8_t* uv_buffer = new (std::nothrow) uint8_t[uv_size];
@@ -350,8 +357,8 @@ int VideoHandlerImpl::decode_write() {
 
       frame.plane[0] = y_buffer;
       frame.plane[1] = uv_buffer;
-      frame.stride[0] = width;
-      frame.stride[1] = width;
+      frame.stride[0] = s_frame_->linesize[0];
+      frame.stride[1] = s_frame_->linesize[1];
       frame.buf_ref = std::make_unique<MatBufRefNV12>(y_buffer, uv_buffer);
 
       data = OnDecodeFrame(&frame);
@@ -434,8 +441,8 @@ bool VideoHandlerImpl::Open() {
     return false;
   }
 
-  if (param_set_.find(KEY_FRAMERATE) != param_set_.end()) {
-    framerate_ = std::stoi(param_set_.at(KEY_FRAMERATE));
+  if (param_set_.find(KEY_FRAME_RATE) != param_set_.end()) {
+    frame_rate_ = std::stoi(param_set_.at(KEY_FRAME_RATE));
   }
 
   if (module_) {
@@ -492,8 +499,8 @@ void VideoHandlerImpl::Loop() {
     }
   }
 
-  FrController controller(framerate_);
-  if (framerate_ > 0) controller.Start();
+  FrController controller(frame_rate_);
+  if (frame_rate_ > 0) controller.Start();
 
   while (running_.load()) {
     int ret = av_read_frame(ifmt_ctx_, &pkt_);
@@ -511,7 +518,7 @@ void VideoHandlerImpl::Loop() {
       break;
     }
     av_packet_unref(&pkt_);
-    if (framerate_ > 0) {
+    if (frame_rate_ > 0) {
       controller.Control();
     }
   }

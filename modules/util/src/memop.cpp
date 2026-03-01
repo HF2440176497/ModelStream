@@ -77,10 +77,7 @@ MemOp::MemOp() {}
 MemOp::~MemOp() {}
 
 std::shared_ptr<void> MemOp::Allocate(size_t bytes)  {
-  bytes = RoundUpSize(bytes);
-#ifdef UNIT_TEST
   size_ = bytes;
-#endif
   return cnCpuMemAlloc(bytes);
 }
 
@@ -94,17 +91,15 @@ std::unique_ptr<CNSyncedMemory> MemOp::CreateSyncedMemory(size_t size) {
   return std::make_unique<CNSyncedMemory>(size);
 }
 
-void MemOp::SetData(CNSyncedMemory* mem, void* data) {
-  mem->SetCpuData(data);
-}
-
 /**
- * @brief 使用 CPU, 将解码帧转换为 dst_fmt 格式
- * @param dst 目标内存地址 由 memop->Allocate 分配, 在这其中不检查内存空间容量
- * @note 目前仅支持到 RGB BGR 的转换
+ * 调用时，dst_mem 的 size 需设置完成
  */
-int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
+int MemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt,
                               const DecodeFrame* src_frame) {
+  if (!dst_mem) return -1;
+  void* dst = dst_mem->Allocate();  // GetMutableCpuData
+  if (!dst) return -1;
+  
   int width = src_frame->width;
   int height = src_frame->height;
   if (dst_fmt != DataFormat::PIXEL_FORMAT_BGR24 &&
@@ -116,12 +111,11 @@ int MemOp::ConvertImageFormat(void* dst, DataFormat dst_fmt,
   DataFormat src_fmt = src_frame->fmt;
   if (src_fmt == dst_fmt) {
     LOGW(CORE) << "MemOp::ConvertImageFormat: Source format is same as destination format";
-    memcpy(dst, src_frame->plane[0], width * height * 3);
+    Copy(dst, src_frame->plane[0], width * height * 3);
     return 0;
   }
-  size_t dst_stride = width * 3; // 假设目标格式是RGB24或BGR24
+  size_t dst_stride = width * 3;
   int ret = 0;
-
   switch (src_fmt) {
     case DataFormat::PIXEL_FORMAT_BGR24: {
       if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {

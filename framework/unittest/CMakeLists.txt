@@ -7,7 +7,7 @@ endif()
 
 include(${MODELSTREAM_ROOT_PATH}/cmake/FindGtest.cmake)
 if(GTEST_FOUND)
-  message(STATUS "Using installed GTest for framework unittest")
+  message(STATUS "Using installed GTest for modules unittest")
   include_directories(${GTEST_INCLUDE_DIRS})
 else()
   if(NOT has_built_gtest)
@@ -25,17 +25,32 @@ list(APPEND core_test_srcs ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
 have_framework_target(${MODELSTREAM_ROOT_PATH})
 
-if (GTEST_FOUND AND HAVE_FRAMEWORK_TARGET)
+if (HAVE_FRAMEWORK_TARGET)
   add_executable(modelstream_core_test ${core_test_srcs})
   target_include_directories(modelstream_core_test PRIVATE
     ${MODELSTREAM_ROOT_PATH}/framework/core/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   )
-  target_link_libraries(modelstream_core_test 
-      modelstream_core
-      ${GTEST_LIBRARIES}
-      ${GLOG_LIBRARIES}
-      ${GFLAGS_LIBRARIES}
-  )
+  if(GTEST_FOUND)
+    target_link_libraries(modelstream_core_test 
+        modelstream_core
+        ${GTEST_LIBRARIES}
+        ${GLOG_LIBRARIES}
+        ${GFLAGS_LIBRARIES}
+    )
+  elseif(has_built_gtest)
+        target_link_libraries(modelstream_core_test 
+        modelstream_core
+        gtest
+        ${GLOG_LIBRARIES}
+        ${GFLAGS_LIBRARIES}
+    )
+  endif()
+
+  if(DEFINED MODELSTREAM_LIB_PATH)
+    set_target_properties(modelstream_core_test PROPERTIES
+        BUILD_RPATH ${MODELSTREAM_LIB_PATH}
+    )
+  endif()
 endif()
 

@@ -88,7 +88,7 @@ class VideoHandlerImpl : public SourceRender {
   std::thread thread_;
 
   std::string stream_url_;
-  int framerate_ = 25;
+  int frame_rate_ = 10;
 
   DataSource *module_;
   std::string stream_id_;

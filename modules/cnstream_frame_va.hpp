@@ -34,10 +34,10 @@ class DataFrame : public NonCopyable {
  public:
   DataFrame() {
     for (int i = 0; i < CN_MAX_PLANES; ++i) {
-      data[i] = nullptr;
+      data_[i] = nullptr;
     }
     for (int i = 0; i < CN_MAX_PLANES; ++i) {
-      stride[i] = 0;
+      stride_[i] = 0;
     }
   };
   ~DataFrame() = default;
@@ -68,8 +68,7 @@ class DataFrame : public NonCopyable {
   int GetStride(int plane_idx) const { return stride_[plane_idx]; }
   const DevContext& GetCtx() const { return ctx_; }
 
-  MemoryBufferCollection mem_manager_;
-  std::unique_ptr<CNSyncedMemory> data[CN_MAX_PLANES];
+  std::unique_ptr<CNSyncedMemory> data_[CN_MAX_PLANES];
   std::unique_ptr<IDataDeallocator> deAllocator_ = nullptr;
   
 #ifdef UNIT_TEST
@@ -80,15 +79,45 @@ class DataFrame : public NonCopyable {
   mutable std::mutex mtx_;
   cv::Mat mat_;
 
+  DevContext ctx_;
   uint64_t frame_id_ = -1;
   DataFormat fmt_ = DataFormat::INVALID;
   int width_ = 0;
   int height_ = 0;
   int stride_[CN_MAX_PLANES];
-  DevContext ctx_;
-
+  
   friend class SourceRender;
 };  // class DataFrame
+
+
+/**
+ * @brief 全局函数：获取指定格式、指定平面索引、指定高度、指定步长下的平面字节数
+ * 
+ * @param fmt 数据格式
+ * @param plane_idx 平面索引
+ * @param height 高度
+ * @param stride 步长数组，字节为单位
+ * @return size_t 平面字节数
+ */
+inline size_t get_plane_bytes(DataFormat fmt, int plane_idx, int height, int stride[]) {
+  if (plane_idx < 0 || plane_idx >= FormatPlanes(fmt)) return 0;
+  switch (fmt) {
+    case DataFormat::PIXEL_FORMAT_BGR24:
+    case DataFormat::PIXEL_FORMAT_RGB24:
+      return height * stride[0];
+    case DataFormat::PIXEL_FORMAT_YUV420_NV12:
+    case DataFormat::PIXEL_FORMAT_YUV420_NV21:
+      if (0 == plane_idx)
+        return height * stride[0];
+      else if (1 == plane_idx)
+        return std::ceil(1.0 * height * stride[1] / 2);
+      else
+        LOGF(FRAME) << "plane index wrong.";
+    default:
+      return 0;
+  }
+  return 0;
+}
 
 
 using DataFramePtr = std::shared_ptr<DataFrame>;

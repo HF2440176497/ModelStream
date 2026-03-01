@@ -448,7 +448,7 @@ void SaveImage(const ImageData& img, const std::string& filename) {
 }
 
 int main(int argc, char* argv[]) {
-  std::string image_path = "tmp/test_image.png";
+  std::string image_path = "image/test_image.png";
   cv::Mat     src_mat = cv::imread(image_path, cv::IMREAD_COLOR);
   if (src_mat.empty()) {
     std::cerr << "Failed to load image: " << image_path << std::endl;
@@ -565,13 +565,13 @@ int main(int argc, char* argv[]) {
   std::cout << "----------------------------------------" << std::endl;
   std::cout << "Saving converted images for verification" << std::endl;
   std::cout << "----------------------------------------" << std::endl;
-  SaveImage(rgb24, "tmp/output_rgb24.jpg");
-  SaveImage(bgr24, "tmp/output_bgr24.jpg");
-  SaveImage(rgb24_from_nv12, "tmp/output_rgb24_from_nv12.jpg");
-  SaveImage(bgr24_from_nv12, "tmp/output_bgr24_from_nv12.jpg");
-  SaveImage(rgb24_from_nv21, "tmp/output_rgb24_from_nv21.jpg");
-  SaveImage(bgr24_from_nv21, "tmp/output_bgr24_from_nv21.jpg");
-  SaveImage(bgr24_roundtrip, "tmp/output_bgr24_roundtrip.jpg");
+  SaveImage(rgb24, "image/output_rgb24.jpg");
+  SaveImage(bgr24, "image/output_bgr24.jpg");
+  SaveImage(rgb24_from_nv12, "image/output_rgb24_from_nv12.jpg");
+  SaveImage(bgr24_from_nv12, "image/output_bgr24_from_nv12.jpg");
+  SaveImage(rgb24_from_nv21, "image/output_rgb24_from_nv21.jpg");
+  SaveImage(bgr24_from_nv21, "image/output_bgr24_from_nv21.jpg");
+  SaveImage(bgr24_roundtrip, "image/output_bgr24_roundtrip.jpg");
 
   std::cout << std::endl;
   std::cout << "========================================" << std::endl;

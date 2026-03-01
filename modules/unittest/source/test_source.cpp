@@ -23,7 +23,7 @@ static std::string test_pipeline_video_json = "pipeline_base_video.json";
 static std::vector<std::string> expected_nodes = {"DataSource", "InferencerProcess"};
 
 static bool has_save_frame_mat = false;
-static std::string save_file = "tmp/test_save.jpg";
+static std::string save_file = "image/test_save.jpg";
 
 // 在测试实例中，定义出这个 virtual module
 class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> {
@@ -58,7 +58,7 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
 
       // 打印 SyncMem 状态
       for (int i = 0; i < frame->GetPlanes(); ++i) {
-        std::string mem_status_info = frame->data[i]->StatusToString();
+        std::string mem_status_info = frame->data_[i]->StatusToString();
         std::cout << "--- frame plane " << i << " mem status: " << mem_status_info << std::endl;
       }
 
@@ -192,10 +192,13 @@ TEST_F(SourceModuleTest, PipelineInit) {
 
   // 发现：DataSource 的 route_mask 也包含了自身 Module 的标记
 
-  std::vector<std::string> registed_modules = ModuleFactory::Instance()->GetRegisted();;
+  std::vector<std::string> registed_modules = ModuleFactory::Instance()->GetRegisted();
   EXPECT_EQ(registed_modules.size(), expected_nodes.size());
-  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "DataSource") != registed_modules.end());
-  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "InferencerProcess") != registed_modules.end());
+  // for (auto& module_name : registed_modules) {
+  //   std::cout << "module name: " << module_name << std::endl;
+  // }
+  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "cnstream::DataSource") != registed_modules.end());
+  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "cnstream::InferencerProcess") != registed_modules.end());
 
 }  // PipelineInit
 
@@ -223,7 +226,7 @@ TEST_F(SourceModuleTest, Loop) {
 
   // AddSource 之后，handler handler 理应可以获取到配置参数
   std::cout << "image_handler_->impl_->image_path = " << image_handler_->impl_->image_path_ << std::endl;
-  std::cout << "image_handler_->impl_->framerate_ = " << image_handler_->impl_->framerate_ << std::endl;
+  std::cout << "image_handler_->impl_->frame_rate_ = " << image_handler_->impl_->frame_rate_ << std::endl;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
   LOGI(SourceModuleTest) << "Handler stream idx: " << image_handler_->GetStreamIndex();
@@ -310,7 +313,7 @@ TEST_F(VideoSourceTest, Loop) {
 
   // AddSource 之后，handler handler 理应可以获取到配置参数
   std::cout << "video_handler_->impl_->stream_url = " << video_handler_->impl_->stream_url_ << std::endl;
-  std::cout << "video_handler_->impl_->framerate_ = " << video_handler_->impl_->framerate_ << std::endl;
+  std::cout << "video_handler_->impl_->frame_rate_ = " << video_handler_->impl_->frame_rate_ << std::endl;
 
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
 

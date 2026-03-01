@@ -81,7 +81,7 @@ TEST_F(CNSyncedMemoryTest, DeviceContext) {
     cpu_data[i] = static_cast<float>(i * 2);
   }
   mem.ToCuda();
-  const float* cuda_data = static_cast<const float*>(mem.GetCudaData());
+  auto cuda_data = mem.GetCudaData();
   ASSERT_NE(cuda_data, nullptr) << "Data transfer with device context failed";
 }
 
@@ -89,17 +89,16 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   CNSyncedMemoryCuda mem(kTestSize);
 
   float* manual_cuda_ptr;
-  cudaError_t result = cudaMalloc(&manual_cuda_ptr, kTestSize);
-  ASSERT_EQ(result, cudaSuccess) << "Failed to allocate CUDA memory manually";
-
+  CHECK_CUDA_RUNTIME(cudaMalloc(&manual_cuda_ptr, kTestSize));
+  
   mem.SetCudaData(manual_cuda_ptr);
   ASSERT_FALSE(mem.own_dev_data_[DevType::CUDA]) << "CUDA data ownership should be false after SetCudaData";
   ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA) << "Head should be HEAD_AT_CUDA after SetCudaData";
 
   const float* const_cuda_data = static_cast<const float*>(mem.GetCudaData());
-  ASSERT_EQ(const_cast<float*>(const_cuda_data), mem.cuda_ptr_) << "Manual CUDA pointer not set correctly";
-
+  ASSERT_EQ(const_cast<float*>(const_cuda_data), mem.cuda_ptr_);
   ASSERT_EQ(mem.cpu_ptr_, nullptr);
+
   mem.ToCpu();
   ASSERT_NE(mem.cpu_ptr_, nullptr) << "CPU data pointer should not be NULL after ToCpu";
   ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
@@ -109,6 +108,7 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   // 1）之前是同步的，因此只改变 head 为 HEAD_AT_CUDA
   float* cuda_data = static_cast<float*>(mem.GetMutableCudaData());
   ASSERT_NE(cuda_data, nullptr) << "Failed to get CUDA data after ToCpu";
+  ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA);
 
   // 尝试改变 CUDA 数据
   void *tmp = malloc(kTestSize);
@@ -121,12 +121,28 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
 
   float* cpu_data = static_cast<float*>(mem.GetCpuData());
-  ASSERT_NE(cpu_data, nullptr) << "Failed to get CPU data after ToCpu";
+  ASSERT_NE(cpu_data, nullptr);
   for (int i = 0; i < kFloatCount; i++) {
     ASSERT_EQ(cpu_data[i], static_cast<float>(pattern)) << "Data mismatch at index " << i;
   }
 
   cudaFree(manual_cuda_ptr);
+  free(tmp);
+}
+
+TEST_F(CNSyncedMemoryTest, AllocateMethod) {
+  CNSyncedMemoryCuda mem(kTestSize);
+
+  ASSERT_EQ(mem.GetHead(), SyncedHead::UNINITIALIZED);
+  
+  void* ptr = mem.Allocate();
+  ASSERT_NE(ptr, nullptr);
+  ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA);
+  ASSERT_TRUE(mem.own_dev_data_[DevType::CUDA]);
+  ASSERT_EQ(mem.cuda_ptr_, ptr);
+
+  void* ptr2 = mem.Allocate();
+  ASSERT_EQ(ptr2, ptr);
 }
 
 #endif

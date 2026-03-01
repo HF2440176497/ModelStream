@@ -22,8 +22,7 @@ class CudaMemOp : public MemOp {
   std::unique_ptr<CNSyncedMemory> CreateSyncedMemory(size_t size) override;
   std::shared_ptr<void> Allocate(size_t bytes) override;
   void Copy(void* dst, const void* src, size_t size) override;
-  void SetData(CNSyncedMemory* mem, void* data) override;
-  int ConvertImageFormat(void* dst, DataFormat dst_fmt, const DecodeFrame* src_frame) override;
+  int ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt, const DecodeFrame* src_frame) override;
 
  protected:
   int device_id_;

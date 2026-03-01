@@ -198,8 +198,7 @@ int NppNV21ToBGR24(void* dst, int width, int height,
   return 0;
 }
 
-
-int NppRGB24ToBGR24(void* dst, int width, int height, const void* src, cudaStream_t stream) {
+static int NppSwapChannels_8u_C3R(void* dst, int width, int height, const void* src, cudaStream_t stream) {
   NppStreamContext npp_stream_ctx;
   NppStatus status = nppGetStreamContext(&npp_stream_ctx);
   CHECK_NPP(status);
@@ -229,34 +228,12 @@ int NppRGB24ToBGR24(void* dst, int width, int height, const void* src, cudaStrea
   return 0;
 }
 
+int NppRGB24ToBGR24(void* dst, int width, int height, const void* src, cudaStream_t stream) {
+  return NppSwapChannels_8u_C3R(dst, width, height, src, stream);
+}
+
 int NppBGR24ToRGB24(void* dst, int width, int height, const void* src, cudaStream_t stream) {
-  NppStreamContext npp_stream_ctx;
-  NppStatus status = nppGetStreamContext(&npp_stream_ctx);
-  CHECK_NPP(status);
-  npp_stream_ctx.hStream = stream;
-
-  NppiSize oSizeROI;
-  oSizeROI.width   = width;
-  oSizeROI.height  = height;
-
-  int nStep = width * 3;
-
-  int aDstOrder[3] = { 2, 1, 0 };
-  status = nppiSwapChannels_8u_C3R_Ctx(
-    static_cast<const Npp8u*>(src),
-    nStep,
-    static_cast<Npp8u*>(dst),
-    nStep,
-    oSizeROI,
-    aDstOrder,
-    npp_stream_ctx
-  );
-  CHECK_NPP(status);
-
-  CHECK_CUDA_RUNTIME(cudaGetLastError());
-  CHECK_CUDA_RUNTIME(cudaDeviceSynchronize());
-
-  return 0;
+  return NppSwapChannels_8u_C3R(dst, width, height, src, stream);
 }
 
 }  // namespace cnstream

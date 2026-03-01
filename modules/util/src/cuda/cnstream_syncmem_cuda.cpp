@@ -9,7 +9,7 @@ CNSyncedMemoryCuda::CNSyncedMemoryCuda(size_t size) : CNSyncedMemory(size) {
   own_dev_data_[DevType::CUDA] = false;
 }
 
-CNSyncedMemoryCuda::CNSyncedMemoryCuda(size_t size, int dev_id) : CNSyncedMemory(size, dev_id) {
+CNSyncedMemoryCuda::CNSyncedMemoryCuda(size_t size, int dev_id) : CNSyncedMemory(size) {
   std::lock_guard<std::mutex> lock(mutex_);
   int device_count = 0;
   CHECK_CUDA_RUNTIME(cudaGetDeviceCount(&device_count));
@@ -25,9 +25,6 @@ CNSyncedMemoryCuda::CNSyncedMemoryCuda(size_t size, int dev_id) : CNSyncedMemory
 CNSyncedMemoryCuda::~CNSyncedMemoryCuda() {
   std::lock_guard<std::mutex> lock(mutex_);
   if (0 == size_) return;
-  if (cpu_ptr_ && own_dev_data_[DevType::CPU]) {
-    free(cpu_ptr_);
-  }
   if (cuda_ptr_ && own_dev_data_[DevType::CUDA]) {
     // Set device before freeing memory
     if (dev_id_ >= 0) {
@@ -35,6 +32,16 @@ CNSyncedMemoryCuda::~CNSyncedMemoryCuda() {
     }
     CHECK_CUDA_RUNTIME(cudaFree(cuda_ptr_));
   }
+  cuda_ptr_ = nullptr;
+  // cpu_ptr_ 交给 父类析构
+}
+
+void* CNSyncedMemoryCuda::Allocate() {
+  return GetMutableCudaData();
+}
+
+void CNSyncedMemoryCuda::SetData(void* data) {
+  SetCudaData(data);
 }
 
 void CNSyncedMemoryCuda::ToCpu() {
@@ -46,7 +53,7 @@ void CNSyncedMemoryCuda::ToCpu() {
         LOGE(FRAME) << "CNSyncedMemoryCuda::ToCpu ERROR, cuda_ptr_ and cpu_ptr_ should be NULL.";
         return;
       }
-      CHECK_CUDA_RUNTIME(cudaMallocHost(&cpu_ptr_, size_));
+      CNStreamMallocHost(&cpu_ptr_, size_);
       memset(cpu_ptr_, 0, size_);
       head_ = SyncedHead::HEAD_AT_CPU;
       own_dev_data_[DevType::CPU] = true;
@@ -57,7 +64,7 @@ void CNSyncedMemoryCuda::ToCpu() {
         return;
       }
       if (NULL == cpu_ptr_) {
-        CHECK_CUDA_RUNTIME(cudaMallocHost(&cpu_ptr_, size_));
+        CNStreamMallocHost(&cpu_ptr_, size_);
         memset(cpu_ptr_, 0, size_);
         own_dev_data_[DevType::CPU] = true;
       }

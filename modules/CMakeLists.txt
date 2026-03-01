@@ -74,7 +74,7 @@ else()
 endif()
 
 # ---[ libyuv
-if(has_built_libyuv)
+if(DEFINED has_built_libyuv AND has_built_libyuv)
   if(TARGET yuv)  # 根据 libyuv 内的 cmake 文件确定
     list(APPEND MODULES_3RDPARTY_LIBS yuv)
     list(APPEND MODULES_DEPENDENCIES yuv)

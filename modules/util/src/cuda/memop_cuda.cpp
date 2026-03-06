@@ -41,6 +41,10 @@ void CudaMemOp::Copy(void* dst, const void* src, size_t size) {
   CHECK_CUDA_RUNTIME(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToDevice));
 }
 
+/**
+ * @brief 此函数假设 dst_mem 分配的内存应当是“紧密排列”的，即 stride 等于 width * 3
+ * 因此我们需注意: src_frame 中的对内存排列不做任何假设
+ */
 int CudaMemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt, 
                                   const DecodeFrame* src_frame) {
   if (!dst_mem) return -1;
@@ -58,16 +62,23 @@ int CudaMemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt,
 
   int width = src_frame->width;
   int height = src_frame->height;
+  DataFormat src_fmt = src_frame->fmt;
+
   if (dst_fmt != DataFormat::PIXEL_FORMAT_BGR24 &&
       dst_fmt != DataFormat::PIXEL_FORMAT_RGB24) {
     LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
                << static_cast<int>(dst_fmt);
     return -1;
   }
-  DataFormat src_fmt = src_frame->fmt;
+  const int dst_stride = width * 3;
   if (dst_fmt == src_fmt) {
     LOGW(CORE) << "CudaMemOp::ConvertImageFormat: Source format is same as destination format";
-    Copy(dst, src_frame->plane[0], width * height * 3);
+    int src_stride = src_frame->stride[0];  // src_fmt：RGB or BGR
+    CHECK_CUDA_RUNTIME(cudaMemcpy2D(dst, dst_stride, 
+                                src_frame->plane[0], src_stride, 
+                                dst_stride,
+                                height,
+                                cudaMemcpyDeviceToDevice));
     return 0;
   }
   // size_t dst_stride = width * 3;
@@ -95,9 +106,13 @@ int CudaMemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt,
     }
     case DataFormat::PIXEL_FORMAT_YUV420_NV12: {
       if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
-        ret = NppNV12ToRGB24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+        ret = NppNV12ToRGB24(dst, dst_stride,
+          src_frame->plane[0], src_frame->plane[1],
+          src_frame->stride[0], width, height);
       } else if (dst_fmt == DataFormat::PIXEL_FORMAT_BGR24) {
-        ret = NppNV12ToBGR24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
+        ret = NppNV12ToBGR24(dst, dst_stride,
+          src_frame->plane[0], src_frame->plane[1],
+          src_frame->stride[0], width, height);
       } else {
         LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
                    << static_cast<int>(dst_fmt) << " for source NV12";
@@ -106,16 +121,8 @@ int CudaMemOp::ConvertImageFormat(CNSyncedMemory* dst_mem, DataFormat dst_fmt,
       break;
     }
     case DataFormat::PIXEL_FORMAT_YUV420_NV21: {
-      if (dst_fmt == DataFormat::PIXEL_FORMAT_RGB24) {
-        ret = NppNV21ToRGB24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
-      } else if (dst_fmt == DataFormat::PIXEL_FORMAT_BGR24) {
-        ret = NppNV21ToBGR24(dst, width, height, src_frame->plane[0], src_frame->plane[1]);
-      } else {
-        LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported destination format " 
-                   << static_cast<int>(dst_fmt) << " for source NV21";
-        return -1;
-      }
-      break;
+      LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported source format NV21";
+      return -1;
     }
     default:
       LOGE(CORE) << "CudaMemOp::ConvertImageFormat: Unsupported source format " 

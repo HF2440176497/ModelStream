@@ -22,7 +22,13 @@ static bool __check_npp(NppStatus code, const char* op, const char* file, int li
   return true;
 }
 
-int NppNV12ToRGB24(void* dst, int width, int height, const void* y_plane, const void* uv_plane, cudaStream_t stream) {
+int NppNV12ToRGB24(void* dst, int dst_stride,
+                  const void* y_plane,
+                  const void* uv_plane,
+                  int src_stride,
+                  int width, 
+                  int height, 
+                  cudaStream_t stream) {
   NppStreamContext npp_stream_ctx;
   NppStatus status = nppGetStreamContext(&npp_stream_ctx);
   CHECK_NPP(status);
@@ -32,18 +38,16 @@ int NppNV12ToRGB24(void* dst, int width, int height, const void* y_plane, const 
     static_cast<const Npp8u*>(y_plane),
     static_cast<const Npp8u*>(uv_plane),
   };
-  int aSrcStep = width;
 
   Npp8u* pDst = static_cast<Npp8u*>(dst);
-  int nDstStep = width * 3;
 
   NppiSize oSizeROI;
   oSizeROI.width   = width;
   oSizeROI.height  = height;
 
   status = nppiNV12ToRGB_709HDTV_8u_P2C3R_Ctx(
-    aSrc, aSrcStep,
-    pDst, nDstStep,
+    aSrc, src_stride,
+    pDst, dst_stride,
     oSizeROI,
     npp_stream_ctx
   );
@@ -55,7 +59,13 @@ int NppNV12ToRGB24(void* dst, int width, int height, const void* y_plane, const 
   return 0;
 }
 
-int NppNV12ToBGR24(void* dst, int width, int height, const void* y_plane, const void* uv_plane, cudaStream_t stream) {
+int NppNV12ToBGR24(void* dst, int dst_stride,
+                  const void* y_plane,
+                  const void* uv_plane,
+                  int src_stride,
+                  int width,
+                  int height, 
+                  cudaStream_t stream) {
   NppStreamContext npp_stream_ctx;
   NppStatus status = nppGetStreamContext(&npp_stream_ctx);
   CHECK_NPP(status);
@@ -65,18 +75,16 @@ int NppNV12ToBGR24(void* dst, int width, int height, const void* y_plane, const 
     static_cast<const Npp8u*>(y_plane),
     static_cast<const Npp8u*>(uv_plane),
   };
-  int aSrcStep = width;
 
   Npp8u* pDst = static_cast<Npp8u*>(dst);
-  int nDstStep = width * 3;
 
   NppiSize oSizeROI;
   oSizeROI.width   = width;
   oSizeROI.height  = height;
 
   status = nppiNV12ToBGR_709HDTV_8u_P2C3R_Ctx(
-    aSrc, aSrcStep,
-    pDst, nDstStep,
+    aSrc, src_stride,
+    pDst, dst_stride,
     oSizeROI,
     npp_stream_ctx
   );
@@ -166,7 +174,7 @@ __global__ void nv21ToBGRKernel(const uint8_t* yPlane, const uint8_t* vuPlane,
     bgrOutput[outIdx + 2] = R;
 }
 
-// NV21 的转换使用 CUDA kernel 
+
 int NppNV21ToRGB24(void* dst, int width, int height, 
   const void* y_plane, const void* uv_plane, cudaStream_t stream) {
 

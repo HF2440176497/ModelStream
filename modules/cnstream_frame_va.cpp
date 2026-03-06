@@ -137,8 +137,8 @@ void DataFrame::CopyToSyncMem(DecodeFrame* dec_frame) {
     LOGF(FRAME) << "CopyToSyncMem: dev_type is INVALID";
     return;
   }
-  if (DataFormat::PIXEL_FORMAT_RGB24 != this->fmt_) {
-    LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24, dec_frame fmt is " << static_cast<int>(dec_frame->fmt) << ", this fmt is " << static_cast<int>(this->fmt_);
+  if (DataFormat::PIXEL_FORMAT_RGB24 != this->fmt_ && DataFormat::PIXEL_FORMAT_BGR24 != this->fmt_) {
+    LOGF(FRAME) << "CopyToSyncMem: fmt not RGB24 or BGR24, this fmt is " << static_cast<int>(this->fmt_);
     return;
   }
 
@@ -153,9 +153,7 @@ void DataFrame::CopyToSyncMem(DecodeFrame* dec_frame) {
     }
     return;
   }
-
-  // 获取 RGB 图像需要的内存空间， 直接使用 GetBytes() 方法获取
-  size_t bytes = RoundUpSize(GetBytes());
+  const size_t bytes = GetPlaneBytes(0);
   this->data_[0] = memop->CreateSyncedMemory(bytes);
   int ret = memop->ConvertImageFormat(this->data_[0].get(), this->fmt_, dec_frame);
   if (ret != 0) {

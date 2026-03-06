@@ -317,27 +317,27 @@ int VideoHandlerImpl::decode_write() {
         break;
       }
 
-      DataFormat nv12_fmt = DataFormat::INVALID;
+      DataFormat nv_fmt = DataFormat::INVALID;
       if (s_frame_->format == AV_PIX_FMT_NV12) {
-        nv12_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV21;
+        nv_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV12;
       } else if (s_frame_->format == AV_PIX_FMT_NV21) {
-        nv12_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV12;
+        nv_fmt = DataFormat::PIXEL_FORMAT_YUV420_NV21;
       } else {
         LOGE(SOURCE) << "VideoHandlerImpl: s_frame_ format not supported: " << s_frame_->format;
         ret = -1;
         break;
       }
 
-      // Sws_scale 传输到 CPU 的格式 NV12 or NV21
-      DecodeFrame frame(s_frame_->height, s_frame_->width, nv12_fmt);
+      // 传输到 CPU 的格式 NV12 or NV21
+      DecodeFrame frame(s_frame_->height, s_frame_->width, nv_fmt);
       frame.dev_type = DevType::CPU;
       frame.planeNum = 2;
       frame.pts = s_frame_->pts;
 
       int width = s_frame_->width;
       int height = s_frame_->height;
-      size_t y_size = s_frame_->linesize[0] * height;  // width * height 
-      size_t uv_size = s_frame_->linesize[1] * height / 2;  // width / 2 * height
+      size_t y_size = width * height;  // width * height 
+      size_t uv_size = width * height / 2;  // width * height / 2
 
       uint8_t* y_buffer = new (std::nothrow) uint8_t[y_size];
       uint8_t* uv_buffer = new (std::nothrow) uint8_t[uv_size];
@@ -348,18 +348,19 @@ int VideoHandlerImpl::decode_write() {
         ret = -1;
         break;
       }
+      // src: according to linesize, dst: according to width
       for (int i = 0; i < height; ++i) {
-        memcpy(y_buffer + i * s_frame_->linesize[0], s_frame_->data[0] + i * s_frame_->linesize[0], width);
+        memcpy(y_buffer + i * width, s_frame_->data[0] + i * s_frame_->linesize[0], width);
       }
       for (int i = 0; i < height / 2; ++i) {
-        memcpy(uv_buffer + i * s_frame_->linesize[1], s_frame_->data[1] + i * s_frame_->linesize[1], width);
+        memcpy(uv_buffer + i * width, s_frame_->data[1] + i * s_frame_->linesize[1], width);
       }
 
       frame.plane[0] = y_buffer;
       frame.plane[1] = uv_buffer;
-      frame.stride[0] = s_frame_->linesize[0];
-      frame.stride[1] = s_frame_->linesize[1];
-      frame.buf_ref = std::make_unique<MatBufRefNV12>(y_buffer, uv_buffer);
+      frame.stride[0] = width;
+      frame.stride[1] = width;
+      frame.buf_ref = std::make_unique<MatBufRefNV12>(y_buffer, uv_buffer);  // 后续可能 zero-copy，因此需要创建 buf_ref
 
       data = OnDecodeFrame(&frame);
 
@@ -382,7 +383,11 @@ int VideoHandlerImpl::decode_write() {
       frame.stride[0] = p_frame->linesize[0];
       frame.stride[1] = p_frame->linesize[1];
 
-      // p_frame 需要拷贝到 data 中，负责后续会被 av_frame_free 释放
+      if (frame.stride[0] != frame.stride[1]) {
+        LOGW(SOURCE) << "VideoHandlerImpl: stride[0] != stride[1]: " << frame.stride[0] << " != " << frame.stride[1];
+      }
+
+      // 后续需要创建，拷贝到 data 的内存，因此不设置 buf_ref
       data = OnDecodeFrame(&frame);
     } else {
       LOGF(SOURCE) << "VideoHandler: nsupported output type: " << static_cast<int>(output_type_);

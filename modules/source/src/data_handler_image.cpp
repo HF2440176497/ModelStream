@@ -98,6 +98,10 @@ bool ImageHandlerImpl::Open() {
     LOGE(SOURCE) << "ImageHandlerImpl: Failed to load image: " << image_path_;
     return false;
   }
+  if (image_.type() != CV_8UC3 || image_.elemSize() != 3) {
+    LOGE(SOURCE) << "ImageHandlerImpl: Image format is not BGR24!";
+    return false;
+  }
   running_.store(true);
   thread_ = std::thread(&ImageHandlerImpl::Loop, this);
   return true;
@@ -134,22 +138,30 @@ void ImageHandlerImpl::Loop() {
     frame.dev_type = DevType::CPU;
     frame.device_id = -1;
     frame.planeNum = 1;  // BGR格式使用1个平面
-    
-    // 分配内存并复制数据 对于 BGR or RGB, index = 1
-    frame.stride[0] = image_.cols * 3;  // BGR格式每个像素3字节
-    size_t data_size = get_plane_bytes(frame.fmt, 0, frame.height, frame.stride);
+
+    size_t data_size = image_.total() * image_.elemSize();
+    // size_t data_size = get_plane_bytes(frame.fmt, 0, frame.height, frame.stride);
+
     uint8_t* buffer = new (std::nothrow) uint8_t[data_size];
     if (!buffer) {
       LOGE(SOURCE) << "ImageHandlerImpl: Failed to allocate memory for image data";
       return;
     }
-    memcpy(buffer, image_.data, image_.step[0] * image_.rows);
-
+    if (image_.isContinuous()) {
+      memcpy(buffer, image_.data, image_.total() * image_.elemSize());
+    } else {
+      for (int i = 0; i < image_.rows; ++i) {
+        memcpy(buffer + i * image_.cols * image_.elemSize(), 
+              image_.ptr(i), 
+              image_.cols * image_.elemSize());
+      }
+    }
 #ifdef UNIT_TEST
     LOGI(SOURCE) << "ImageHandlerImpl: Loop; image width: " << image_.cols << ", height: " << image_.rows;
-    LOGI(SOURCE) << "----------------: Loop; alloca data_size: " << data_size  << ", image_.step[0] * image_.rows: " << image_.step[0] * image_.rows << std::endl;
+    LOGI(SOURCE) << "----------------: Loop; alloca data_size: " << data_size  << ", image_.total() * image_.elemSize(): " << image_.total() * image_.elemSize() << std::endl;
 #endif
 
+    frame.stride[0] = frame.width * image_.elemSize();  // BGR格式每个像素3字节
     frame.plane[0] = buffer;
     frame.buf_ref = std::make_unique<MatBufRef>(buffer);  // 交给 MatBufRef 管理释放
 

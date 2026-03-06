@@ -24,7 +24,7 @@ int SourceRender::Process(std::shared_ptr<FrameInfo> frame_info, DecodeFrame *de
     dec_frame->buf_ref = nullptr;
   }
   frame->ctx_ = DevContext(dec_frame->dev_type, dec_frame->device_id);
-
+  // TODO: 支持配置 RGB24 或 BGR24
   frame->fmt_ = DataFormat::PIXEL_FORMAT_RGB24;  // dst fmt
   for (int i = 0; i < frame->GetPlanes(); ++i) {
     if (i == 0) {

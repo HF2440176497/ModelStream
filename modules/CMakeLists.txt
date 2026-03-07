@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
+if(NOT DEFINED VSTREAM_ROOT_PATH)
+    set(VSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
 # ---[ gflags
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
 if(GFLAGS_FOUND)
   message(STATUS "Using installed GFlags for modules unittest")
   include_directories(${GFLAGS_INCLUDE_DIRS})
@@ -15,7 +15,7 @@ else()
 endif()
 
 # ---[ glog
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
 if(GLOG_FOUND)
   message(STATUS "Using installed GLog for modules unittest")
   include_directories(${GLOG_INCLUDE_DIRS})
@@ -24,14 +24,14 @@ else()
 endif()
 
 # ---[ nlohmann/json
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
+include_directories(${VSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
 # ---[ framework
-include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
-have_framework_target(${MODELSTREAM_ROOT_PATH})
+include(${VSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${VSTREAM_ROOT_PATH})
 if(HAVE_FRAMEWORK_TARGET)
-  include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
-  list(APPEND DEPENDENCIES modelstream_core)
+  include_directories(${VSTREAM_ROOT_PATH}/framework/core/include)
+  list(APPEND DEPENDENCIES vstream_core)
 else()
   message(FATAL_ERROR "framework target not found")
 endif()
@@ -43,7 +43,7 @@ endif()
 option(build_util "build module util" ON)
 option(build_source "build module source" ON)
 option(build_inference "build module inference" OFF)
-option(build_va "build modulestream_va" ON)
+option(build_va "build stream_va" ON)
 
 # ---[ 3rdparty
 set(MODULES_3RDPARTY_LIBS "")
@@ -52,7 +52,7 @@ set(MODULES_DEPENDENCIES "")
 list(APPEND MODULES_3RDPARTY_LIBS ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 
 # ---[ opencv
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
 if(OpenCV_FOUND)
   include_directories(${OpenCV_INCLUDE_DIRS})
   list(APPEND MODULES_3RDPARTY_LIBS ${OpenCV_LIBS})
@@ -61,7 +61,7 @@ else()
 endif()
 
 # ---[ FFmpeg
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindFFmpeg.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindFFmpeg.cmake)
 if(FFMPEG_FOUND)
   list(APPEND MODULES_3RDPARTY_LIBS ${FFMPEG_LIBRARIES})
   include_directories(${FFMPEG_INCLUDE_DIR})
@@ -86,7 +86,7 @@ if(DEFINED has_built_libyuv AND has_built_libyuv)
   else()
     message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
   endif()
-  include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
+  include_directories(${VSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
 else()
   message(FATAL_ERROR "libyuv has not built. Set BUILD_LIBYUV=ON in root CMakeLists.txt to build")
 endif()
@@ -103,7 +103,7 @@ endif()
 file(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB util_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
 
-if(NVIDIA_PLATFORM)
+if(NVIDIA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   file(GLOB util_cuda_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cpp 
@@ -145,7 +145,7 @@ if(build_util)
   file(GLOB util_common_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/*.cpp)
   list(APPEND util_obj_srcs ${util_common_src})
 
-  if(NVIDIA_PLATFORM)
+  if(NVIDIA)
     file(GLOB util_cuda_src ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cpp 
           ${CMAKE_CURRENT_SOURCE_DIR}/util/src/cuda/*.cu)
     list(APPEND util_obj_srcs ${util_cuda_src})
@@ -164,23 +164,23 @@ if(build_util)
 endif()
 
 if(build_va)
-  add_library(modelstream_va SHARED ${srcs})
-  target_include_directories(modelstream_va PRIVATE
+  add_library(vstream_va SHARED ${srcs})
+  target_include_directories(vstream_va PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
       ${CMAKE_CURRENT_SOURCE_DIR}/util/include
   )
 
   foreach(module ${module_list})
-    target_include_directories(modelstream_va PRIVATE
+    target_include_directories(vstream_va PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/${module}/include
     )
   endforeach()
 
-  add_dependencies(modelstream_va ${MODULES_DEPENDENCIES})
-  target_link_libraries(modelstream_va ${MODULES_DEPENDENCIES} ${MODULES_3RDPARTY_LIBS} rt dl pthread)
-  add_custom_target(va DEPENDS modelstream_va)
-  # set_target_properties(modelstream_va PROPERTIES LINK_FLAGS_RELEASE -s)
-  message(STATUS "modelstream_va enabled - targets: modelstream_va")
+  add_dependencies(vstream_va ${MODULES_DEPENDENCIES})
+  target_link_libraries(vstream_va ${MODULES_DEPENDENCIES} ${MODULES_3RDPARTY_LIBS} rt dl pthread)
+  add_custom_target(va DEPENDS vstream_va)
+  # set_target_properties(vstream_va PROPERTIES LINK_FLAGS_RELEASE -s)
+  message(STATUS "vstream_va enabled - targets: vstream_va")
 endif()
 
 if(build_tests)

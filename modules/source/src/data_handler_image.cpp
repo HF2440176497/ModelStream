@@ -157,8 +157,7 @@ void ImageHandlerImpl::Loop() {
       }
     }
 #ifdef UNIT_TEST
-    LOGI(SOURCE) << "ImageHandlerImpl: Loop; image width: " << image_.cols << ", height: " << image_.rows;
-    LOGI(SOURCE) << "----------------: Loop; alloca data_size: " << data_size  << ", image_.total() * image_.elemSize(): " << image_.total() * image_.elemSize() << std::endl;
+    LOGI(SOURCE) << "ImageHandlerImpl: Loop; image width: " << image_.cols << ", height: " << image_.rows << ", alloca data_size: " << data_size;
 #endif
 
     frame.stride[0] = frame.width * image_.elemSize();  // BGR格式每个像素3字节

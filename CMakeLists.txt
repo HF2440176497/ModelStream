@@ -14,20 +14,21 @@ if(UNIX)
   include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLibraryPaths_ubuntu.cmake)
 endif()
 
-project(ModelStream LANGUAGES C CXX)
+project(vStream LANGUAGES C CXX)
 set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Platform options
-option(NVIDIA_PLATFORM "Enable NVIDIA CUDA platform support" ON)
+option(NVIDIA "Enable NVIDIA CUDA platform support" ON)
 
-if (NVIDIA_PLATFORM)
+if (NVIDIA)
+  add_definitions(-DNVIDIA)
   set(CMAKE_CUDA_STANDARD 17)
 endif()
 
-set(MODELSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
+set(VSTREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 
 option(build_modules "build modules" ON)
@@ -38,11 +39,11 @@ option(build_python_api "build python api" OFF)
 
 
 # 静态库 and 动态库输出目录
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${MODELSTREAM_ROOT_PATH}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${MODELSTREAM_ROOT_PATH}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${VSTREAM_ROOT_PATH}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${VSTREAM_ROOT_PATH}/lib)
 
 # 可执行文件输出目录
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${MODELSTREAM_ROOT_PATH}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${VSTREAM_ROOT_PATH}/bin)
 
 # add macro definitions
 if(build_tests)

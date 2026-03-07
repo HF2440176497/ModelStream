@@ -3,8 +3,8 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../..
+if(NOT DEFINED VSTREAM_ROOT_PATH)
+    set(VSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../..
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
@@ -39,7 +39,7 @@ list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 # ---[ opencv
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
 if(OpenCV_FOUND)
   include_directories(${OpenCV_INCLUDE_DIRS})
   list(APPEND TOOLS_DEMO_CUDA_3RDPARTY_LIBS ${OpenCV_LIBS})
@@ -51,7 +51,7 @@ message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR
 
 # ---[ libyuv
 if(NOT DEFINED has_built_libyuv OR NOT has_built_libyuv)
-  add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
+  add_subdirectory(${VSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
   set(has_built_libyuv TRUE)
 endif()
 if(TARGET yuv)
@@ -65,7 +65,7 @@ elseif(TARGET yuv_shared)
 else()
   message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
 endif()
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
+include_directories(${VSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
 
 # Source files
 set(DEMO_SOURCES

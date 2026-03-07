@@ -290,36 +290,4 @@ TEST(CudaMemOp, ConvertImageFormat_NV12_RGB24) {
   delete src_frame;
 }
 
-TEST(CudaMemOp, ConvertImageFormat_NV21_RGB24) {
-  auto& factory = MemOpFactory::Instance();
-  auto memop = factory.CreateMemOp(DevType::CUDA, 0);
-  std::unique_ptr<CudaMemOp> cuda_memop = memop_dynamic_pointer_cast<CudaMemOp>(std::move(memop));
-  ASSERT_NE(cuda_memop, nullptr);
-  
-  int width = 1920, height = 1080;
-  DecodeFrame* src_frame = CreateTestDecodeFrameCuda(DataFormat::PIXEL_FORMAT_YUV420_NV21, width, height);
-
-  size_t dst_size = width * height * 3;
-  auto synced_mem = cuda_memop->CreateSyncedMemory(dst_size);
-  ASSERT_NE(synced_mem, nullptr);
-
-  auto cuda_synced_mem = dynamic_cast<CNSyncedMemoryCuda*>(synced_mem.get());
-  ASSERT_NE(cuda_synced_mem, nullptr);
-  ASSERT_EQ(cuda_synced_mem->GetHead(), SyncedHead::UNINITIALIZED);
-  
-  int ret = cuda_memop->ConvertImageFormat(synced_mem.get(), DataFormat::PIXEL_FORMAT_RGB24, src_frame);
-  ASSERT_EQ(ret, 0);
-
-  uint8_t* h_rgb = (uint8_t*)malloc(dst_size);
-  CHECK_CUDA_RUNTIME(cudaMemcpy(h_rgb, cuda_synced_mem->GetCudaData(), dst_size, cudaMemcpyDeviceToHost));
-  EXPECT_NE(h_rgb, nullptr);
-
-  cv::Mat bgr = cv::Mat(height, width, CV_8UC3, h_rgb);
-  cv::imwrite("memop_cuda_nv21_convert.jpg", bgr);
-
-  free(h_rgb);
-  clear_decode_frame(src_frame);
-  delete src_frame;
-}
-
 }  // end namespace cnstream

@@ -126,7 +126,7 @@ struct ProfilerConfig : public CNConfigBase {
  *   "name": {
  *     "parallelism": 3,
  *     "max_input_queue_size": 20,
- *     "class_name": "cnstream::Inferencer",
+ *     "class_name": "cnstream::Inference",
  *     "next_modules": ["module_name", ...],
  *     "custom_params" : {
  *       "param_name" : "param_value",

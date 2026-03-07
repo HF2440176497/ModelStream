@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <memory>
+#include <iostream>
 
 #include "cnstream_frame_va.hpp"
 #include "memop_factory.hpp"
@@ -11,13 +12,20 @@ namespace cnstream {
 
 static
 cv::Mat BGRToBGR(const DataFrame& frame) {
-  const cv::Mat bgr(frame.GetHeight(), frame.GetStride(0), CV_8UC3, const_cast<void*>(frame.data_[0]->GetCpuData()));
+  const cv::Mat bgr(frame.GetHeight(), frame.GetWidth(), CV_8UC3, const_cast<void*>(frame.data_[0]->GetCpuData()));
   return bgr(cv::Rect(0, 0, frame.GetWidth(), frame.GetHeight())).clone();
 }
 
 static
 cv::Mat RGBToBGR(const DataFrame& frame) {
-  const cv::Mat rgb(frame.GetHeight(), frame.GetStride(0), CV_8UC3, const_cast<void*>(frame.data_[0]->GetCpuData()));
+#ifdef UNIT_TEST
+  std::cout << "RGBToBGR: width = " << frame.GetWidth() << ", height = " << frame.GetHeight() << std::endl;
+  std::cout << "RGBToBGR: stride = " << frame.GetStride(0) << std::endl;
+  std::cout << "RGBToBGR: data = " << frame.data_[0]->StatusToString() << std::endl;
+  std::cout << "RGBToBGR: data = " << frame.data_[0]->GetCpuData() << std::endl;
+#endif
+
+  const cv::Mat rgb(frame.GetHeight(), frame.GetWidth(), CV_8UC3, const_cast<void*>(frame.data_[0]->GetCpuData()));
   cv::Mat bgr;
   cv::cvtColor(rgb, bgr, cv::COLOR_RGB2BGR);
   return bgr(cv::Rect(0, 0, frame.GetWidth(), frame.GetHeight())).clone();

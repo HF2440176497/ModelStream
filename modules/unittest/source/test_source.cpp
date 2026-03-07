@@ -16,37 +16,43 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
+#ifdef NVIDIA
+#include "cuda/inspect_mem.hpp"
+#endif
+
 namespace cnstream {
 
 static std::string test_pipeline_json = "pipeline_base.json";
 static std::string test_pipeline_video_json = "pipeline_base_video.json";
-static std::vector<std::string> expected_nodes = {"DataSource", "InferencerProcess"};
+static std::vector<std::string> expected_nodes = {"DataSource", "InferenceProcess"};
 
 static bool has_save_frame_mat = false;
 static std::string save_file = "image/test_save.jpg";
 
 // 在测试实例中，定义出这个 virtual module
-class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> {
+class InferenceProcess: public Module, public ModuleCreator<InferenceProcess> {
   public:
-    InferencerProcess(const std::string &name) : Module(name) {}
-    ~InferencerProcess() {}
+    InferenceProcess(const std::string &name) : Module(name) {}
+    ~InferenceProcess() {}
     bool Open(ModuleParamSet params) override {
       return true;
     }
+    uint64_t frame_count_ = 0;
 
     void Close() override {
-      LOGI(InferencerProcess) << "Close";
+      LOGI(InferenceProcess) << "Close";
     }
 
     void OnEos(const std::string& stream_id) override {
-      LOGI(InferencerProcess) << "OnEos: " << stream_id;
+      LOGI(InferenceProcess) << "OnEos: " << stream_id;
     }
 
     int Process(std::shared_ptr<FrameInfo> frame_info) override {
-      LOGI(InferencerProcess) << "---------- Process frame " << frame_info->stream_id << "; with time: " << frame_info->timestamp;
+      frame_count_++;
+      LOGI(InferenceProcess) << "---------- Process frame " << frame_info->stream_id << "; with time: " << frame_info->timestamp;
       DataFramePtr frame = frame_info->collection.Get<DataFramePtr>(kDataFrameTag);
       if (!frame) {
-        LOGE(InferencerProcess) << "frame is empty";
+        LOGE(InferenceProcess) << "frame is empty";
         return -1;
       }
       std::cout << "--- frame datafmt: " << DataFormat2Str(frame->GetFmt()) << std::endl;
@@ -64,23 +70,27 @@ class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> 
 
       // 尝试通过 SyncMem 落地图片
       if (frame->HasImage()) {
-        LOGW(InferencerProcess) << "before get image, frame_mat_ should be empty";
+        LOGW(InferenceProcess) << "before get image, frame_mat_ should be empty";
       }
       cv::Mat frame_mat = frame->GetImage();
       if (frame_mat.empty()) {
-        LOGE(InferencerProcess) << "frame_mat_ is empty";
+        LOGE(InferenceProcess) << "frame_mat_ is empty";
         return -1;
+      }
+
+      if (frame_count_ % 100 == 0) {
+        GPUInspect inspect(0);
+        std::cout << inspect.GetBriefInfo() << std::endl;
       }
       if (!has_save_frame_mat) {
         cv::imwrite(save_file, frame_mat);
         has_save_frame_mat = true;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(20));
       return 0;
     }
 };
 
-REGISTER_MODULE(InferencerProcess);
+REGISTER_MODULE(InferenceProcess);
 
 static uint64_t getCurrentTimestampMs() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -188,7 +198,7 @@ TEST_F(SourceModuleTest, PipelineInit) {
     std::cout << "parent_nodes_mask: " << node_iter->data.parent_nodes_mask << std::endl;
   }
   // DataSource 标记 route_mask 非 0, parent_nodes_mask 为 0
-  // InferencerProcess 标记 route_mask 为 0 (因为是头节点) parent_nodes_mask 非 0 
+  // InferenceProcess 标记 route_mask 为 0 (因为是头节点) parent_nodes_mask 非 0 
 
   // 发现：DataSource 的 route_mask 也包含了自身 Module 的标记
 
@@ -198,7 +208,7 @@ TEST_F(SourceModuleTest, PipelineInit) {
   //   std::cout << "module name: " << module_name << std::endl;
   // }
   EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "cnstream::DataSource") != registed_modules.end());
-  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "cnstream::InferencerProcess") != registed_modules.end());
+  EXPECT_TRUE(std::find(registed_modules.begin(), registed_modules.end(), "cnstream::InferenceProcess") != registed_modules.end());
 
 }  // PipelineInit
 
@@ -269,10 +279,13 @@ TEST_F(SourceModuleTest, MutilStream) {
     EXPECT_TRUE(handlers[stream_id]->impl_->running_);
   }
   
-  Module* module_infer = pipeline_->GetModule("InferencerProcess");
+  Module* module_infer = pipeline_->GetModule("Inference");
+
+  ASSERT_NE(module_infer, nullptr);
+  ASSERT_NE(module_infer->GetConnector(), nullptr);
   int conveyor_count = module_infer->GetConnector()->conveyor_count_;
   std::cout << "Inference Module connector conveyor count: " << conveyor_count << std::endl;
-  // note: 对于只含有 InferencerProcess 模块的 pipeline，线程数 == InferencerProcess conveyor_count == parallel_num
+  // note: 对于只含有 InferenceProcess 模块的 pipeline，线程数 == InferenceProcess conveyor_count == parallel_num
   EXPECT_EQ(pipeline_->threads_.size(), conveyor_count);
 
   // 运行开始，我们查看 Pipeline 内部：
@@ -312,18 +325,20 @@ TEST_F(VideoSourceTest, Loop) {
   EXPECT_TRUE(video_handler_->impl_->running_);
 
   // AddSource 之后，handler handler 理应可以获取到配置参数
-  std::cout << "video_handler_->impl_->stream_url = " << video_handler_->impl_->stream_url_ << std::endl;
+  std::cout << "video_handler_->impl_->stream_url_ = " << video_handler_->impl_->stream_url_ << std::endl;
   std::cout << "video_handler_->impl_->frame_rate_ = " << video_handler_->impl_->frame_rate_ << std::endl;
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
+  std::this_thread::sleep_for(std::chrono::milliseconds(3000));  // running for a while
 
-  // Print profiler info
+  // 需要判断是否有 nullptr (可能是未开启 profile)
   // source module 不会有 kINPUT_PROFILER_NAME kPROCESS_PROFILER_NAME
-  auto infer_profiler = pipeline_->GetModuleProfiler("InferencerProcess");
-  auto infer_profile = infer_profiler->GetProfile();
-  std::cout << "InferencerProcess profile: " << ModuleProfileToString(infer_profile) << std::endl;
+  auto infer_profiler = pipeline_->GetModuleProfiler("Inference");
+  if (infer_profiler) {
+    auto infer_profile = infer_profiler->GetProfile();
+    std::cout << "Inference profile: " << ModuleProfileToString(infer_profile) << std::endl;
+  }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));  // running for a while
+  std::this_thread::sleep_for(std::chrono::seconds(900));  // running for a while
 
   LOGI(SourceModuleTest) << "Handler stream idx: " << video_handler_->GetStreamIndex();
   EXPECT_NE(video_handler_->GetStreamIndex(), INVALID_STREAM_IDX);  // 等同 data->GetStreamIndex

@@ -12,6 +12,6 @@ foreach(demo_source ${DEMO_SOURCES})
     target_link_libraries(${demo_name} ${TOOLS_3RDPARTY_LIBS} ${TOOLS_DEPENDENCIES} rt dl pthread)
 endforeach()
 
-if(NVIDIA_PLATFORM)
+if(NVIDIA)
   add_subdirectory(cuda)
 endif()

@@ -83,42 +83,13 @@ class CNSyncedMemory : private NonCopyable {
  public:
   virtual void* Allocate();
   virtual void SetData(void* data);
+  virtual void SetCpuData(void* data);
+
   int GetDevId() const;
 
-  /**
-   * @brief Sets the CPU data. 需要保证 data 的大小与 size_ 相等
-   *
-   * @param[in] data The data pointer on CPU.
-   *
-   * @return Void.
-   */
-  void SetCpuData(void* data);
+  virtual const void* GetCpuData();
+  virtual void* GetMutableCpuData();
 
-  /**
-   * @brief Gets the CPU data.
-   *
-   * @param No return value.
-   *
-   * @return Returns the CPU data pointer.
-   *
-   * @note If the size is 0, nullptr is always returned.
-   */
-  const void* GetCpuData();
-
-  /**
-   * @brief Gets the mutable CPU data.
-   *
-   * @return Returns the CPU data pointer.
-   */
-  void* GetMutableCpuData();
-
-  /**
-   * @brief Gets synchronization status.
-   *
-   * @return Returns synchronization status .
-   *
-   * @see SyncedHead.
-   */
   SyncedHead GetHead() const { return head_; }
   /**
    * @brief Gets data bytes.
@@ -148,10 +119,10 @@ class CNSyncedMemory : private NonCopyable {
       default: head_str = "UNKNOWN"; break;
     }
     std::ostringstream oss;
-    oss << "CNSyncedMemory{size=" << info.size
-        << ", dev_id=" << info.dev_id
-        << ", head=" << head_str
-        << ", own_cpu_data=" << std::boolalpha << info.own_cpu_data << "}";
+    oss << "[SIZE=" << info.size
+        << ", DEV=" << info.dev_id
+        << ", HEAD=" << head_str
+        << ", OWN_CPU=" << std::boolalpha << info.own_cpu_data << "]";
     return oss.str();
   }
 

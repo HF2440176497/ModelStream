@@ -16,7 +16,7 @@ bool parse_from_file(std::string json_file, json& data) {
   }
   data = json::parse(file);
 
-  std::string module_name = "InferencerClass";
+  std::string module_name = "InferenceClass";
   if (data.contains(module_name)) {
     std::cout << module_name << ": " << data[module_name] << std::endl;
     std::vector<std::string> next_modules = data[module_name]["next_modules"];

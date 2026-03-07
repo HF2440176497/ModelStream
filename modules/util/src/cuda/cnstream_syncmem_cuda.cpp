@@ -140,4 +140,17 @@ void* CNSyncedMemoryCuda::GetMutableCudaData() {
   return cuda_ptr_;
 }
 
+const void* CNSyncedMemoryCuda::GetCpuData() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  ToCpu();
+  return const_cast<const void*>(cpu_ptr_);
+}
+
+void* CNSyncedMemoryCuda::GetMutableCpuData() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  ToCpu();
+  head_ = SyncedHead::HEAD_AT_CPU;
+  return cpu_ptr_;
+}
+
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
+if(NOT DEFINED VSTREAM_ROOT_PATH)
+    set(VSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
@@ -9,34 +9,34 @@ set(TOOLS_3RDPARTY_LIBS "")
 set(TOOLS_DEPENDENCIES "")
 
 if (build_va)
-  include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
-  have_modules_target(${MODELSTREAM_ROOT_PATH})
+  include(${VSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+  have_modules_target(${VSTREAM_ROOT_PATH})
   include_directories(
-    ${MODELSTREAM_ROOT_PATH}/modules
-    ${MODELSTREAM_ROOT_PATH}/modules/util/include
+    ${VSTREAM_ROOT_PATH}/modules
+    ${VSTREAM_ROOT_PATH}/modules/util/include
   )
   if (module_list)
     foreach(module ${module_list})
       include_directories(
-        ${MODELSTREAM_ROOT_PATH}/modules/${module}/include
+        ${VSTREAM_ROOT_PATH}/modules/${module}/include
       )
     endforeach()
   endif()
   if(HAVE_MODULES_TARGET)
-    list(APPEND TOOLS_DEPENDENCIES modelstream_va)
+    list(APPEND TOOLS_DEPENDENCIES vstream_va)
   endif()
 endif()
 
 # ---[ framework
-include(${MODELSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
-have_framework_target(${MODELSTREAM_ROOT_PATH})
-include_directories(${MODELSTREAM_ROOT_PATH}/framework/core/include)
+include(${VSTREAM_ROOT_PATH}/cmake/HaveFrameworkTarget.cmake)
+have_framework_target(${VSTREAM_ROOT_PATH})
+include_directories(${VSTREAM_ROOT_PATH}/framework/core/include)
 if(HAVE_FRAMEWORK_TARGET)
-  list(APPEND TOOLS_DEPENDENCIES modelstream_core)
+  list(APPEND TOOLS_DEPENDENCIES vstream_core)
 endif()
 
 # ---[ gflags
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
 if(GFLAGS_FOUND)
   message(STATUS "Using installed GFlags for modules unittest")
   include_directories(${GFLAGS_INCLUDE_DIRS})
@@ -45,7 +45,7 @@ else()
 endif()
 
 # ---[ glog
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
 if(GLOG_FOUND)
   message(STATUS "Using installed GLog for modules unittest")
   include_directories(${GLOG_INCLUDE_DIRS})
@@ -54,7 +54,7 @@ else()
 endif()
 
 # ---[ nlohmann/json
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
+include_directories(${VSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
 if(build_tests)
   add_definitions(-DUNIT_TEST)
@@ -63,7 +63,7 @@ endif()
 list(APPEND TOOLS_3RDPARTY_LIBS ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
 
 # ---[ opencv
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindOpenCV.cmake)
 if(OpenCV_FOUND)
   include_directories(${OpenCV_INCLUDE_DIRS})
   list(APPEND TOOLS_3RDPARTY_LIBS ${OpenCV_LIBS})
@@ -73,7 +73,7 @@ endif()
 
 # ---[ libyuv
 if(NOT DEFINED has_built_libyuv OR NOT has_built_libyuv)
-  add_subdirectory(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
+  add_subdirectory(${VSTREAM_ROOT_PATH}/3rdparty/libyuv ${CMAKE_CURRENT_BINARY_DIR}/lib/)
   set(has_built_libyuv TRUE)
 endif()
 
@@ -89,7 +89,7 @@ else()
   message(FATAL_ERROR "libyuv not found. Please ensure libyuv is installed")
 endif()
 
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
+include_directories(${VSTREAM_ROOT_PATH}/3rdparty/libyuv/include)
 
 # ---[ Options
 option(build_inspect "build cnstream inspect" ON)

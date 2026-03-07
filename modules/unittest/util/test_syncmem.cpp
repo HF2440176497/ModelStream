@@ -10,29 +10,32 @@
 #include "base.hpp"
 #include "cnstream_logging.hpp"
 
-#ifdef NVIDIA_PLATFORM
+#ifdef NVIDIA
 #include "cuda/cnstream_syncmem_cuda.hpp"
 #endif
 
 
 class CNSyncedMemoryTest : public ::testing::Test {
-protected:
+ protected:
   static const int kFloatCount = 1024;
   static const int kTestSize = 1024 * sizeof(float);
 };
 
+const int CNSyncedMemoryTest::kFloatCount;
+const int CNSyncedMemoryTest::kTestSize;
+
 namespace cnstream {
 
-#ifdef NVIDIA_PLATFORM
+#ifdef NVIDIA
 
 /**
  * 在 CPU 上设置数据 —— 转移到 CUDA —— 转移回 CPU 并验证
  */
 TEST_F(CNSyncedMemoryTest, BasicFunctionality) {
-  CNSyncedMemoryCuda mem(kTestSize);
+  CNSyncedMemoryCuda mem(kTestSize, 0);
 
   // Set data on CPU
-  float* cpu_data = static_cast<float*>(mem.GetMutableCpuData());
+  float* cpu_data = (float*)(mem.GetMutableCpuData());
   ASSERT_NE(cpu_data, nullptr) << "Failed to get mutable CPU data";
   ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CPU) << "Head should be HEAD_AT_CPU";
   for (int i = 0; i < kFloatCount; i++) {
@@ -50,7 +53,7 @@ TEST_F(CNSyncedMemoryTest, BasicFunctionality) {
   ASSERT_NE(cuda_data, nullptr) << "Failed to get CUDA data";
 
   // Transfer back to CPU and verify
-  float* cpu_data2 = static_cast<float*>(mem.GetMutableCpuData());
+  float* cpu_data2 = (float*)(mem.GetMutableCpuData());
   ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CPU) << "Head should be HEAD_AT_CPU after GetMutableCpuData";
   ASSERT_NE(cpu_data2, nullptr) << "Failed to get mutable CPU data after CUDA transfer";
 
@@ -74,7 +77,7 @@ TEST_F(CNSyncedMemoryTest, DeviceContext) {
   CNSyncedMemoryCuda mem(kTestSize, dev_id);
   ASSERT_EQ(mem.GetDevId(), dev_id) << "Device ID mismatch";
 
-  float* cpu_data = static_cast<float*>(mem.GetMutableCpuData());
+  float* cpu_data = (float*)(mem.GetMutableCpuData());
   ASSERT_NE(cpu_data, nullptr) << "Failed to get mutable CPU data";
 
   for (int i = 0; i < kFloatCount; i++) {
@@ -86,7 +89,7 @@ TEST_F(CNSyncedMemoryTest, DeviceContext) {
 }
 
 TEST_F(CNSyncedMemoryTest, MemoryManagement) {
-  CNSyncedMemoryCuda mem(kTestSize);
+  CNSyncedMemoryCuda mem(kTestSize, 0);
 
   float* manual_cuda_ptr;
   CHECK_CUDA_RUNTIME(cudaMalloc(&manual_cuda_ptr, kTestSize));
@@ -106,24 +109,37 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
   ASSERT_EQ(mem.GetHead(), SyncedHead::SYNCED) << "Head should be HEAD_AT_CPU after ToCpu";
 
   // 1）之前是同步的，因此只改变 head 为 HEAD_AT_CUDA
-  float* cuda_data = static_cast<float*>(mem.GetMutableCudaData());
+  float* cuda_data = (float*)(mem.GetMutableCudaData());
   ASSERT_NE(cuda_data, nullptr) << "Failed to get CUDA data after ToCpu";
   ASSERT_EQ(mem.GetHead(), SyncedHead::HEAD_AT_CUDA);
 
+  // 前面已经分配的 cpu 内存，这时应当还存在
+  ASSERT_NE(mem.cpu_ptr_, nullptr);
+  ASSERT_EQ(mem.cuda_ptr_, (void*)cuda_data);
+
   // 尝试改变 CUDA 数据
   void *tmp = malloc(kTestSize);
-  float pattern = 0xAB;
-  memset(tmp, pattern, kTestSize);
+  float pattern = static_cast<float>(0xAB);
+  float* tmp2 = (float*)tmp;
+  for (int i = 0; i < kFloatCount; i++) {
+    tmp2[i] = pattern;
+  }
+
   CHECK_CUDA_RUNTIME(cudaMemcpy(cuda_data, tmp, kTestSize, cudaMemcpyHostToDevice));
+
+  ASSERT_EQ(mem.GetSize(), kTestSize);
 
   // 2）接着 ToCpu, 会分配 cpu 内存, 接着验证 cpu 上的数据是否正确
   mem.ToCpu();
+  ASSERT_EQ(mem.GetHead(), SyncedHead::SYNCED);
   ASSERT_TRUE(mem.own_dev_data_[DevType::CPU]) << "CPU data ownership should be true after ToCpu";
 
-  float* cpu_data = static_cast<float*>(mem.GetCpuData());
+  const float* cpu_data = static_cast<const float*>(mem.GetCpuData());
   ASSERT_NE(cpu_data, nullptr);
+  ASSERT_EQ(mem.cpu_ptr_, (void*)cpu_data);
+  
   for (int i = 0; i < kFloatCount; i++) {
-    ASSERT_EQ(cpu_data[i], static_cast<float>(pattern)) << "Data mismatch at index " << i;
+    ASSERT_EQ(cpu_data[i], pattern) << "Data mismatch at index " << i;
   }
 
   cudaFree(manual_cuda_ptr);
@@ -131,7 +147,7 @@ TEST_F(CNSyncedMemoryTest, MemoryManagement) {
 }
 
 TEST_F(CNSyncedMemoryTest, AllocateMethod) {
-  CNSyncedMemoryCuda mem(kTestSize);
+  CNSyncedMemoryCuda mem(kTestSize, 0);
 
   ASSERT_EQ(mem.GetHead(), SyncedHead::UNINITIALIZED);
   

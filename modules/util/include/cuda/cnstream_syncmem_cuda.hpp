@@ -37,6 +37,10 @@ public:
 public:
   void ToCuda();
   void SetCudaData(void* data);
+
+  const void* GetCpuData() override;
+  virtual void* GetMutableCpuData() override;
+
   const void* GetCudaData();
   void* GetMutableCudaData();
 
@@ -62,11 +66,11 @@ public:
       default: head_str = "UNKNOWN"; break;
     }
     std::ostringstream oss;
-    oss << "CNSyncedMemoryCuda{size=" << info.size
-        << ", dev_id=" << info.dev_id
-        << ", head=" << head_str
-        << ", own_cpu_data=" << std::boolalpha << info.own_cpu_data
-        << ", own_cuda_data=" << info.own_cuda_data << "}";
+    oss << "[SIZE=" << info.size
+        << ", DEV=" << info.dev_id
+        << ", HEAD=" << head_str
+        << ", OWN_CPU=" << std::boolalpha << info.own_cpu_data
+        << ", OWN_CUDA=" << info.own_cuda_data << "]";
     return oss.str();
   }
 

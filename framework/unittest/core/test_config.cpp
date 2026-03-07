@@ -21,21 +21,21 @@ TEST(JSON, ReadFile) {
 
 /**
 * 测试 Json 文件读取后，读取某字段再得到字符串
-* @detail 测试 Inferencer 字段
+* @detail 测试 Inference 字段
 */
 TEST(JSON, ReadFile2Str) {
     std::string json_str = readFile(test_pipeline_json.c_str());
     EXPECT_FALSE(json_str.empty()) << "Read json file failed";
     nlohmann::json doc = nlohmann::json::parse(json_str);
 
-    std::string infer_name = "InferencerYolo";
-    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inferencer field";
+    std::string infer_name = "Inference";
+    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inference field";
     const nlohmann::json& inferencer = doc[infer_name];
-    EXPECT_TRUE(inferencer.is_object()) << "Inferencer field is not object";
+    EXPECT_TRUE(inferencer.is_object()) << "Inference field is not object";
     
     std::string inferencer_str = inferencer.dump();
-    EXPECT_TRUE(!inferencer_str.empty()) << "Inferencer field is empty";
-    LOGI(COREUNITEST) << "Inferencer field: " << inferencer_str << std::endl;
+    EXPECT_TRUE(!inferencer_str.empty()) << "Inference field is empty";
+    LOGI(COREUNITEST) << "Inference field: " << inferencer_str << std::endl;
 }
 
 /**
@@ -54,17 +54,17 @@ TEST(CoreConfig, ParseByJSONFile) {
 }
 
 /**
- * @brief 测试 CNModuleConfig 解析，将字段 Inferencer 解析为 CNModuleConfig
+ * @brief 测试 CNModuleConfig 解析，将字段 Inference 解析为 CNModuleConfig
  */
 TEST(CoreConfig, ModuleConfig) {
     std::string json_str = readFile(test_pipeline_json.c_str());
     EXPECT_FALSE(json_str.empty()) << "Read json file failed";
     nlohmann::json doc = nlohmann::json::parse(json_str);
 
-    std::string infer_name = "InferencerYolo";
-    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inferencer field";
+    std::string infer_name = "Inference";
+    EXPECT_TRUE(doc.contains(infer_name)) << "Json file has no Inference field";
     const nlohmann::json& inferencer = doc[infer_name];
-    EXPECT_TRUE(inferencer.is_object()) << "Inferencer field is not object";
+    EXPECT_TRUE(inferencer.is_object()) << "Inference field is not object";
     
     std::string inferencer_str = inferencer.dump();
 
@@ -73,10 +73,10 @@ TEST(CoreConfig, ModuleConfig) {
     inferencer_config.config_root_dir = "./";
     EXPECT_TRUE(inferencer_config.ParseByJSONStr(inferencer_str));
     EXPECT_TRUE(inferencer_config.name.empty());
-    EXPECT_EQ(inferencer_config.className, "cnstream::Inferencer");
+    EXPECT_EQ(inferencer_config.className, "cnstream::InferenceProcess");
     EXPECT_EQ(inferencer_config.next.size(), 1);  // next_modules 
 
-    LOGI(COREUNITEST) << "Inferencer next modules: ";
+    LOGI(COREUNITEST) << "Inference next modules: ";
     for (const auto& elem : inferencer_config.next) {
         LOGI(COREUNITEST) << "module: " << elem << " ";
     }
@@ -96,5 +96,5 @@ TEST(CoreConfig, CNGraphConfig) {
     EXPECT_TRUE(graph_config.ParseByJSONStr(json_content));
 
     // 检查 profiler_config 模块
-    EXPECT_FALSE(graph_config.profiler_config.enable_profile);
+    EXPECT_TRUE(graph_config.profiler_config.enable_profile);
 }

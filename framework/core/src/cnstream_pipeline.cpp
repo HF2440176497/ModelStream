@@ -368,7 +368,7 @@ void Pipeline::OnProcessStart(NodeContext* context, const std::shared_ptr<FrameI
   if (IsProfilingEnabled()) {
     auto record_key = std::make_pair(data->stream_id, data->timestamp);
     auto profiler = context->module->GetProfiler();
-    if (profiler) {
+    if (profiler && context->parent_nodes_mask) {  // not head nodes
       profiler->RecordProcessEnd(kINPUT_PROFILER_NAME, record_key);
       profiler->RecordProcessStart(kPROCESS_PROFILER_NAME, record_key);
     }
@@ -379,7 +379,7 @@ void Pipeline::OnProcessEnd(NodeContext* context, const std::shared_ptr<FrameInf
   if (data->IsEos()) return;
   if (IsProfilingEnabled()) {
     auto profiler = context->module->GetProfiler();
-    if (profiler) {
+    if (profiler && context->parent_nodes_mask) {
       profiler->RecordProcessEnd(
         kPROCESS_PROFILER_NAME, std::make_pair(data->stream_id, data->timestamp));
     }

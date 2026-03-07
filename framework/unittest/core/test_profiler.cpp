@@ -255,6 +255,8 @@ TEST(ProcessProfilerTest, ThreadSafety) {
   }
   ProcessProfile profile = profiler.GetProfile();
   EXPECT_EQ(profile.process_name, "thread_safe_process");
+
+  // 每个线程都 kIterationsPerThread 次操作，因此 (j % 10) == 0 会触发  kIterationsPerThread / 10 次 dropped
   EXPECT_EQ(profile.counter, int(kNumThreads * kIterationsPerThread));
   EXPECT_EQ(profile.completed, int(kNumThreads * kIterationsPerThread * 9 / 10));
   EXPECT_EQ(profile.dropped, int(kNumThreads * kIterationsPerThread / 10));

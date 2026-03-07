@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED MODELSTREAM_ROOT_PATH)
-    set(MODELSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
+if(NOT DEFINED VSTREAM_ROOT_PATH)
+    set(VSTREAM_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
 # ---[ gflags
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
 if(GFLAGS_FOUND)
   message(STATUS "Using installed GFlags for framework")
   include_directories(${GFLAGS_INCLUDE_DIRS})
@@ -15,7 +15,7 @@ else()
 endif()
 
 # ---[ glog
-include(${MODELSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
+include(${VSTREAM_ROOT_PATH}/cmake/FindGlog.cmake)
 if(GLOG_FOUND)
   message(STATUS "Using installed GLog for framework")
   include_directories(${GLOG_INCLUDE_DIRS})
@@ -24,7 +24,7 @@ else()
 endif()
 
 # ---[ nlohmann/json
-include_directories(${MODELSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
+include_directories(${VSTREAM_ROOT_PATH}/3rdparty/nlohmann-json/include)
 
 # ---[ source: framework
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
@@ -53,11 +53,11 @@ if(build_profiler)
 endif()
 
 if(build_core)
-  add_library(modelstream_core SHARED ${core_srcs} ${private_srcs} ${profiler_srcs})
-  target_link_libraries(modelstream_core ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} rt dl pthread)
-  # set_target_properties(modelstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
-  add_custom_target(core DEPENDS modelstream_core)
-  message(STATUS "Core module enabled - targets: modelstream_core, core")
+  add_library(vstream_core SHARED ${core_srcs} ${private_srcs} ${profiler_srcs})
+  target_link_libraries(vstream_core ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} rt dl pthread)
+  # set_target_properties(vstream_core PROPERTIES LINK_FLAGS_RELEASE -s)
+  add_custom_target(core DEPENDS vstream_core)
+  message(STATUS "Core module enabled - targets: vstream_core, core")
 endif()
 
 # unitest

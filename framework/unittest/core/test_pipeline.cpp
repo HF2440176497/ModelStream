@@ -10,24 +10,24 @@ namespace cnstream {
 static std::string test_pipeline_json = "pipeline.json";
 
 // 在测试实例中，定义出这个 virtual module
-class InferencerProcess: public Module, public ModuleCreator<InferencerProcess> {
+class InferenceProcess: public Module, public ModuleCreator<InferenceProcess> {
   public:
-    InferencerProcess(const std::string &name) : Module(name) {}
-    ~InferencerProcess() {}
+    InferenceProcess(const std::string &name) : Module(name) {}
+    ~InferenceProcess() {}
     bool Open(ModuleParamSet params) override {
       return true;
     }
     void Close() override {
-      LOGI(InferencerProcess) << "Close";
+      LOGI(InferenceProcess) << "Close";
     }
     int Process(std::shared_ptr<FrameInfo> frame) override {
-      LOGI(InferencerProcess) << "Process frame " << frame->stream_id << "; with time: " << frame->timestamp;
+      LOGI(InferenceProcess) << "Process frame " << frame->stream_id << "; with time: " << frame->timestamp;
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       return 0;
     }
 };
 
-REGISTER_MODULE(InferencerProcess);
+REGISTER_MODULE(InferenceProcess);
 
 
 class PipelineConfigLoad : public testing::Test {
